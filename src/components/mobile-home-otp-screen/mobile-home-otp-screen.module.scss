@@ -1,0 +1,394 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: Email-UI-Revamp / OTP Verification
+//   Empty state:  0:17943
+//   Filled state: 0:16741
+
+$primary:       #280071;
+$primary-hover: #1a004d;
+$bg-page:       #f8f8f8;
+$bg-white:      #ffffff;
+$border:        #d9d9d9;
+$text-dark:     #222222;
+$text-dark-2:   #2b2b2b;
+$text-label:    #666666;
+$shadow-mob:    0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:   0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// ── Gray rounded-bottom header ─────────────────────────────────────────────
+.mobileHeader {
+  background: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma: 16px SemiBold #2b2b2b
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ── White scrollable card ───────────────────────────────────────────────────
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 32px 24px 100px; // extra bottom padding for fixed button
+  flex: 1;
+}
+
+// ── Fixed bottom button area ────────────────────────────────────────────────
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+// Figma: w-328, h-48, bg #280071, rounded-8, 16px SemiBold white
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (Figma: 800px card, rounded-24)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+// Figma: w-800, rounded-24, border #d9d9d9, shadow
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+// Header: border-bottom 0.5px, p-24
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+  line-height: normal;
+}
+
+// Body: centered form content
+.desktopCardBody {
+  background: $bg-white;
+  padding: 48px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+// Figma: w-350, h-56, bg #280071, rounded-8, 16px SemiBold white
+.desktopProceedWrapper {
+  margin-top: 40px;
+}
+
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED OTP FORM  (used in both mobile and desktop)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.otpBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 360px;
+}
+
+// ── Phone number + Edit row ─────────────────────────────────────────────────
+.phoneRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// Figma: 16px SemiBold #222
+.phoneNumber {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: $primary;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+// ── OTP label + input ───────────────────────────────────────────────────────
+.otpField {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// Wraps the OTP boxes so only the box group shakes (not the label/error).
+.otpInputWrap {
+  width: fit-content;
+}
+
+// Microsoft Teams-style horizontal shake, played when the entered OTP is wrong.
+.shake {
+  animation: otpShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes otpShake {
+  10%, 90% { transform: translateX(-1px); }
+  20%, 80% { transform: translateX(2px); }
+  30%, 50%, 70% { transform: translateX(-5px); }
+  40%, 60% { transform: translateX(5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shake { animation: none; }
+}
+
+// Figma: 14px Regular #666
+.otpLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+}
+
+// ── Individual OTP box ──────────────────────────────────────────────────────
+// Figma: w-41px, h-40px, border #d9d9d9, rounded-8, 14px Regular #2b2b2b
+.otpBox {
+  width: 41px !important;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  text-align: center;
+  outline: none;
+  background: $bg-white;
+  transition: border-color 0.15s ease;
+  -moz-appearance: textfield;
+
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  &:focus { border-color: $primary; }
+}
+
+.otpBoxError {
+  border-color: #dc3545 !important;
+}
+
+.otpBoxSuccess {
+  border-color: #28a745 !important;
+}
+
+// ── Wrong OTP error message ─────────────────────────────────────────────────
+.otpError {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #dc3545;
+
+  img { width: 16px; height: 16px; }
+}
+
+// ── Resend row ──────────────────────────────────────────────────────────────
+.resendRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+// Figma: 14px Regular #666
+.resendText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+}
+
+.resendTimer {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: $primary;
+
+  &:hover { text-decoration: underline; }
+}

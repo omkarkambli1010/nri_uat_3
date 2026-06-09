@@ -1,0 +1,313 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: Onboarding-Web-UploadDocs (0:122674) / Onboarding-Mob-UploadDocs (0:123006)
+// "Upload the below documents" intro — required-documents checklist + CTA.
+
+$primary:       #280071;
+$primary-hover: #1a004d;
+$bg-page:       #f8f8f8;
+$bg-white:      #ffffff;
+$border:        #d9d9d9;
+$text-dark:     #222222;
+$text-dark-2:   #2b2b2b;
+$text-body:     #666666;
+$shadow-mob:    0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:   0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHARED — Required Documentation Checklist
+// ═══════════════════════════════════════════════════════════════════════════
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  word-break: break-word;
+}
+
+.checklistHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.checklistTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.checklistSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 24px;
+  margin: 0;
+}
+
+.checklistList {
+  margin: 0;
+  padding-left: 21px;
+  list-style: decimal;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  width: 100%;
+
+  li {
+    line-height: 32px;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT  (visible below 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background-color: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.mobileHeader {
+  background-color: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobileTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// White card — illustration on top, checklist below
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  flex: 1;
+}
+
+.illustrationMobile {
+  width: 210px;
+  height: 160px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+// In-flow button area at the bottom of the page (Figma 0:123188)
+.mobileButtonArea {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 16px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.mobileStartBtn {
+  width: 100%;
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (visible ≥ 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+}
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  justify-content: space-between;
+  min-height: 400px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+// Illustration left, checklist right (Figma 0:122889)
+.desktopContentRow {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  flex: 1;
+  padding: 0 24px;
+}
+
+.illustrationDesktop {
+  width: 267px;
+  height: 200px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+.desktopButtonWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.desktopStartBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}

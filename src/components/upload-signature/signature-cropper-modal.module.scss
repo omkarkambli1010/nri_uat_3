@@ -1,0 +1,192 @@
+// SignatureCropperModal — desktop modal + mobile bottom sheet. Sits on top
+// of SignatureUploadModal (higher z-index) while a picked image is cropped.
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1300;
+  padding: 16px;
+  animation: fadeIn 0.18s ease;
+}
+
+.overlayMob {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1300;
+  animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.deskCard {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 20px;
+  filter: drop-shadow(3px 4px 5px rgba(0, 0, 0, 0.15));
+  padding: 24px;
+  width: 640px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  animation: popIn 0.2s ease;
+
+  @keyframes popIn {
+    from { transform: scale(0.96); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+}
+
+.mobSheet {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px 20px 0 0;
+  filter: drop-shadow(3px 4px 5px rgba(0, 0, 0, 0.15));
+  padding: 16px 20px 20px;
+  width: 100%;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideUp 0.22s ease;
+
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+}
+
+.dashHandle {
+  width: 100px;
+  height: 4px;
+  border-radius: 4px;
+  background: #d9d9d9;
+  margin: 4px auto 8px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.subtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cropArea {
+  background: #f6f6f6;
+  border-radius: 12px;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  max-height: 60vh;
+  overflow: hidden;
+
+  // react-image-crop wraps the image in its own div; make sure it scales.
+  :global(.ReactCrop) {
+    max-width: 100%;
+    max-height: 56vh;
+  }
+
+  :global(.ReactCrop__image) {
+    max-width: 100%;
+    max-height: 56vh;
+    display: block;
+  }
+}
+
+.cropImage {
+  display: block;
+  max-width: 100%;
+  max-height: 56vh;
+}
+
+.actionRow {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  margin-top: 4px;
+}
+
+.btnOutlineMuted {
+  flex: 1;
+  height: 48px;
+  background: #fff;
+  border: 1px solid #999;
+  border-radius: 8px;
+  color: #444;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #fafafa;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.btnFilled {
+  flex: 1;
+  height: 48px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.18s ease;
+
+  &:hover:not(:disabled) {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: rgba(40, 0, 113, 0.35);
+    cursor: not-allowed;
+  }
+}

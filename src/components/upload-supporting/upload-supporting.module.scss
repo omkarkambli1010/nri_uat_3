@@ -1,0 +1,495 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// UploadSupporting — Pick supporting document type screen.
+// Figma desktop empty:    0:89042  (1440x1024, card 800px wide)
+// Figma mobile empty:     0:90004  (360x800)
+// Figma desktop selected: 0:88686
+// Figma mobile selected:  0:89804
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Desktop
+// ══════════════════════════════════════════════════════════════════════════════
+
+.deskCard {
+  width: 800px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.deskHeader {
+  width: 100%;
+  background: #fff;
+  border-bottom: 0.5px solid #d9d9d9;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.deskHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  p {
+    font-size: 14px;
+    font-weight: 400;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.deskBody {
+  background: #fff;
+  padding: 24px 48px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  min-height: 460px;
+}
+
+// Two-column row: illustration left, options right
+.deskTwoCol {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.illustrationCol {
+  flex: 0 0 267px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Layered SVG illustration (Figma node 0:89258, 13098899_Upload_file_concept).
+// Five SVG fragments stacked with absolute positioning. The container box is
+// 266.667 x 200 (Figma's native size); each layer's `inset` matches the
+// percentages in the Figma export so the composition aligns perfectly.
+.illo {
+  position: relative;
+  width: 266.667px;
+  height: 200px;
+  display: block;
+  overflow: hidden;
+}
+
+.illoLayer {
+  position: absolute;
+  display: block;
+  object-fit: contain;
+}
+
+.optionsCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lead {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 375px;
+}
+
+.optionsList {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+// Single radio row
+.optionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+}
+
+.radioOuter {
+  width: 24px;
+  height: 24px;
+  border: 0.5px solid #d9d9d9;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+
+.radioOuterSelected {
+  border-color: #280071;
+}
+
+.radioDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #280071;
+}
+
+.optionLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  line-height: 1.4;
+}
+
+.optionLabelSelected {
+  font-weight: 600;
+  color: #280071;
+}
+
+// Desktop bottom button
+.deskBtnRow {
+  background: #fff;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.btnFilled {
+  width: 350px;
+  height: 56px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover:not(:disabled) {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: rgba(40, 0, 113, 0.2);
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Mobile
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobGrayHeader {
+  background: #f8f8f8;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobBackRow {
+  display: flex;
+  align-items: center;
+}
+
+.mobBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.mobTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.mobTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mobSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobContentCard {
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 3px 10px 0 rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+}
+
+.mobIllustration {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobOptionsBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.mobLead {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.5;
+  max-width: 310px;
+}
+
+.mobBtnBar {
+  background: #fff;
+  padding: 8px 16px 16px;
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  bottom: 0;
+}
+
+.mobBtnFilled {
+  width: 328px;
+  max-width: 100%;
+  height: 48px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: rgba(40, 0, 113, 0.2);
+    cursor: not-allowed;
+  }
+}
+
+.btnOutline {
+  width: 350px;
+  height: 56px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.mobBtnOutline {
+  width: 328px;
+  max-width: 100%;
+  height: 48px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Verify state — shown after the upload modal completes.
+// Figma desktop 0:90536. Mobile follows the same pattern as the empty state
+// header, with the white content card swapped for a preview.
+// ══════════════════════════════════════════════════════════════════════════════
+
+.verifyBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  padding: 0 24px 24px;
+}
+
+.verifyBodyMob {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.filePill {
+  background: #f3f1ff;
+  border-radius: 8px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filePillMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.filePillName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b2b2b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filePillRemove {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.previewBox {
+  border: 1px dashed #d9d9d9;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  width: 100%;
+}
+
+.previewImg {
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  display: block;
+}
+
+.pdfText {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+.mobInfoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.mobInfoLine {
+  font-size: 12px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.deskBtnRowDual {
+  background: #fff;
+  padding: 24px;
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+}
+
+.mobBtnBarStack {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}

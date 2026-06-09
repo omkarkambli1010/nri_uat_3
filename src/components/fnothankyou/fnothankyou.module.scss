@@ -1,0 +1,21 @@
+$primary-color: #280071;
+
+.panDetailsForm {
+  padding-bottom: 40px;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+.appNumber {
+  font-size: 32px;
+  font-weight: 700;
+  color: $primary-color;
+  letter-spacing: 2px;
+}
+
+.btnAlign {
+  padding: 16px;
+  max-width: 320px;
+  margin: 0 auto;
+}

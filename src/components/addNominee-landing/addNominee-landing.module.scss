@@ -1,0 +1,521 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AddNomineeLanding — "Add Nominee" instruction / landing screen
+// Figma:
+//   Desktop: node 0:43797  (1440x1024, card 800x691)
+//   Mobile:  node 0:43519  (360x800)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Desktop
+// ══════════════════════════════════════════════════════════════════════════════
+
+.deskCard {
+  width: 800px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin: 40px auto;
+}
+
+.deskHeader {
+  width: 100%;
+  background: #fff;
+  border-bottom: 0.5px solid #d9d9d9;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.deskHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+
+  p {
+    font-size: 12px;
+    font-weight: 400;
+    color: #2b2b2b;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.deskTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222222;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.needHelpChip {
+  background: rgba(207, 169, 255, 0.09);
+  border: 0.5px solid #d9d9d9;
+  border-radius: 25px;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #280071;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+
+  @media (min-width: 992px) {
+    font-size: 14px;
+  }
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.deskBody {
+  padding: 24px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 581px;
+  box-sizing: border-box;
+}
+
+.deskIllustrationWrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.deskDescription {
+  width: 452px;
+  max-width: 100%;
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  text-align: center;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.deskIllustration {
+  width: 266px;
+  height: auto;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.deskBtnRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  width: 100%;
+}
+
+.btnOutline {
+  width: 350px;
+  height: 56px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: #f3f1ff;
+  }
+}
+
+.btnFilled {
+  width: 350px;
+  height: 56px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: #b9b9b9;
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Mobile
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobGrayHeader {
+  background: #f8f8f8;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobBackRow {
+  display: flex;
+  align-items: center;
+}
+
+.mobBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.mobTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mobTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mobSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobContentCard {
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 3px 10px 0 rgba(0, 0, 0, 0.05);
+  padding: 24px 16px 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  min-height: 548px;
+  overflow: hidden;
+}
+
+.mobDescription {
+  font-size: 14px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+  align-self: stretch;
+}
+
+.mobIllustration {
+  width: 266px;
+  max-width: 100%;
+  height: auto;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+
+.mobBtnBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #f8f8f8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 8px 16px 16px;
+  z-index: 100;
+}
+
+.mobBtnOutline {
+  flex: 1;
+  max-width: 152px;
+  height: 48px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.mobBtnFilled {
+  flex: 1;
+  max-width: 152px;
+  height: 48px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: #b9b9b9;
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Opt-out confirmation popup
+//   Desktop centered modal — Figma 0:44390 (500x ~ content, 20px radius)
+//   Mobile bottom sheet  — Figma 0:46166 (rounded-top, dash handle)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.popupOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: popupFadeIn 0.15s ease-out;
+}
+
+@keyframes popupFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.popupCard {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 20px;
+  width: 500px;
+  max-width: 100%;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  animation: popupSlideUp 0.18s ease-out;
+}
+
+@keyframes popupSlideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.popupHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.popupTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.popupClose {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.popupMessage {
+  width: 100%;
+  font-size: 16px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.popupBtnFilled {
+  width: 350px;
+  max-width: 100%;
+  height: 56px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: #3d0087;
+  }
+}
+
+// ── Mobile bottom sheet ───────────────────────────────────────────────────────
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+  animation: popupFadeIn 0.15s ease-out;
+}
+
+.sheetCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 20px 20px 0 0;
+  filter: drop-shadow(3px 4px 5px rgba(0, 0, 0, 0.15));
+  width: 100%;
+  padding: 24px;
+  padding-top: 12px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  animation: sheetSlideUp 0.22s ease-out;
+}
+
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheetDash {
+  width: 100px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 4px;
+    background: #d9d9d9;
+    border-radius: 2px;
+  }
+}
+
+.sheetTextBlock {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.sheetTitle {
+  width: 100%;
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sheetMessage {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sheetBtnFilled {
+  width: 100%;
+  height: 48px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #3d0087;
+  }
+}

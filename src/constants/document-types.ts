@@ -1,0 +1,16 @@
+export const DOCUMENT_TYPES = {
+  PAN_CARD: 'PanCard',
+  BANK_NRO: 'BankStatement_NRO',
+  BANK_NRE: 'BankStatement_NonPIS_NRE',
+  PASSPORT_FRONT: 'PassportFront',
+  PASSPORT_BACK: 'PassportBack',
+  PASSPORT_TRANSLATION: 'PassportTranslation',
+  VISA_FRONT: 'VisaFront',
+  VISA_BACK: 'VisaBack',
+  VISA_TRANSLATION: 'VisaTranslation',
+  ADDRESS_PROOF: 'AddressProof',
+  FATCA_TIN_PROOF: 'FatcaTinProof',
+  SIGNATURE: 'Signature',
+  BANK_STATEMENT: 'BankStatement',
+  SELFIE: 'Selfie',
+} as const;

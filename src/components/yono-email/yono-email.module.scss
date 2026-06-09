@@ -1,0 +1,122 @@
+$primary-color: #280071;
+
+.yonoEmailPage {
+  padding-bottom: 80px;
+
+  @media (min-width: 992px) {
+    padding-bottom: 0;
+  }
+}
+
+.formGroup {
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.required {
+  color: #d32f2f;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: $primary-color;
+  }
+}
+
+.inputError {
+  border-color: #d32f2f;
+}
+
+.errorText {
+  font-size: 12px;
+  color: #d32f2f;
+  margin-top: 4px;
+}
+
+.proceedBtn {
+  margin: 24px 0;
+
+  @media (min-width: 992px) {
+    max-width: 320px;
+  }
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: $primary-color;
+  padding: 0 8px 0 0;
+}
+
+.otpInfo {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #555;
+}
+
+.otpInputs {
+  display: flex;
+  gap: 12px;
+  margin: 24px 0 16px;
+
+  @media (max-width: 360px) {
+    gap: 8px;
+  }
+}
+
+.otpBox {
+  width: 48px;
+  height: 56px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 22px;
+  font-weight: 700;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+
+  &:focus {
+    border-color: $primary-color;
+  }
+
+  @media (max-width: 360px) {
+    width: 40px;
+    height: 48px;
+    font-size: 18px;
+  }
+}
+
+.resendRow {
+  text-align: center;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #555;
+}
+
+.resendBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: $primary-color;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: underline;
+}

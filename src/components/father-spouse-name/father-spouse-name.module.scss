@@ -1,0 +1,192 @@
+$primary-color: #280071;
+
+// Card body — fields area only (no button)
+// Desktop: total card body height should be 581px including 24px padding top/bottom.
+// Since this is nested inside .figma-card-body, the inner content height is 533px.
+// Mobile: flex:1, auto height, rounded-top-only corners
+.cardBody {
+  background: #fff;
+  height: 533px;
+  padding: 24px;
+  border-radius: 0 0 24px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  @media (max-width: 767px) {
+    height: auto;
+    flex: 1;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+    justify-content: flex-start;
+  }
+}
+
+// Inner flex column — flex: 1, gap 24px (fields area)
+.cardContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+// Field row — flex row, gap 24px, items-center (Figma: Input Standart)
+.fieldRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+
+  @media (max-width: 767px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+// Label — Figma desktop: font-medium, 16px, #666, leading-[45px], w-[231px], shrink-0
+// Mobile: 14px, regular, full width
+.fieldLabel {
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  line-height: 45px;
+  width: 231px;
+  flex-shrink: 0;
+  text-align: left;
+  margin: 0;
+
+  @media (max-width: 767px) {
+    width: 100%;
+    line-height: 1.4;
+    font-size: 14px;
+    font-weight: 400;
+  }
+}
+
+// Input wrapper — Figma: w-[250px], shrink-0
+.fieldInputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 250px;
+  flex-shrink: 0;
+
+  @media (max-width: 767px) {
+    width: 100%;
+  }
+}
+
+// Input — Figma: border #d9d9d9, h-[40px], px-[16px], py-[10px], rounded-[8px], 14px, #999 placeholder
+.fieldInput {
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  height: 40px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #222;
+  width: 100%;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.2s;
+
+  &::placeholder {
+    color: #999;
+    font-size: 14px;
+  }
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba(40, 0, 113, 0.1);
+  }
+
+  &.inputError {
+    border-color: #dc3545;
+  }
+}
+
+// ── Desktop proceed button (inside card, pinned to bottom) ──────────────────
+
+.proceedRow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+// Hidden on mobile — button lives in mobileProceedRow instead
+.desktopProceed {
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+// Proceed button — Figma desktop: bg-[#280071], h-[56px], w-[350px], rounded-[8px], semibold 16px white
+.proceedBtn {
+  background: $primary-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  height: 56px;
+  width: 350px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #1a004d;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ── Mobile proceed button (outside card, on gray background) ────────────────
+
+// Hidden on desktop, shown on mobile
+.mobileProceedRow {
+  display: none;
+
+  @media (max-width: 767px) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-bottom: 16px;
+    padding-top: 0;
+  }
+}
+
+// Figma mobile: h-[48px], w-[328px] (= 100% - 32px padding), rounded-[8px]
+.mobileProceedBtn {
+  background: $primary-color;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  height: 48px;
+  width: calc(100% - 32px);
+  max-width: 328px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    background: #1a004d;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

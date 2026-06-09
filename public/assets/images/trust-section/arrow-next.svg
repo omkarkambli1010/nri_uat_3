@@ -1,0 +1,25 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 68.7234 68.7234" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Arrow Button">
+<g id="Ellipse 29" filter="url(#filter0_d_0_509)">
+<circle cx="29.2979" cy="29.2979" r="17" fill="var(--fill-0, white)"/>
+<circle cx="29.2979" cy="29.2979" r="16.6383" stroke="url(#paint0_linear_0_509)" stroke-opacity="0.2" stroke-width="0.723404"/>
+</g>
+<path id="icon/navigation/arrow_forward_24px" d="M24.5955 30.0882H32.6759L29.1457 33.6184C28.8636 33.9005 28.8636 34.3635 29.1457 34.6456C29.4278 34.9278 29.8836 34.9278 30.1657 34.6456L34.9329 29.8784C35.2151 29.5963 35.2151 29.1405 34.9329 28.8584L30.1729 24.0839C30.0378 23.9485 29.8543 23.8723 29.6629 23.8723C29.4716 23.8723 29.2881 23.9485 29.1529 24.0839C28.8708 24.366 28.8708 24.8218 29.1529 25.1039L32.6759 28.6414H24.5955C24.1976 28.6414 23.8721 28.9669 23.8721 29.3648C23.8721 29.7626 24.1976 30.0882 24.5955 30.0882Z" fill="var(--fill-0, #6D7D8B)"/>
+</g>
+<defs>
+<filter id="filter0_d_0_509" x="0" y="0" width="68.7234" height="68.7234" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+<feOffset dx="5.06383" dy="5.06383"/>
+<feGaussianBlur stdDeviation="8.68085"/>
+<feComposite in2="hardAlpha" operator="out"/>
+<feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.06 0"/>
+<feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_0_509"/>
+<feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_0_509" result="shape"/>
+</filter>
+<linearGradient id="paint0_linear_0_509" x1="12.2979" y1="12.3187" x2="20.5438" y2="31.8241" gradientUnits="userSpaceOnUse">
+<stop stop-color="#231F20" stop-opacity="0.6"/>
+<stop offset="1" stop-color="#231F20" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>

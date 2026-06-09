@@ -1,0 +1,21 @@
+$primary-color: #280071;
+
+.navbar {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: #fff !important;
+  padding: 12px 0;
+}
+
+.navbarBrand {
+  display: flex;
+  align-items: center;
+
+  img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+  }
+}

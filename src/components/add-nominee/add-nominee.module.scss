@@ -1,0 +1,871 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// AddNominee — Multi-state nominee form
+//   Figma states:
+//     1. Initial form         (W 0:43193 / M 0:43036)
+//     2. Address-not-same     (W 0:42679 / M 0:42516)
+//     3. Nominee is Minor     (W 0:42255 / M 0:42090)
+//     4. Multi-nominee adding (W 0:41612 / M 0:39685)
+//     5. Summary list view    (W 0:44400 / M 0:39858)
+//     6. Max reached          (W 0:41850)
+// ─────────────────────────────────────────────────────────────────────────────
+
+$primary: #280071;
+$primaryHover: #3d0087;
+$border: #d9d9d9;
+$labelMuted: #666;
+$textDark: #222;
+$textBody: #2b2b2b;
+$placeholder: #999;
+$pageBg: #f8f8f8;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Desktop card chrome
+// ══════════════════════════════════════════════════════════════════════════════
+
+.deskCard {
+  width: 800px;
+  max-width: calc(100% - 32px);
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  margin: 24px auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  // Cap the card height so the inner form scrolls instead of pushing the page.
+  // 90px global header + 48px (margin top+bottom) + a small buffer.
+  max-height: calc(100vh - 138px);
+}
+
+.deskHeader {
+  width: 100%;
+  background: #fff;
+  border-bottom: 0.5px solid $border;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.deskHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+
+  p {
+    font-size: 12px;
+    font-weight: 400;
+    color: $textBody;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.deskTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: $textDark;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.needHelpChip {
+  background: rgba(207, 169, 255, 0.09);
+  border: 0.5px solid $border;
+  border-radius: 25px;
+  padding: 8px 11px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $primary;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.deskBody {
+  padding: 24px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  min-height: 0; // allow flex child to shrink so inner scroll can take over
+  box-sizing: border-box;
+}
+
+.deskBodyScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+  margin-right: -8px;
+
+  // Slim scrollbar
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $border;
+    border-radius: 3px;
+  }
+}
+
+.deskFooter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0; // never collapses, always pinned below the scroll area
+}
+
+.deskBtnFilled {
+  width: 350px;
+  max-width: 100%;
+  height: 56px;
+  background: $primary;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: $primaryHover;
+  }
+
+  &:disabled {
+    background: rgba(40, 0, 113, 0.2);
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// "You have added N nominees" sub-header (states 4 & 6)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.countHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  h6 {
+    font-size: 18px;
+    font-weight: 600;
+    color: $textDark;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.countHeaderDivider {
+  height: 1px;
+  background: $border;
+  width: 100%;
+}
+
+.nomineeBadgeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+
+  p {
+    font-size: 20px;
+    font-weight: 600;
+    color: $textBody;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.removeBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nomineeTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: $textBody;
+  margin: 0;
+  line-height: 1.4;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Form rows — desktop (label left, input right)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.rowLabel {
+  width: 231px;
+  font-size: 16px;
+  font-weight: 400;
+  color: $labelMuted;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.field {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.input {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 8px;
+  height: 40px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: $textDark;
+  outline: none;
+  font-family: inherit;
+  width: 250px;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $placeholder;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+
+  &:disabled {
+    background: $pageBg;
+    color: $textDark;
+  }
+}
+
+// Wraps an input + its error text so they stack vertically inside a row
+.fieldStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+// Constrains the PrimeReact Calendar to 250px to match other 250px inputs
+.deskCalendarWrap {
+  width: 250px;
+}
+
+// Red-border state for invalid fields (desktop)
+.inputErr {
+  border-color: #dc3545 !important;
+
+  &:focus {
+    border-color: #dc3545 !important;
+  }
+}
+
+// Inline error text below an input
+.errorText {
+  font-size: 12px;
+  color: #dc3545;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.inputHalf {
+  composes: input;
+  width: 212px;
+}
+
+.select {
+  composes: input;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5' fill='none'><path d='M1 1L4 4L7 1' stroke='%23666' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 36px;
+}
+
+.inputWithIcon {
+  position: relative;
+  width: 250px;
+  display: inline-flex;
+  align-items: center;
+
+  input {
+    background: #fff;
+    border: 1px solid $border;
+    border-radius: 8px;
+    height: 40px;
+    padding: 10px 40px 10px 16px;
+    font-size: 14px;
+    color: $textDark;
+    outline: none;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: $placeholder;
+    }
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+
+  svg {
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+  }
+}
+
+.lastNameRow {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-left: 255px;
+}
+
+// Address preview pill (when "same as applicant" is ticked)
+.addressPreview {
+  background: rgba(236, 238, 255, 0.5);
+  border: 1px dashed #c3c7ed;
+  border-radius: 8px;
+  padding: 10px 16px;
+  width: 100%;
+  box-sizing: border-box;
+
+  p {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.5;
+  }
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  border: 2px solid $border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.checkboxChecked {
+  background: $primary;
+  border-color: $primary;
+}
+
+.checkboxLabel {
+  font-size: 16px;
+  font-weight: 400;
+  color: $labelMuted;
+  margin: 0;
+}
+
+// Three checkboxes laid out side by side; wraps onto the next line when the
+// row is too narrow to fit all three (e.g. on small phones).
+.checkboxGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  width: 100%;
+
+  .checkboxRow {
+    width: auto;
+  }
+}
+
+// Print-preference radios
+.radioGroup {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  width: 100%;
+
+  > p {
+    font-size: 14px;
+    font-weight: 400;
+    color: $labelMuted;
+    margin: 0;
+    line-height: 22px;
+  }
+}
+
+.radiosRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.radioPill {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 0;
+  cursor: pointer;
+
+  span {
+    font-size: 16px;
+    font-weight: 400;
+    color: $labelMuted;
+  }
+}
+
+.radioPillSelected span {
+  font-weight: 600;
+  color: $primary;
+}
+
+.radioOuter {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 0.5px solid $border;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+
+.radioOuterSelected {
+  border: 0.5px solid $primary;
+}
+
+.radioDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: $primary;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Optional Details — "I hereby authorise…" encashment declaration
+// ══════════════════════════════════════════════════════════════════════════════
+
+.authoriseRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.authorisePara {
+  font-size: 14px;
+  color: $labelMuted;
+  line-height: 24px;
+  margin: 0;
+}
+
+// Inline non-editable values (nominee name / number / "%") in the declaration
+.authoriseValue {
+  color: $textDark;
+}
+
+// Muted "(Optional)" tag at the end of the declaration
+.optionalTag {
+  color: $placeholder;
+}
+
+// Inline editable encashment-percentage field — styled as an underline blank
+// to mirror the "______" placeholder in the design
+.encashInput {
+  display: inline-block;
+  width: 52px;
+  margin: 0 2px;
+  padding: 0 6px 1px;
+  border: none;
+  border-bottom: 1.5px solid $labelMuted;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: $textDark;
+  text-align: center;
+  outline: none;
+  vertical-align: baseline;
+
+  &::placeholder {
+    color: $placeholder;
+    letter-spacing: 1px;
+  }
+
+  &:focus {
+    border-bottom-color: $primary;
+  }
+}
+
+.encashInputErr {
+  border-bottom-color: #dc3545;
+}
+
+// "+ Add Another Nominee" link
+.addAnotherLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: $primary;
+  font-size: 16px;
+  font-weight: 600;
+  text-decoration: underline;
+
+  &:disabled {
+    color: rgba(40, 0, 113, 0.4);
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Summary list view (state 5)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.summaryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.summaryName {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .name {
+    font-size: 16px;
+    font-weight: 600;
+    color: $textDark;
+    margin: 0;
+  }
+
+  .allocation {
+    font-size: 14px;
+    font-weight: 400;
+    color: $labelMuted;
+    margin: 0;
+  }
+}
+
+.summaryActions {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+
+  button {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: $primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Mobile layout
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobGrayHeader {
+  background: $pageBg;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobBackRow {
+  display: flex;
+  align-items: center;
+}
+
+.mobBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.mobTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mobTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $textBody;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mobSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $textBody;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobContentCard {
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 3px 10px 0 rgba(0, 0, 0, 0.05);
+  padding: 24px 16px 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.mobBtnBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $pageBg;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px 16px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  z-index: 100;
+}
+
+.mobBtnFilled {
+  width: 100%;
+  max-width: 360px;
+  height: 48px;
+  background: $primary;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: $primaryHover;
+  }
+
+  &:disabled {
+    background: rgba(40, 0, 113, 0.2);
+    cursor: not-allowed;
+  }
+}
+
+// Mobile form field — label on top, input below, full width
+.mobField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.mobFieldRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.mobFieldRow .mobField {
+  flex: 1;
+}
+
+.mobLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $labelMuted;
+  margin: 0;
+  line-height: 20px;
+}
+
+.mobInput {
+  background: #fff;
+  border: 1px solid $border;
+  border-radius: 8px;
+  height: 40px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: $textDark;
+  outline: none;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+
+  &::placeholder {
+    color: $placeholder;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+
+  &:disabled {
+    background: $pageBg;
+    color: $textDark;
+  }
+}
+
+// Red-border state for invalid fields (mobile)
+.mobInputErr {
+  border-color: #dc3545 !important;
+
+  &:focus {
+    border-color: #dc3545 !important;
+  }
+}
+
+.mobSelect {
+  composes: mobInput;
+  appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5' fill='none'><path d='M1 1L4 4L7 1' stroke='%23666' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 36px;
+}
+
+.mobInputWithIcon {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+
+  input {
+    background: #fff;
+    border: 1px solid $border;
+    border-radius: 8px;
+    height: 44px;
+    padding: 10px 44px 10px 16px;
+    font-size: 14px;
+    color: $textDark;
+    outline: none;
+    font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
+
+    &::placeholder {
+      color: $placeholder;
+    }
+
+    &:focus {
+      border-color: $primary;
+    }
+  }
+
+  svg {
+    position: absolute;
+    right: 12px;
+    pointer-events: none;
+  }
+}
+
+.mobSummaryItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid $border;
+  gap: 12px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}

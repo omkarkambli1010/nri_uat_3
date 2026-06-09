@@ -1,0 +1,1237 @@
+// Plan Preference — Brokerage plan selection
+// Figma: Desktop 0:37245 | Mobile 0:38158 / 0:37994
+
+$primary: #280071;
+$text-dark: #222222;
+$text-body: #666666;
+$bg-white: #ffffff;
+$bg-page: #f8f8f8;
+$border-card: #d9d9d9;
+$border-plan: #e7ebff;
+$border-plan-hl: #bda7ff;
+
+// ─── Mobile Layout ───────────────────────────────────────────
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  height: calc(100vh - 90px);
+  overflow: hidden;
+
+  @media (min-width: 992px) { display: none; }
+}
+
+.mobileHeader {
+  background: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileHeaderInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+// ─── DP Tariff Button ────────────────────────────────────────
+
+.dpTariffBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f1ff;
+  border: 0.5px solid $primary;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  color: $primary;
+  line-height: normal;
+  white-space: nowrap;
+}
+
+// ─── Mobile White Card ───────────────────────────────────────
+
+.mobilePlanCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ─── Mobile Splide Carousel ───────────────────────────────────
+
+.splideWrapper {
+  padding: 20px 0 8px;
+  flex-shrink: 0;
+
+  // Splide track overrides
+  :global(.splide__track) {
+    padding: 4px 0 12px !important;
+  }
+
+  :global(.splide__pagination) {
+    bottom: -4px;
+  }
+
+  :global(.splide__pagination__page) {
+    background: $border-card;
+    opacity: 1;
+    width: 8px;
+    height: 8px;
+
+    &:global(.is-active) {
+      background: $primary;
+      transform: scale(1.2);
+    }
+  }
+}
+
+// ─── Mobile Slide Plan Card ───────────────────────────────────
+
+.slideCard {
+  border: 1px solid $border-plan;
+  border-radius: 16px;
+  padding: 16px;
+  background: $bg-white;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: relative;
+  box-shadow: inset 0px 20px 30px 8px rgba(216, 206, 255, 0.15);
+  min-height: 320px;
+}
+
+.slideCardHighlighted {
+  border-color: $border-plan-hl;
+  background: radial-gradient(ellipse at top left, rgba(235, 229, 255, 1) 56%, rgba(196, 174, 255, 1) 78%, rgba(157, 118, 255, 1) 100%);
+  box-shadow: inset 0px 20px 30px 8px rgba(216, 206, 255, 0.4);
+}
+
+.slideIconRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  img { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; }
+}
+
+.slidePlanName {
+  font-size: 14px;
+  font-weight: 400;
+  color: #141414;
+  letter-spacing: -0.5px;
+  margin: 0;
+  flex: 1;
+}
+
+.slideBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: $bg-white;
+  border: 1px solid #9d76ff;
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: $primary;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.slidePriceRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slidePriceAmount {
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.slidePriceValue {
+  font-size: 32px;
+  font-weight: 600;
+  color: #222;
+  line-height: normal;
+  padding-left: 10px;
+  position: relative;
+
+  &::before {
+    content: '₹';
+    font-size: 16px;
+    font-weight: 500;
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+}
+
+.slidePriceGst {
+  font-size: 11px;
+  font-weight: 400;
+  color: $text-body;
+  padding-bottom: 4px;
+}
+
+.slideFeeLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: $primary;
+  margin: 0;
+}
+
+.slideDivider {
+  height: 0;
+  border-top: 1px dashed $border-card;
+  width: 100%;
+}
+
+.slideBrokerageBlock {
+  text-align: center;
+
+  p { margin: 0; line-height: 1.4; }
+
+  .brokerageMain { font-size: 14px; font-weight: 700; color: $primary; }
+  .brokerageLabel { font-size: 13px; font-weight: 400; color: #222; }
+  .brokerageNote { font-size: 10px; color: #000; display: block; }
+}
+
+.slideBenefits {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.slideBenefitsTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: $primary;
+  margin: 0;
+}
+
+.slideBenefitItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+
+  p { font-size: 11px; font-weight: 400; color: #222; line-height: 18px; margin: 0; }
+  .subLine { font-size: 10px; color: #290172; display: block; line-height: 16px; }
+}
+
+.slideActions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+}
+
+.slideProceedBtn {
+  width: 100%;
+  height: 36px;
+  background: $primary;
+  color: $bg-white;
+  border: 1px solid $primary;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:hover { opacity: 0.9; }
+}
+
+.slideKnowMore {
+  font-size: 12px;
+  font-weight: 600;
+  color: $primary;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+// ─── Mobile Plan Tabs (compact 3-column selector) ─────────────
+
+.mobilePlanTabs {
+  display: flex;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mobilePlanTab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 8px;
+  gap: 12px;
+  background: $bg-white;
+  min-width: 0;
+  cursor: pointer;
+
+  &:first-child { border-top-left-radius: 24px; }
+  &:last-child { border-top-right-radius: 24px; }
+}
+
+.mobilePlanTabMiddle { background: rgba(241, 241, 246, 0.37); }
+
+.mobilePlanTabSelected {
+  background: radial-gradient(ellipse at center bottom, #fff 0%, rgba(235, 229, 255, 1) 55%, rgba(191, 166, 255, 1) 85%);
+}
+
+.tabIcon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.tabNamePrice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.tabName {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  text-align: center;
+  margin: 0;
+  line-height: normal;
+}
+
+.tabPrice {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: 20px;
+  text-align: center;
+}
+
+.tabPriceGst {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark;
+}
+
+.tabPriceSub {
+  font-size: 10px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 20px;
+  text-align: center;
+  margin: 0;
+}
+
+.tabSelectBtn {
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  background: $primary;
+  color: $bg-white;
+  border: 1px solid $primary;
+
+  &:hover { opacity: 0.9; }
+}
+
+.tabSelectBtnSelected {
+  background: $bg-white;
+  color: $primary;
+  border-color: $primary;
+
+  &:hover { opacity: 0.8; }
+}
+
+.comparisonColSelected {
+  background: #f8f7ff;
+  border-left: 0.5px solid $border-card;
+  border-right: 0.5px solid $border-card;
+}
+
+// ─── Mobile Comparison Table ──────────────────────────────────
+
+.comparisonBanner {
+  background: $bg-white;
+  box-shadow: 0 4px 10px rgba(146, 146, 146, 0.3);
+  padding: 8px 0 12px;
+  text-align: center;
+  font-size: 12px;
+  color: $text-dark;
+  flex-shrink: 0;
+
+  p { margin: 0; line-height: 20px; }
+  strong { font-weight: 600; }
+}
+
+.comparisonScrollArea {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+}
+
+.comparisonSectionHeader {
+  border-bottom: 0.5px solid $border-card;
+  padding: 0 10px 8px;
+  text-align: center;
+
+  p {
+    font-size: 14px;
+    font-weight: 600;
+    color: $primary;
+    line-height: 24px;
+    margin: 0;
+  }
+}
+
+.comparisonDataRow {
+  display: flex;
+  align-items: flex-start;
+  padding-bottom: 16px;
+  text-align: center;
+}
+
+.comparisonCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 16px;
+}
+
+.comparisonColMiddle { background: rgba(241, 241, 246, 0.37); }
+
+.comparisonCell {
+  text-align: center;
+
+  .cellVal { font-size: 14px; font-weight: 400; color: $text-dark; line-height: 20px; margin: 0; }
+  .cellLbl { font-size: 12px; font-weight: 400; color: $text-body; line-height: 20px; margin: 0; }
+}
+
+.comparisonFootnote {
+  border-top: 0.5px solid $border-card;
+  padding: 16px;
+  text-align: center;
+  font-size: 14px;
+  color: $text-dark;
+  line-height: 20px;
+  max-width: 330px;
+  margin: 0 auto;
+}
+
+// ─── Mobile Proceed Area ─────────────────────────────────────
+
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 24px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+
+  @media (min-width: 992px) { display: none; }
+}
+
+.mobileProceedBtn {
+  width: 100%;
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  cursor: pointer;
+  background: rgba(40, 0, 113, 0.2);
+  transition: background 0.2s;
+
+  &:not(:disabled) { background: $primary; }
+  &:disabled { cursor: not-allowed; }
+}
+
+// ─── Desktop Layout ───────────────────────────────────────────
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 992px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 80px);
+    background: $bg-page;
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 816px;
+  border: 1px solid $border-card;
+  border-radius: 24px;
+  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+  background: $bg-white;
+  overflow: hidden;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border-card;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.desktopHeaderLeft {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 8px 0 0;
+  line-height: 1.5;
+}
+
+.desktopCardBody {
+  padding: 60px 0 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  min-height: 582px;
+}
+
+// ─── Desktop Plan Cards (Figma NRE-RI 0:49002) ───────────────
+
+$d-border-plan:    #e7ebff;
+$d-border-hl:      #bda7ff;
+$d-shadow:         inset 0px 26px 40px 11px rgba(216, 206, 255, 0.2);
+$d-shadow-hl:      inset 0px 26px 40px 11px rgba(216, 206, 255, 0.5);
+$d-text-emargin:   #290172;
+
+.dCardsRow {
+  display: flex;
+  gap: 24px;
+  padding: 0 16px;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.dCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  padding: 16px;
+  border: 1px solid $d-border-plan;
+  border-radius: 12px;
+  background: $bg-white;
+  width: 240px;
+  flex-shrink: 0;
+  box-shadow: $d-shadow;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.dCardSpecial {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg viewBox='0 0 240 472' xmlns='http://www.w3.org/2000/svg' preserveAspectRatio='none'%3E%3Crect x='0' y='0' height='100%25' width='100%25' fill='url(%23grad)' opacity='1'/%3E%3Cdefs%3E%3CradialGradient id='grad' gradientUnits='userSpaceOnUse' cx='0' cy='0' r='10' gradientTransform='matrix(18.35 45.739 -52.572 26.637 56.5 89.343)'%3E%3Cstop stop-color='rgba(235%2C229%2C255%2C1)' offset='0.56426'/%3E%3Cstop stop-color='rgba(196%2C174%2C255%2C1)' offset='0.78213'/%3E%3Cstop stop-color='rgba(157%2C118%2C255%2C1)' offset='1'/%3E%3C/radialGradient%3E%3C/defs%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+.dCardSelected {
+  border-color: $d-border-hl;
+  box-shadow: $d-shadow-hl;
+}
+
+.dCardPremium {
+  flex: 1 0 0;
+  min-width: 1px;
+  width: auto;
+}
+
+.dCardInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.dCardInnerPremium {
+  width: 208px;
+}
+
+.dCardTop {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.dPlanHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.dTitleRow {
+  display: flex;
+  gap: 10px;
+  height: 31px;
+  align-items: center;
+  width: 100%;
+}
+
+.dPlanIcon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.dPlanName {
+  flex: 1 0 0;
+  min-width: 1px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #141414;
+  letter-spacing: -1px;
+  white-space: nowrap;
+  line-height: normal;
+}
+
+.dSelectedBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: 1px solid #9d76ff;
+  border-radius: 4px;
+  background: $bg-white;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  color: $primary;
+  white-space: nowrap;
+}
+
+.dPriceSection {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.dPriceRow {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+}
+
+.dPriceAmount {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  color: $text-dark;
+  white-space: nowrap;
+  line-height: 0;
+}
+
+.dPriceRupee {
+  position: absolute;
+  left: 0;
+  top: 21.5px;
+  transform: translateY(-50%);
+  font-size: 20px;
+  font-weight: 500;
+  line-height: normal;
+}
+
+.dPriceNumber {
+  font-size: 40px;
+  font-weight: 600;
+  line-height: normal;
+}
+
+.dPriceGst {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  white-space: nowrap;
+  line-height: 20px;
+  padding-bottom: 6px;
+}
+
+.dPriceLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: $primary;
+  white-space: nowrap;
+  line-height: normal;
+}
+
+.dBrokerageSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.dDivider {
+  height: 0;
+  border-top: 1px dashed $border-card;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.dBrokerageText {
+  height: 35px;
+  text-align: center;
+  width: 100%;
+  font-size: 0;
+  line-height: 0;
+
+  p { margin-bottom: 0; line-height: 18px; }
+}
+
+.dBrokerageHL {
+  font-size: 16px;
+  font-weight: 700;
+  color: $primary;
+  line-height: 18px;
+}
+
+.dBrokerageBody {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 18px;
+}
+
+.dBrokerageNote {
+  font-size: 10px;
+  font-weight: 400;
+  color: #000;
+  line-height: 18px;
+}
+
+.dBenefitsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.dBenefitsTitle {
+  font-size: 10px;
+  font-weight: 600;
+  color: $primary;
+  white-space: nowrap;
+  line-height: normal;
+  display: block;
+}
+
+.dBenefitItem {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.dBenefitItemTop { align-items: flex-start; }
+
+.dBenefitIconWrap {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  position: relative;
+
+  img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+}
+
+.dBenefitOpenWrap {
+  width: 12px;
+  height: 15px;
+  overflow: hidden;
+  padding-top: 5px;
+  padding-left: 1px;
+  padding-right: 1px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+
+  img { width: 10px; height: 10px; display: block; flex-shrink: 0; }
+}
+
+.dBenefitText {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.dBenefitTextMulti {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.dBenefitSub { color: $d-text-emargin; }
+
+.dBenefitCarry {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  align-items: flex-start;
+  width: 100%;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.dBenefitCarryIcon {
+  position: absolute;
+  left: 0;
+  top: 5px;
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+
+.dBenefitCarryText {
+  position: absolute;
+  left: 16px;
+  top: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 0;
+  white-space: nowrap;
+
+  p { line-height: 20px; margin-bottom: 0; white-space: pre; }
+}
+
+.dCardActions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.dProceedBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 36px;
+  background: $primary;
+  border: 1px solid $primary;
+  border-radius: 8px;
+  padding: 14px 24px;
+  color: $bg-white;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  line-height: normal;
+
+  &:hover { opacity: 0.9; }
+}
+
+.dKnowMoreBtn {
+  font-size: 12px;
+  font-weight: 600;
+  color: $primary;
+  white-space: nowrap;
+  line-height: 18px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+
+  &:hover { text-decoration: underline; }
+}
+
+.dPaginationDots {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: center;
+}
+
+.dDot {
+  width: 8px;
+  height: 6px;
+  border-radius: 3px;
+  background: $border-card;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.dDotActive {
+  width: 16px;
+  background: $primary;
+}
+
+// ─── Know More Modal ──────────────────────────────────────────
+
+@keyframes pp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pp-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes pp-scale-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: pp-fade-in 0.2s ease;
+
+  @media (min-width: 768px) { align-items: center; }
+}
+
+.modalSheet {
+  background: $bg-white;
+  border-radius: 16px 16px 0 0;
+  padding: 16px 24px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: pp-slide-up 0.3s ease;
+
+  @media (min-width: 768px) {
+    border-radius: 16px;
+    max-width: 640px;
+    padding: 32px;
+    gap: 24px;
+    animation: pp-scale-in 0.2s ease;
+    max-height: 85vh;
+  }
+}
+
+.modalDash {
+  width: 100px;
+  height: 4px;
+  background: $border-card;
+  border-radius: 100px;
+  align-self: center;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.modalCloseRow {
+  display: none;
+  align-items: center;
+
+  @media (min-width: 768px) { display: flex; }
+}
+
+.modalTitleRow {
+  display: none;
+
+  @media (min-width: 768px) { display: block; flex-shrink: 0; }
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: 22px;
+}
+
+.modalPlanHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+
+  img { width: 30px; height: 31px; object-fit: contain; flex-shrink: 0; }
+  p { font-size: 14px; font-weight: 400; color: #141414; letter-spacing: -1px; margin: 0; }
+
+  @media (min-width: 768px) { display: none; margin-bottom: 0; }
+}
+
+.modalScrollContent {
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+}
+
+.modalColumnsRow {
+  display: none;
+  gap: 60px;
+
+  @media (min-width: 768px) { display: flex; }
+}
+
+.modalColumnHeader {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+  line-height: 22px;
+  margin: 0 0 12px;
+}
+
+.modalList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.modalListMobile {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.modalListItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  p { font-size: 12px; font-weight: 400; color: #222; margin: 0; line-height: 24px; strong { font-weight: 600; } }
+
+  @media (min-width: 768px) {
+    gap: 8px;
+    p { font-size: 14px; }
+  }
+}
+
+.modalItemDivider {
+  height: 0;
+  border-top: 1px dashed $border-card;
+  width: 100%;
+  margin-top: 12px;
+}
+
+.modalCloseActionBtn {
+  width: 100%;
+  max-width: 328px;
+  align-self: center;
+  height: 48px;
+  background: $primary;
+  color: $bg-white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// ─── Single Plan Layout (mobile only — API returns exactly 1 plan) ────────────
+// Replaces the tab strip + comparison table entirely. Shows a full detail card
+// matching the existing slide card style, followed by a full-width Proceed button.
+
+.singlePlanWrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  gap: 20px;
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.singlePlanCard {
+  width: 100%;
+  border: 1px solid $border-plan-hl;
+  border-radius: 16px;
+  padding: 20px 16px;
+  background: $bg-white;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: inset 0px 20px 30px 8px rgba(216, 206, 255, 0.2);
+}
+
+.singlePlanProceedBtn {
+  width: 100%;
+  height: 48px;
+  background: $primary;
+  color: $bg-white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover:not(:disabled) { opacity: 0.9; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+// ─── Loading / Error states ───────────────────────────────────────────────────
+
+.loadingState,
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  gap: 12px;
+  padding: 24px;
+
+  p {
+    font-size: 14px;
+    color: $text-body;
+    margin: 0;
+    text-align: center;
+  }
+
+  button {
+    height: 40px;
+    padding: 0 24px;
+    background: $primary;
+    color: $bg-white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover { opacity: 0.9; }
+  }
+}

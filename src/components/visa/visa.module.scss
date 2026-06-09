@@ -1,0 +1,991 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: Onboarding / Step 14 / Visa - Document Upload (0:117316)
+// Layout mirrors OCI/PIO module — same upload → cropper → front preview →
+// back preview flow, no editable fields.
+
+$primary:      #280071;
+$primary-hover:#1a004d;
+$bg-page:      #f8f8f8;
+$bg-white:     #ffffff;
+$border:       #d9d9d9;
+$text-dark:    #222222;
+$text-dark-2:  #2b2b2b;
+$text-body:    #666666;
+$chip-bg:      #f3f1ff;
+$chip-border:  #e1e8f1;
+$shadow-mob:   0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT  (visible below 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background-color: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.mobileHeader {
+  background-color: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileTopRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobileTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// White card — initial entry screen (single primary CTA at bottom)
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 104px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex: 1;
+}
+
+// White card — upload-result screen (file chip + image preview)
+.mobileCardUpload {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobileBodyText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// ── Visa Expiry field (entry screen) ──────────────────────────────────────
+// Figma 0:119125 / 0:119759 — label above PrimeReact Calendar.
+
+.expiryField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+// Figma: 14px Regular #666, line-height 20px ("Select Visa Expiry")
+.expiryLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+  margin: 0;
+}
+
+// Container that holds the Calendar + inline error message
+.expiryInputWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+// Expired-state inline error row — icon + red text (Figma 0:119766)
+// Color #ff2e00 from Figma node 0:119769
+.expiryErrorRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.expiryErrorIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.expiryErrorText {
+  font-size: 14px;
+  font-weight: 400;
+  color: #ff2e00;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// Past-date variant for the PrimeReact Calendar — overrides border + text
+// to use the Figma "sell" colour (#fa4c67). Applied via :global so it lands
+// on the calendar's internal `.p-inputtext` element regardless of CSS-module
+// scoping.
+.expiredCalendar {
+  :global(.p-inputtext) {
+    border-color: #fa4c67 !important;
+    color: #fa4c67 !important;
+    font-weight: 600 !important;
+  }
+
+  :global(.p-datepicker-trigger) {
+    border-color: #fa4c67 !important;
+  }
+}
+
+// ── Fixed bottom area — single button ──────────────────────────────────────
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+// Figma 0:119132 — empty form state: bg rgba(40,0,113,0.2)
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// ── Fixed bottom area — two stacked buttons ────────────────────────────────
+.mobileDoubleButtonArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  z-index: 200;
+}
+
+.mobileOutlineBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background: rgba(40, 0, 113, 0.05); }
+}
+
+// ── File chip ──────────────────────────────────────────────────────────────
+.fileChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 47px;
+  background: $chip-bg;
+  border: 1px dashed $chip-border;
+  border-radius: 8px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+.fileChipName {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-dark-2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileChipRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+// ── Image preview zone ─────────────────────────────────────────────────────
+.previewZone {
+  width: 100%;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.previewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+}
+
+.pdfPreviewNote {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: $text-body;
+  text-align: center;
+}
+
+// ── Extracted data card (post-crop preview) ─────────────────────────────────
+// Figma 0:118125 — bg rgba(236,238,255,0.5), border dashed #c3c7ed,
+// rounded-8, p-16, gap-16. Pencil sits absolute top-right.
+.extractedCard {
+  position: relative;
+  width: 100%;
+  background: rgba(236, 238, 255, 0.5);
+  border: 1px dashed #c3c7ed;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.editBtn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  z-index: 1;
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+}
+
+// Edit mode of the details card — right-aligned "Save" toggle above the fields
+// (replaces the absolute pencil so it never overlaps the first input).
+.detailsEditHeader {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+// Edit mode field stack inside the details card.
+.detailsEditFields {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// Mobile: single-column list of "Label: VALUE" rows
+.extractedInlineList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// Desktop: full-width row above a stack of 2-col pairs
+.extractedInlineGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.extractedInlinePair {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  align-items: flex-start;
+
+  > * {
+    flex: 1 0 0;
+    min-width: 0;
+  }
+}
+
+// Figma: 14px Regular #2b2b2b for label, 14px SemiBold inline value.
+.extractedInlineRow {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  line-height: 21px;
+  word-break: break-word;
+  margin: 0;
+}
+
+.extractedInlineValue {
+  font-weight: 600;
+  color: $text-dark-2;
+}
+
+// ── Mobile fixed-bottom button area (two-button: Upload Back + Re-upload) ──
+// Same shape as .mobileDoubleButtonArea but in-flow (not fixed) — Figma 0:118141
+// uses pb-16 within the natural document flow so it doesn't overlap scroll.
+// We keep the fixed variant from earlier; this is just a marker for tracking.
+
+// ═══════════════════════════════════════════════════════════════════════════
+// EDIT FORM LAYOUT — /visa/front-edit
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Mobile scrollable card with extra bottom padding for the fixed two-button bar
+.mobileCardEdit {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 16px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+// Mobile vertical field list (label above input, gap-8)
+.fieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.fieldItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editFieldLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+}
+
+.editFieldInput {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark-2;
+  background: $bg-white;
+  outline: none;
+  transition: border-color 0.15s ease;
+  line-height: 20px;
+
+  &:focus { border-color: $primary; }
+}
+
+.editFieldInputError {
+  border-color: #dc3545 !important;
+
+  &:focus { border-color: #dc3545 !important; }
+}
+
+.fieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: #dc3545;
+  line-height: 16px;
+  margin: 0;
+}
+
+// ── Desktop edit layout — image (full-width, top) + horizontal field rows ──
+.desktopEditImgZone {
+  width: 100%;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.desktopEditPreviewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 4px;
+}
+
+.desktopFieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-items: center;
+}
+
+.desktopFieldRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 0 24px;
+  width: 100%;
+  max-width: 752px;
+  justify-content: center;
+}
+
+.desktopFieldLabel {
+  width: 230px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.desktopFieldInputWrapper {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+// Save button — outline-primary, sits below the form
+.saveBtnRow {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.saveBtn {
+  height: 40px;
+  min-width: 160px;
+  padding: 0 24px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover:not(:disabled) { background: rgba(40, 0, 113, 0.05); }
+
+  &:disabled {
+    border-color: rgba(40, 0, 113, 0.3);
+    color: rgba(40, 0, 113, 0.5);
+    cursor: not-allowed;
+  }
+}
+
+.advanceBtnDisabled {
+  background: rgba(40, 0, 113, 0.3) !important;
+  cursor: not-allowed !important;
+
+  &:hover { background: rgba(40, 0, 113, 0.3) !important; }
+}
+
+// Horizontal two-button row for desktop edit (Re-Upload + Save & Continue)
+.desktopDoubleButtonRow {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (visible ≥ 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+}
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 400px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.desktopContentArea {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+  flex: 1;
+}
+
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+.desktopDoubleButtonWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  margin-top: 32px;
+}
+
+.desktopOutlineBtn {
+  width: 350px;
+  height: 56px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background: rgba(40, 0, 113, 0.05); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// VISA UPLOAD SHEET  (bottom-sheet modal overlay)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+
+  @media (min-width: 768px) {
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.sheetCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 12px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+  }
+}
+
+.sheetHandleRow {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+.sheetHandle {
+  width: 40px;
+  height: 4px;
+  background: $border;
+  border-radius: 2px;
+}
+
+.sheetTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheetTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+}
+
+.sheetCloseBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.sheetIconRow {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+}
+
+.sheetIconBox {
+  width: 80px;
+  height: 80px;
+  background: $chip-bg;
+  border: 1px dashed $chip-border;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sheetDisclaimerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sheetDisclaimerLine {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: normal;
+  margin: 0;
+}
+
+.sheetProgressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 4px;
+  background: rgba(40, 0, 113, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: $primary;
+  border-radius: 2px;
+  transition: width 1.8s ease;
+}
+
+.sheetButtonRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.reuploadBtn {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid #999999;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #999999;
+  background: $bg-white;
+  cursor: pointer;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALL-IN-ONE LAYOUT — used by /visa (VisaUpload)
+// Mirrors manual-bankdetails: section title + content stacked; on desktop
+// each field is a horizontal label/input row.
+// ═══════════════════════════════════════════════════════════════════════════
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Title left, edit-toggle pencil/check right
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+// Renders both the pencil icon (read-only mode) and the "Save" text label
+// (edit mode) — same hit area, consistent padding for either child.
+.editToggleBtn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  line-height: 20px;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(40, 0, 113, 0.08); }
+
+  &[aria-pressed="true"] { background: rgba(40, 0, 113, 0.12); }
+}
+
+// Stack of inline read-only rows shown when a section is not in edit mode
+.readOnlyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+// Mobile: label above input. Desktop: label left, input right.
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+}
+
+.fieldRowLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+
+  @media (min-width: 768px) {
+    font-size: 16px;
+    width: 231px;
+    flex-shrink: 0;
+    padding-top: 10px; // align with 40px input centre
+  }
+}
+
+.inputCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: 250px;
+    flex-shrink: 0;
+  }
+}
+
+// Scrollable content area inside the desktop card body (Front+Back cards +
+// the details form). Stays above the fixed Proceed button row.
+.desktopScrollArea {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}

@@ -1,0 +1,276 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: SEMI--FULL-NRE-NRO / Email ID Verification
+//   Desktop: 1:76220   Mobile: 1:72658
+
+$primary:     #280071;
+$bg-page:     #f8f8f8;
+$bg-white:    #ffffff;
+$border:      #d9d9d9;
+$text-dark:   #222222;
+$text-dark-2: #2b2b2b;
+$text-label:  #666666;
+$shadow-mob:  0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOBILE  (< 768px)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Gray header area (logo handled by AppShell header)
+.mobileHeader {
+  background: $bg-page;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 20px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma 1:72730 — 16px SemiBold #2b2b2b
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 1:72731 — 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// White card — rounded top corners, fills remaining height
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 32px 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DESKTOP  (≥ 768px)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+// Figma 1:76407 — 800px card, rounded-24, border #d9d9d9, shadow
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+// Figma 1:76408 — header with border-bottom 0.5px, p-24
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma 1:76418 — 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 1:76419 — 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 1:76420 — body p-24, flex-col, align-center
+.desktopCardBody {
+  background: $bg-white;
+  padding: 48px 24px 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+// Constrained column: aligns button + divider + link at 342px wide
+.desktopContentGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: 342px;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHARED ELEMENTS
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Figma 1:76437 / 1:72734 — outlined Google button
+.googleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  height: 48px;
+  border: 1px solid $primary;
+  border-radius: 8px;
+  background: $bg-white;
+  color: $primary;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover { background: rgba(40, 0, 113, 0.04); }
+}
+
+.googleIcon {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+// Figma 1:76440 / 1:72737 — "Or" divider
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.orLine {
+  flex: 1;
+  height: 0;
+  border: none;
+  border-top: 1px dashed rgba(0, 0, 0, 0.18);
+}
+
+// Figma: 16px Regular #2b2b2b
+.orText {
+  font-size: 16px;
+  font-weight: 400;
+  color: $text-dark-2;
+  white-space: nowrap;
+  line-height: 22px;
+}
+
+// Figma 1:76444 / 1:72741 — "Use another E-mail ID" block
+.altEmailBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+// Figma: 14px SemiBold #280071
+.altEmailLink {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  text-align: center;
+  line-height: normal;
+
+  &:hover { text-decoration: underline; }
+}
+
+// Figma: 14px Regular #280071
+.altEmailNote {
+  font-size: 14px;
+  font-weight: 400;
+  color: $primary;
+  text-align: center;
+  line-height: normal;
+}

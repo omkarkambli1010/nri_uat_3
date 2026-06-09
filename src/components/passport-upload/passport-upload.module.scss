@@ -1,0 +1,1277 @@
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+// Figma: Onboarding / Step 10 / Passport Proof - Document Upload
+// Mobile node: 0:35651 | Desktop card node: 0:35506
+
+$primary:        #280071;
+$primary-hover:  #1a004d;
+$bg-page:        #f8f8f8;
+$bg-white:       #ffffff;
+$border-card:    #d9d9d9;
+$text-dark:      #222222;
+$text-dark-2:    #2b2b2b;
+$text-body:      #666666;
+$shadow-mob:     0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:    0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT  (visible below 768 px)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background-color: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// ── Gray rounded-bottom header ──────────────────────────────────────────────
+// Figma: bg-[#f8f8f8], rounded-bl-[20px] rounded-br-[20px], overflow-clip
+
+.mobileHeader {
+  background-color: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+// Figma: flex-col, gap-[12px], px-[16px], py top 12px bottom 16px
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+// Row that holds the back button (sits above title block)
+.mobileTopRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: size-[24px] Back Button
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+// Title + subtitle stacked
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma: 18px SemiBold #222
+.mobileTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ── White card — rounded-top, shadow ───────────────────────────────────────
+// Figma: rounded-tl-[24px] rounded-tr-[24px], shadow, p-[24px], gap-[24px]
+// pb-[88px]: button (48) + gap (24) + safe area (16)
+
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 88px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+}
+
+// ── Illustration wrapper — 210×160 px ──────────────────────────────────────
+// Figma: 13098899_Upload_file_concept_illustration 1 → 210px × 160px
+
+.mobileIllustration {
+  position: relative;
+  width: 210px;
+  height: 160px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+// ── Fixed proceed button area ───────────────────────────────────────────────
+// Figma: position fixed bottom, bg-white, shadow up, centred button 328×48
+
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+// Figma: w-[328px] h-[48px] bg-[#280071] rounded-[8px] 16px SemiBold white
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $bg-white;
+  background-color: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+
+  &:active {
+    background-color: $primary-hover;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (visible ≥ 768 px)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $bg-page;
+    min-height: calc(100vh - 80px); // 80px = sticky header height
+    padding: 40px 20px;
+  }
+}
+
+// ── Centred card — 800 px max ───────────────────────────────────────────────
+// Figma: w-[800px] border border-[#d9d9d9] rounded-[24px] shadow-[...]
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border-card;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+// ── Card header ─────────────────────────────────────────────────────────────
+// Figma: bg-white, border-b-[0.5px] #d9d9d9, p-[24px], gap-[8px]
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border-card;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+  line-height: normal;
+}
+
+// ── Card body ───────────────────────────────────────────────────────────────
+// Figma: bg-white, p-[24px], h-[581px], justify-between, rounded-bl/br-[24px]
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  min-height: 581px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+// ── Content inner container ─────────────────────────────────────────────────
+// Figma: flex-col, gap-[24px], items-center, flex-1
+
+.desktopContentArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  flex: 1;
+}
+
+// ── Horizontal row: illustration (left) + checklist (right) ────────────────
+// Figma: flex, gap-[36px], justify-center, px-[24px]
+
+.desktopContentRow {
+  display: flex;
+  gap: 36px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 0 24px;
+  width: 100%;
+}
+
+// ── Desktop illustration — 267×200 px ──────────────────────────────────────
+// Figma: 13098899_Upload_file_concept_illustration 1 → 266.667px × 200px
+
+.desktopIllustration {
+  position: relative;
+  width: 267px;
+  height: 200px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+// ── Proceed button wrapper ──────────────────────────────────────────────────
+// Figma: centred, w-[350px] h-[56px]
+
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Figma: w-[350px] h-[56px] bg-[#280071] rounded-[8px] 16px SemiBold white
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $bg-white;
+  background-color: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+
+  &:active {
+    background-color: $primary-hover;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED — Illustration
+// ═══════════════════════════════════════════════════════════════════════════════
+// Single flattened illustration asset, scaled to fit the 210×160 (mobile) and
+// 267×200 (desktop) containers while preserving aspect ratio.
+.illImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED — Required Documentation Checklist
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Container: flex-col, gap-[16px]
+.checklistSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-self: flex-start;
+}
+
+// Header row: flex-col, gap-[4px]
+.checklistHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma: 16px SemiBold #2b2b2b, line-height 1.5
+.checklistTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// Figma: 12px Regular #666, line-height 24px
+.checklistSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+  line-height: 24px;
+}
+
+// Figma: 14px Regular #666, list-style decimal, ms-[21px], line-height 32px
+.docList {
+  margin: 0;
+  padding-left: 21px;
+  list-style-type: decimal;
+
+  li {
+    font-size: 14px;
+    font-weight: 400;
+    color: $text-body;
+    line-height: 32px;
+    margin-bottom: 0;
+    padding-left: 0;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREEN 2 — Passport Type Selection (PassportDetails)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Figma: flex-col, gap-[16px], w-full, p-[16px]
+.selectTypeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// Figma: 14px SemiBold #2b2b2b
+.selectTypeLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// Radio group — vertical stack, gap-[12px]
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// Radio option row — flex, gap-[10px], items-center
+// Figma: border #d9d9d9, rounded-[8px], p-[12px 16px], h-[48px]
+.radioOption {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 48px;
+  border: 1px solid $border-card;
+  border-radius: 8px;
+  padding: 0 16px;
+  background: $bg-white;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &:hover {
+    border-color: $primary;
+  }
+}
+
+// Selected state: border becomes primary
+.radioOptionSelected {
+  border-color: $primary;
+}
+
+// Radio circle — 20×20, border 1.5px #d9d9d9, rounded-full
+.radioCircle {
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid $border-card;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.15s ease;
+}
+
+// Selected radio circle: border primary, bg white
+.radioCircleFilled {
+  border-color: $primary;
+}
+
+// Filled dot inside selected radio — 10×10, bg primary
+.radioDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: $primary;
+}
+
+// Radio label — 14px Regular #2b2b2b
+.radioLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  line-height: 1.5;
+}
+
+// Selected label — SemiBold
+.radioLabelSelected {
+  font-weight: 600;
+}
+
+// Disabled proceed button (when no radio selected)
+// Figma: bg rgba(40,0,113,0.2)
+.proceedBtnDisabled {
+  background-color: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background-color: rgba(40, 0, 113, 0.2) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREENS 3 & 4 — Upload Passport Front / Back (PassportFront, PassportBack)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Mobile white card for upload screens — less bottom padding (buttons stack outside)
+// Figma: same rounded-top-24, shadow, p-24, gap-24 but smaller pb for fixed 2-button area
+.mobileCardUpload {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 112px; // 2 buttons × 48px + gaps + safe area
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+// ── File chip ────────────────────────────────────────────────────────────────
+// Figma: h-[47px], bg #f3f1ff, border dashed 1px #e1e8f1, rounded-[6px], px-[12px]
+.fileChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 47px;
+  background: #f3f1ff;
+  border: 1px dashed #e1e8f1;
+  border-radius: 6px;
+  padding: 0 12px;
+  flex-shrink: 0;
+}
+
+// Figma: 12px SemiBold #2b2b2b, flex-1
+.fileChipName {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-dark-2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// × button — no bg, no border, 10×10 icon
+.fileChipRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+// ── Image preview zone ────────────────────────────────────────────────────────
+// Figma: border dashed 1px #d9d9d9, rounded-[16px], py-[16px], w-full, items-center
+.previewZone {
+  width: 100%;
+  border: 1px dashed $border-card;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Passport image inside the preview zone — keep the cropped aspect ratio.
+// `max-width` + `max-height` lets the browser shrink the image until both
+// fit while preserving its intrinsic width:height ratio (no letterboxing).
+.previewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+}
+
+// Shown inside .previewZone when the uploaded file is a PDF
+// (no inline image preview).
+.pdfPreviewNote {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: $text-body;
+  text-align: center;
+}
+
+// ── Extracted data card ───────────────────────────────────────────────────────
+// Figma: bg rgba(236,238,255,0.5), border dashed 1px #c3c7ed, rounded-[8px], p-[16px], gap-[16px]
+.extractedCard {
+  position: relative;
+  width: 100%;
+  background: rgba(236, 238, 255, 0.5);
+  border: 1px dashed #c3c7ed;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+// Edit pencil icon — absolute top-right, 15px from each edge
+.editBtn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  z-index: 1;
+}
+
+// Inline rows — single-column list on mobile (Figma 0:124992)
+// "Label: VALUE" with value as semibold inline span; 14px regular #2b2b2b
+.extractedInlineList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// Desktop layout — Full Name row spans, remaining fields in 2-col pairs
+// (Figma 0:125238)
+.extractedInlineGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.extractedInlinePair {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+  align-items: flex-start;
+
+  > * {
+    flex: 1 0 0;
+    min-width: 0;
+  }
+}
+
+// Individual "Label: VALUE" row — 14px regular for label, 14px semibold value
+.extractedInlineRow {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  line-height: 21px;
+  word-break: break-word;
+  margin: 0;
+}
+
+.extractedInlineValue {
+  font-weight: 600;
+  color: $text-dark-2;
+}
+
+// ── Mobile two-button area (fixed bottom) ────────────────────────────────────
+// Figma: position fixed, bottom 0, bg white, shadow up, flex-col gap-[8px], px-[16px]
+.mobileDoubleButtonArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  z-index: 200;
+}
+
+// Outline button — 328×48px, border #280071, text #280071
+.mobileOutlineBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    border-color: rgba(40, 0, 113, 0.3);
+    color: rgba(40, 0, 113, 0.5);
+    cursor: not-allowed;
+  }
+}
+
+// ── Desktop two-button row ────────────────────────────────────────────────────
+// Figma 0:125256 / 0:124889 — Re-Upload (outline) left, primary right.
+// gap-32, both 350×56, centered.
+.desktopDoubleButtonRow {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+// Desktop outline button — 350×56px
+.desktopOutlineBtn {
+  width: 350px;
+  height: 56px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    border-color: rgba(40, 0, 113, 0.3);
+    color: rgba(40, 0, 113, 0.5);
+    cursor: not-allowed;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREENS 5 & 6 — Upload Sheet (PassportUploadSheet) — 'choose' + 'uploading'
+// Figma: Onboarding-Mob-Passport-Upload (0:38143) + Onboarding-Mob-Passport-Upload-Front (0:37918)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Full-page container — overlays the entire viewport (including header)
+// Using position:fixed + inset:0 so it is NOT affected by the AppShell header height.
+// min-height: calc(100vh - 90px) inside <main> would add to header height and push card off-screen.
+.sheetPage {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end; // card rises from bottom on mobile
+  background-color: rgba(0, 0, 0, 0.4);
+
+  @media (min-width: 768px) {
+    // On desktop: centre the card like a dialog instead of bottom-sheet
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// White sheet card — rounded top on mobile, rounded on all sides on desktop
+.sheetCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  padding: 12px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+  }
+}
+
+// Drag handle row — centered
+.sheetHandleRow {
+  display: flex;
+  justify-content: center;
+  padding-bottom: 4px;
+}
+
+// Drag handle — gray pill (was a Figma "Dash" asset image)
+.sheetHandle {
+  width: 100px;
+  height: 4px;
+  border-radius: 4px;
+  background: #d9d9d9;
+}
+
+// Title row — title (left) + close button (right)
+.sheetTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+// Figma: 20px SemiBold #2b2b2b (node 0:38157)
+.sheetTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+}
+
+// Close × button
+.sheetCloseBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+// Two icon boxes row
+.sheetIconRow {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+// Each icon box — 80×80, bg #f3f1ff, border dashed #e1e8f1, rounded-8px
+.sheetIconBox {
+  width: 80px;
+  height: 80px;
+  background: #f3f1ff;
+  border: 1px dashed #e1e8f1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+// Label below icon — 10px Regular #2b2b2b
+.sheetIconLabel {
+  font-size: 10px;
+  font-weight: 400;
+  color: $text-dark-2;
+  text-align: center;
+  line-height: 1.3;
+}
+
+// Disclaimer block — flex-col, gap-8px (matches Figma 0:38191)
+.sheetDisclaimerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Each disclaimer line — 12px Regular #666 (Figma: Title H5 nodes)
+.sheetDisclaimer {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: normal;
+  margin: 0;
+}
+
+// ── Uploading state ──────────────────────────────────────────────────────────
+
+// File chip + progress bar stacked
+.sheetProgressBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+// Progress bar track
+.progressTrack {
+  width: 100%;
+  height: 4px;
+  background: rgba(40, 0, 113, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+// Progress bar fill — bind width to actual upload progress
+.progressFill {
+  height: 100%;
+  background: $primary;
+  border-radius: 2px;
+  width: 60%; // placeholder
+}
+
+// Two-button row for uploading state
+.sheetButtonRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+// Reupload button — flex-1, border #999, text #999
+.reuploadBtn {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid #999999;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #999999;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+}
+
+// Proceed button in sheet — flex-1, primary bg
+.sheetProceedBtn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+}
+
+// Disabled proceed state in sheet
+.sheetProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.2) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SCREENS 7 & 8 — Passport Edit Forms (PassportFrontEdit, PassportBackEdit)
+// Figma: 0:38363 + 0:36878
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// White card for edit screens — extra bottom padding for fixed 2-button area
+.mobileCardEdit {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 16px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+// Mobile edit thumbnail — sits inside .previewZone. Keep the cropped image's
+// natural aspect ratio (no fixed box, no letterboxing).
+.editPreviewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 4px;
+}
+
+// Field list — flex-col, gap-16px (Figma 0:125804)
+.fieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+// Individual field item — label above + input below (Figma 0:125805)
+// gap-8 between label and input
+.fieldItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 14px Regular #666, line-height 20px
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+}
+
+// Figma: 14px SemiBold #2b2b2b, border #d9d9d9, rounded-8px, h-40px, px-16, py-10
+.fieldInput {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border-card;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark-2;
+  background: $bg-white;
+  outline: none;
+  transition: border-color 0.15s ease;
+  line-height: 20px;
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+// Error state — red border, matches PrimeReact `.p-prime-cal-error` colour
+.fieldInputError {
+  border-color: #dc3545 !important;
+
+  &:focus {
+    border-color: #dc3545 !important;
+  }
+}
+
+// Inline error text shown beneath an invalid field
+.fieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: #dc3545;
+  line-height: 16px;
+  margin: 0;
+}
+
+// Native <select> styled like .fieldInput, plus a chevron drawn via background-image
+.fieldSelect {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border-card;
+  border-radius: 8px;
+  padding: 0 36px 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark-2;
+  background-color: $bg-white;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'><path d='M1 1.5L6 6.5L11 1.5' stroke='%23666' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  line-height: 20px;
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+// Disabled "advance" button — used on the fixed bottom area when the form has
+// unsaved edits. Greyed primary, same dimensions.
+.advanceBtnDisabled {
+  background-color: rgba(40, 0, 113, 0.3) !important;
+  cursor: not-allowed !important;
+
+  &:hover {
+    background-color: rgba(40, 0, 113, 0.3) !important;
+  }
+}
+
+// Calendar wrapper that matches the field "column" — used so we can apply
+// width: 100% to the PrimeReact span wrapper.
+.calendarWrap {
+  width: 100%;
+
+  :global(.p-calendar) {
+    width: 100%;
+  }
+}
+
+// ── Desktop edit layout — image (full-width, top) + horizontal field rows ──
+// Figma 0:124818 — body padding 24, content gap 36, then each field is a
+// horizontal row of label (230) + input (250) centered within 752px.
+
+// Stack of image + field rows
+.desktopEditStack {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  align-items: center;
+  width: 100%;
+}
+
+// Full-width passport image preview zone — dashed border, padding 16
+.desktopEditImgZone {
+  width: 100%;
+  border: 1px dashed $border-card;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// Desktop edit thumbnail — sits inside .desktopEditImgZone. Preserves the
+// cropped image's natural aspect ratio; the Figma 146×200 was a stand-in for
+// a passport-shaped sample, but real crops can be any ratio.
+.desktopEditPreviewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 4px;
+}
+
+// Field list — vertical stack of horizontal rows
+.desktopFieldList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  align-items: center;
+}
+
+// Individual horizontal row — label left (230), input right (250), gap-24
+.desktopFieldRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  padding: 0 24px;
+  width: 100%;
+  max-width: 752px;
+  justify-content: center;
+}
+
+// Label — 230 wide, 14px regular #666, line-height 20
+.desktopFieldLabel {
+  width: 230px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+// Input wrapper — 250 wide
+.desktopFieldInputWrapper {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ALL-IN-ONE LAYOUT — used by /passportUpload/upload (PassportUploadAll)
+// Mirrors the manual-bankdetails section pattern: a titled block with the
+// upload card on top, then either read-only "Label: value" rows or editable
+// inputs depending on the section's edit-mode toggle.
+// ═══════════════════════════════════════════════════════════════════════════
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Title left, edit-toggle (pencil / Save) right
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+// Renders both the pencil icon (read-only) and the "Save" text label (edit
+// mode) — same hit area, consistent padding for either child.
+.editToggleBtn {
+  background: none;
+  border: none;
+  padding: 6px 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  line-height: 20px;
+  transition: background 0.15s ease;
+
+  &:hover { background: rgba(40, 0, 113, 0.08); }
+
+  &[aria-pressed="true"] { background: rgba(40, 0, 113, 0.12); }
+}
+
+// Stack of inline read-only rows shown when a section is not in edit mode
+.readOnlyList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+// Mobile: label above input. Desktop: label left, input right.
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+}
+
+.fieldRowLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: 20px;
+
+  @media (min-width: 768px) {
+    font-size: 16px;
+    width: 231px;
+    flex-shrink: 0;
+    padding-top: 10px; // align with 40px input centre
+  }
+}
+
+.inputCol {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+
+  @media (min-width: 768px) {
+    width: 250px;
+    flex-shrink: 0;
+  }
+}
+
+// Scrollable content region inside the desktop card body (Front + Back
+// sections), stays above the fixed Proceed button row.
+.desktopScrollArea {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}

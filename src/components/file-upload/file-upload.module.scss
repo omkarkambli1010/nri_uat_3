@@ -1,0 +1,683 @@
+// Mirrors the existing project palette
+$primary:        #280071;
+$border:         #d9d9d9;
+$text-dark:      #222222;
+$text-dark-2:    #2b2b2b;
+$text-label:     #666666;
+$bg-white:       #ffffff;
+$success:        #16a34a;
+$error:          #dc2626;
+$primary-light:  rgba(40, 0, 113, 0.06);
+$primary-medium: rgba(40, 0, 113, 0.12);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Section wrapper
+// ══════════════════════════════════════════════════════════════════════════════
+
+.uploadSection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;       // lets the section shrink inside a grid/flex cell
+  box-sizing: border-box;
+}
+
+.uploadTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Dropzone
+// ══════════════════════════════════════════════════════════════════════════════
+
+.dropzone {
+  border: 1.5px dashed $border;
+  border-radius: 16px;
+  background: $bg-white;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  min-height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease,
+              box-shadow 0.2s ease;
+  outline: none;
+
+  &:hover:not(.dropzoneDisabled):not(.dropzoneDragOver) {
+    border-color: $primary;
+    background-color: $primary-light;
+  }
+
+  &:focus-visible:not(.dropzoneDisabled) {
+    border-color: $primary;
+    box-shadow: 0 0 0 3px rgba(40, 0, 113, 0.18);
+  }
+}
+
+.dropzoneDragOver {
+  border-color: $primary;
+  border-style: solid;
+  background-color: rgba(40, 0, 113, 0.04);
+}
+
+.dropzoneDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dropzoneHasFile {
+  border-color: rgba(40, 0, 113, 0.28);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Drag-over overlay
+// ──────────────────────────────────────────────────────────────────────────────
+
+.dragOverContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 24px;
+  width: 100%;
+  pointer-events: none;
+}
+
+.dragOverText {
+  font-size: 15px;
+  font-weight: 600;
+  color: $primary;
+  margin: 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Empty / add-more state — split layout (drag+drop | OR | camera)
+// ──────────────────────────────────────────────────────────────────────────────
+
+.dropzoneEmpty {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  pointer-events: none;
+
+  // Mobile: stack vertically
+  flex-direction: column;
+
+  @media (min-width: 480px) {
+    flex-direction: row;
+  }
+}
+
+// Left half — drag & drop / click to browse
+.dropzoneUploadPart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  text-align: center;
+  flex: 1;
+}
+
+// Vertical (desktop) or horizontal (mobile) OR divider
+.dropzoneDivider {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  pointer-events: none;
+
+  // Mobile: horizontal row
+  flex-direction: row;
+  padding: 0 16px;
+
+  @media (min-width: 480px) {
+    flex-direction: column;
+    padding: 16px 0;
+    align-self: stretch;
+  }
+}
+
+.dropzoneDividerLine {
+  display: block;
+  background: $border;
+  flex: 1;
+
+  // Mobile: thin horizontal line
+  height: 1px;
+
+  @media (min-width: 480px) {
+    // Desktop: thin vertical line
+    height: auto;
+    width: 1px;
+    min-height: 20px;
+  }
+}
+
+.dropzoneDividerText {
+  font-size: 11px;
+  color: $text-label;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+
+// Right half — camera capture button
+.dropzoneCameraPart {
+  // Reset button defaults
+  background: none;
+  border: none;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  // Layout
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 16px;
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  transition: background-color 0.18s ease;
+
+  &:hover {
+    background-color: $primary-light;
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: -3px;
+  }
+}
+
+.uploadIconWrapper {
+  width: 54px;
+  height: 54px;
+  background: $primary-light;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+
+  .dropzone:hover & {
+    background: $primary-medium;
+  }
+}
+
+.cameraIconWrapper {
+  width: 54px;
+  height: 54px;
+  background: $primary-light;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.2s;
+
+  .dropzoneCameraPart:hover & {
+    background: $primary-medium;
+  }
+}
+
+.dropzoneMainText {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-dark;
+  margin: 0 0 2px;
+  line-height: 1.45;
+}
+
+.dropzoneBrowseLink {
+  color: $primary;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dropzoneSubText {
+  font-size: 12px;
+  color: $text-label;
+  margin: 0;
+  line-height: 1.4;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Image preview inside dropzone
+// ──────────────────────────────────────────────────────────────────────────────
+
+.dropzonePreviewWrap {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;       // clip images that are wider than the cell
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  height: 160px;          // fixed height — no surprise layout growth
+}
+
+.previewImage {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+
+.previewChangeOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  border-radius: 14px;
+
+  .dropzone:hover & {
+    opacity: 1;
+  }
+}
+
+.previewChangeText {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  background: rgba(0, 0, 0, 0.42);
+  border-radius: 8px;
+  padding: 6px 16px;
+  letter-spacing: 0.15px;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Non-image file preview inside dropzone
+// ──────────────────────────────────────────────────────────────────────────────
+
+.dropzoneFilePreview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  width: 100%;
+  text-align: center;
+  pointer-events: none;
+}
+
+.dropzoneFileName {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-dark;
+  margin: 0;
+  word-break: break-all;
+  width: 100%;
+  max-width: 100%;        // removed hard 260px — use full cell width
+}
+
+.dropzoneFileHint {
+  font-size: 12px;
+  color: $primary;
+  font-weight: 500;
+  margin: 0;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Meta row (files supported / max size)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.metaText {
+  font-size: 12px;
+  color: $text-label;
+  line-height: normal;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// File list
+// ══════════════════════════════════════════════════════════════════════════════
+
+.fileList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// File item row
+// ══════════════════════════════════════════════════════════════════════════════
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fafafa;
+  border: 1px solid $border;
+  border-radius: 10px;
+  padding: 10px 12px;
+  transition: border-color 0.2s, background-color 0.2s;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;           // lets flex children shrink past content size
+  box-sizing: border-box;
+
+  &.fileItemSuccess {
+    background: #f0fdf4;
+    border-color: #86efac;
+  }
+
+  &.fileItemError {
+    background: #fff5f5;
+    border-color: #fca5a5;
+  }
+}
+
+.fileThumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid $border;
+  background: #f3f3f3;
+}
+
+.fileIconBox {
+  width: 40px;
+  height: 40px;
+  background: $primary-light;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// File info (name, size, progress, status)
+// ──────────────────────────────────────────────────────────────────────────────
+
+.fileInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fileNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fileName {
+  font-size: 13px;
+  font-weight: 500;
+  color: $text-dark;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.fileSize {
+  font-size: 11px;
+  color: $text-label;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.progressBar {
+  height: 4px;
+  background: #e8e0ff;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: $primary;
+  border-radius: 2px;
+  transition: width 0.15s ease-out;
+  will-change: width;
+}
+
+.fileError {
+  font-size: 11px;
+  color: $error;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.fileSuccessText {
+  font-size: 11px;
+  color: $success;
+  margin: 0;
+  font-weight: 500;
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Action buttons
+// ──────────────────────────────────────────────────────────────────────────────
+
+.fileActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  background: none;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s, color 0.15s;
+  line-height: 0;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.07);
+  }
+
+  &:focus-visible {
+    outline: 2px solid $primary;
+    outline-offset: 1px;
+  }
+}
+
+.retryBtn {
+  color: $primary;
+}
+
+.removeBtn {
+  color: $text-label;
+
+  &:hover {
+    color: $error;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Password protection panel
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Removes bottom radius on the fileItem row when the panel is attached below
+.fileItemPasswordTop {
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+// Lock badge shown inside the file info row
+.passwordBadge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #b45309; // amber-700
+  margin: 0;
+}
+
+// Panel sits flush below the fileItem, sharing the error border
+.passwordPanel {
+  background: #fffbf5;
+  border: 1px solid #fca5a5;
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  padding: 10px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passwordInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.passwordInputWrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 160px;
+  border: 1px solid $border;
+  border-radius: 7px;
+  background: $bg-white;
+  padding: 0 8px;
+  gap: 6px;
+  height: 36px;
+
+  &:focus-within {
+    border-color: $primary;
+  }
+}
+
+.passwordInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: $text-dark;
+  min-width: 0;
+
+  &::placeholder {
+    color: #b0b0b0;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.passwordToggleBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: $text-label;
+  flex-shrink: 0;
+  line-height: 0;
+
+  &:hover {
+    color: $text-dark;
+  }
+}
+
+.unlockBtn {
+  height: 36px;
+  padding: 0 16px;
+  background: $primary;
+  color: #ffffff;
+  border: none;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+.passwordError {
+  font-size: 11px;
+  color: $error;
+  margin: 0;
+  line-height: 1.4;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Spinner keyframe
+// ══════════════════════════════════════════════════════════════════════════════
+
+@keyframes fu-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinnerIcon {
+  animation: fu-spin 0.9s linear infinite;
+  display: block;
+}
