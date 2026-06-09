@@ -689,7 +689,6 @@ export default function Declaration() {
   };
 
   const declarationAPICall = async () => {
-    debugger;
     const diff = checkIfPreferenceChanged(questionnaireResponse);
 
     if (!diff) {

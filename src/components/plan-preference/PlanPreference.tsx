@@ -7,6 +7,7 @@ import styles from './plan-preference.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
+import { Splide, SplideSlide } from "@splidejs/react-splide";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -265,8 +266,12 @@ export default function PlanPreference() {
   const [knowMoreIndex, setKnowMoreIndex] = useState(0);
 
   const rejectStatus  = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
-  // True when API returns exactly 1 plan — hides tab strip + comparison table on mobile
+  // Mobile layout selection by plan count:
+  //   1 plan      → single full-detail card (no carousel)
+  //   2–3 plans   → tab strip + comparison table
+  //   4+ plans    → swipeable carousel of plan cards
   const isSinglePlan  = apiPlans.length === 1;
+  const isCarousel    = apiPlans.length > 3;
 
   useEffect(() => {
     void fetchPlans();
@@ -369,6 +374,185 @@ export default function PlanPreference() {
   }
 
   const middleIndex = Math.floor(apiPlans.length / 2);
+
+  // Full plan card used by the mobile carousel (4+ plans). Reuses the existing
+  // slide-card styles; tap selects, Proceed submits, Know More opens the modal.
+  const renderCarouselCard = (plan: ApiPlan, i: number) => {
+    const s                = getStaticData(plan.name);
+    const isSelected       = selectedIndex === i;
+    const isThisProceeding = isProceeding && proceedingIndex === i;
+    return (
+      <div
+        className={[
+          styles.slideCard,
+          isSelected ? styles.slideCardHighlighted : '',
+        ].filter(Boolean).join(' ')}
+        onClick={() => setSelectedIndex(i)}
+      >
+        <div className={styles.slideIconRow}>
+          <img src={s.icon} alt={plan.name} width={28} height={28} />
+          <p className={styles.slidePlanName}>{plan.name}</p>
+        </div>
+
+        <div className={styles.slidePriceRow}>
+          <div className={styles.slidePriceAmount}>
+            <span className={styles.slidePriceValue}>{plan.feeInPaise === 0 ? '0' : plan.feeInPaise}</span>
+            <span className={styles.slidePriceGst}>Excl. GST</span>
+          </div>
+          <p className={styles.slideFeeLabel}>{s.feeLabel}</p>
+        </div>
+
+        <div className={styles.slideDivider} />
+
+        <div className={styles.slideBrokerageBlock}>
+          <p>
+            <span className={styles.brokerageMain}>{s.brokerageMain}</span>
+            <span className={styles.brokerageLabel}> Brokerage</span>
+          </p>
+          <span className={styles.brokerageNote}>{s.brokerageNote}</span>
+        </div>
+
+        <div className={styles.slideDivider} />
+
+        <div className={styles.slideBenefits}>
+          <p className={styles.slideBenefitsTitle}>Lifetime Benefits Include:</p>
+          {s.benefits.map((b, bi) => (
+            <MobileBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
+          ))}
+        </div>
+
+        <div className={styles.slideActions}>
+          <button
+            type="button"
+            className={styles.slideProceedBtn}
+            disabled={isProceeding}
+            onClick={(e) => { e.stopPropagation(); setSelectedIndex(i); proceedWithPlan(i); }}
+          >
+            {isThisProceeding ? 'Processing…' : 'Proceed'}
+          </button>
+          <button
+            type="button"
+            className={styles.slideKnowMore}
+            onClick={(e) => { e.stopPropagation(); openKnowMore(i); }}
+          >
+            Know More
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // Desktop plan card. Rendered in a centered flex row for ≤3 plans, or inside
+  // a Splide carousel for 4+ plans.
+  const renderDesktopCard = (plan: ApiPlan, i: number) => {
+    const s                = getStaticData(plan.name);
+    const isSelected       = selectedIndex === i;
+    const isThisProceeding = isProceeding && proceedingIndex === i;
+    return (
+      <div
+        key={plan.id}
+        className={[
+          styles.dCard,
+          isSelected ? styles.dCardSelected : '',
+        ].filter(Boolean).join(' ')}
+        onClick={() => setSelectedIndex(i)}
+        style={{ cursor: "pointer" }}
+      >
+        <div className={styles.dCardInner} style={{ gap: s.innerGap }}>
+          <div className={styles.dCardTop}>
+            <div className={styles.dPlanHeader}>
+              <div className={styles.dTitleRow}>
+                <img src={s.icon} alt="" width={31} height={31} className={styles.dPlanIcon} />
+                <span className={styles.dPlanName}>{plan.name}</span>
+                {isSelected && (
+                  <span className={styles.dSelectedBadge}>
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 16 16"
+                      fill="none"
+                      aria-hidden="true"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <circle cx="8" cy="8" r="7.5" fill="#280071" stroke="#280071" />
+                      <path
+                        d="M4.5 8.5L6.5 10.5L11.5 5.5"
+                        stroke="white"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    Selected
+                  </span>
+                )}
+              </div>
+              {/* Raw feeInPaise — no conversion */}
+              <div className={styles.dPriceSection}>
+                <div className={styles.dPriceRow}>
+                  <div className={styles.dPriceAmount}>
+                    <span className={styles.dPriceRupee}>₹</span>
+                    <span className={styles.dPriceNumber}>
+                      {plan.feeInPaise === 0 ? '0' : plan.feeInPaise}
+                    </span>
+                  </div>
+                  <span className={styles.dPriceGst}>Excl. GST</span>
+                </div>
+                <span className={styles.dPriceLabel}>{s.feeLabel}</span>
+              </div>
+            </div>
+
+            <div className={styles.dBrokerageSection}>
+              <div className={styles.dDivider} />
+              <div className={styles.dBrokerageText}>
+                <p>
+                  <strong className={styles.dBrokerageHL}>{s.brokerageMain}</strong>
+                  <span className={styles.dBrokerageBody}>{" Brokerage"}</span>
+                </p>
+                <p>
+                  <span className={styles.dBrokerageNote}>{s.brokerageNote}</span>
+                </p>
+              </div>
+              <div className={styles.dDivider} />
+            </div>
+
+            <div className={styles.dBenefitsSection}>
+              <span className={styles.dBenefitsTitle}>Lifetime Benefits Include:</span>
+              {s.benefits.map((b, bi) => (
+                <DesktopBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.dCardActions} style={{ gap: s.actionsGap }}>
+            <button
+              type="button"
+              className={styles.dProceedBtn}
+              disabled={isProceeding}
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedIndex(i);
+                proceedWithPlan(i);
+              }}
+            >
+              {isThisProceeding ? 'Processing…' : 'Proceed'}
+            </button>
+            <button
+              type="button"
+              className={styles.dKnowMoreBtn}
+              disabled={isProceeding}
+              onClick={(e) => {
+                e.stopPropagation();
+                openKnowMore(i);
+              }}
+            >
+              Know More
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <>
@@ -475,8 +659,40 @@ export default function PlanPreference() {
             );
           })()}
 
-          {/* ── MULTI PLAN: tab strip + comparison table ─────────────────────── */}
-          {!isSinglePlan && (
+          {/* ── 4+ PLANS: swipeable carousel of full plan cards ──────────────── */}
+          {isCarousel && (
+            <>
+              <div className={styles.splideWrapper}>
+                <Splide
+                  options={{
+                    perPage: 1,
+                    arrows: false,
+                    pagination: true,
+                    rewind: false,
+                    gap: '12px',
+                    padding: { right: '40px' },
+                    start: selectedIndex ?? 0,
+                  }}
+                  aria-label="Plan options"
+                >
+                  {apiPlans.map((plan, i) => (
+                    <SplideSlide key={plan.id}>
+                      {renderCarouselCard(plan, i)}
+                    </SplideSlide>
+                  ))}
+                </Splide>
+              </div>
+
+              {proceedError && (
+                <p style={{ color: '#d32f2f', fontSize: 13, textAlign: 'center', marginTop: 8, padding: '0 16px' }}>
+                  {proceedError}
+                </p>
+              )}
+            </>
+          )}
+
+          {/* ── 2–3 PLANS: tab strip + comparison table ──────────────────────── */}
+          {!isSinglePlan && !isCarousel && (
             <>
               <div className={styles.mobilePlanTabs}>
                 {apiPlans.map((plan, i) => {
@@ -621,135 +837,33 @@ export default function PlanPreference() {
           </div>
 
           <div className={styles.desktopCardBody}>
-            <div className={styles.dCardsRow}>
-              {apiPlans.map((plan, i) => {
-                const s                = getStaticData(plan.name);
-                const isSelected       = selectedIndex === i;
-                const isThisProceeding = isProceeding && proceedingIndex === i;
-                return (
-                  <div
-                    key={plan.id}
-                    className={[
-                      styles.dCard,
-                      isSelected ? styles.dCardSelected : '',
-                    ].filter(Boolean).join(' ')}
-                    onClick={() => setSelectedIndex(i)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div className={styles.dCardInner} style={{ gap: s.innerGap }}>
-                      <div className={styles.dCardTop}>
-                        <div className={styles.dPlanHeader}>
-                          <div className={styles.dTitleRow}>
-                            <img src={s.icon} alt="" width={31} height={31} className={styles.dPlanIcon} />
-                            <span className={styles.dPlanName}>{plan.name}</span>
-                            {isSelected && (
-                              <span className={styles.dSelectedBadge}>
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                  aria-hidden="true"
-                                  style={{ flexShrink: 0 }}
-                                >
-                                  <circle
-                                    cx="8"
-                                    cy="8"
-                                    r="7.5"
-                                    fill="#280071"
-                                    stroke="#280071"
-                                  />
-                                  <path
-                                    d="M4.5 8.5L6.5 10.5L11.5 5.5"
-                                    stroke="white"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                                Selected
-                              </span>
-                            )}
-                          </div>
-                          {/* Raw feeInPaise — no conversion */}
-                          <div className={styles.dPriceSection}>
-                            <div className={styles.dPriceRow}>
-                              <div className={styles.dPriceAmount}>
-                                <span className={styles.dPriceRupee}>₹</span>
-                                <span className={styles.dPriceNumber}>
-                                  {plan.feeInPaise === 0 ? '0' : plan.feeInPaise}
-                                </span>
-                              </div>
-                              <span className={styles.dPriceGst}>
-                                Excl. GST
-                              </span>
-                            </div>
-                            <span className={styles.dPriceLabel}>
-                              {s.feeLabel}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className={styles.dBrokerageSection}>
-                          <div className={styles.dDivider} />
-                          <div className={styles.dBrokerageText}>
-                            <p>
-                              <strong className={styles.dBrokerageHL}>
-                                {s.brokerageMain}
-                              </strong>
-                              <span className={styles.dBrokerageBody}>
-                                {" Brokerage"}
-                              </span>
-                            </p>
-                            <p>
-                              <span className={styles.dBrokerageNote}>
-                                {s.brokerageNote}
-                              </span>
-                            </p>
-                          </div>
-                          <div className={styles.dDivider} />
-                        </div>
-
-                        <div className={styles.dBenefitsSection}>
-                          <span className={styles.dBenefitsTitle}>
-                            Lifetime Benefits Include:
-                          </span>
-                          {s.benefits.map((b, bi) => (
-                            <DesktopBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className={styles.dCardActions} style={{ gap: s.actionsGap }}>
-                        <button
-                          type="button"
-                          className={styles.dProceedBtn}
-                          disabled={isProceeding}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedIndex(i);
-                            proceedWithPlan(i);
-                          }}
-                        >
-                          {isThisProceeding ? 'Processing…' : 'Proceed'}
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.dKnowMoreBtn}
-                          disabled={isProceeding}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openKnowMore(i);
-                          }}
-                        >
-                          Know More
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {isCarousel ? (
+              <div className={styles.dCarouselWrapper}>
+                <Splide
+                  options={{
+                    autoWidth: true,
+                    perMove: 1,
+                    gap: '24px',
+                    arrows: true,
+                    pagination: true,
+                    drag: true,
+                    focus: 'center',
+                    trimSpace: 'move',
+                  }}
+                  aria-label="Plan options"
+                >
+                  {apiPlans.map((plan, i) => (
+                    <SplideSlide key={plan.id}>
+                      {renderDesktopCard(plan, i)}
+                    </SplideSlide>
+                  ))}
+                </Splide>
+              </div>
+            ) : (
+              <div className={styles.dCardsRow}>
+                {apiPlans.map((plan, i) => renderDesktopCard(plan, i))}
+              </div>
+            )}
 
             {proceedError && (
               <p
@@ -832,14 +946,14 @@ export default function PlanPreference() {
                 </div>
               </div>
               <div className={styles.modalListMobile}>
-                {[...kmStatic.equity, ...kmStatic.derivatives].map((item, fi, arr) => (
+                {[...kmStatic.equity, ...kmStatic.derivatives].map((item, fi) => (
                   <div key={fi}>
                     <div className={styles.modalListItem}>
                       <ModalDoneIcon size={16} />
                       <p><strong>{item.val}</strong> {item.lbl}</p>
                     </div>
-                  ),
-                )}
+                  </div>
+                ))}
               </div>
             </div>
             <button

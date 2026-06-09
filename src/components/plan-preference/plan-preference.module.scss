@@ -611,6 +611,55 @@ $d-text-emargin:   #290172;
   width: 100%;
 }
 
+// Desktop carousel (4+ plans) — keeps the 240px cards and pages through them.
+.dCarouselWrapper {
+  width: 100%;
+  padding: 0 52px;
+  position: relative;
+
+  :global(.splide__track) {
+    padding: 8px 0 4px;
+  }
+
+  :global(.splide__arrow) {
+    background: $bg-white;
+    border: 1px solid $d-border-plan;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    opacity: 1;
+    width: 38px;
+    height: 38px;
+
+    &:disabled {
+      opacity: 0.35;
+    }
+
+    svg {
+      width: 16px;
+      height: 16px;
+      fill: $primary;
+    }
+  }
+
+  :global(.splide__arrow--prev) { left: 4px; }
+  :global(.splide__arrow--next) { right: 4px; }
+
+  :global(.splide__pagination) {
+    bottom: -10px;
+  }
+
+  :global(.splide__pagination__page) {
+    background: $border-card;
+    opacity: 1;
+    width: 8px;
+    height: 8px;
+
+    &:global(.is-active) {
+      background: $primary;
+      transform: scale(1.2);
+    }
+  }
+}
+
 .dCard {
   position: relative;
   display: flex;

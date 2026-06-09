@@ -64,7 +64,7 @@ function validateDetails(d: PassportDetails, isIndian: boolean): FieldErrors {
       errs.dob = 'Invalid Date of Birth. Must be a valid past date and age must be at least 18 years.';
     } else {
       const age = (today.getTime() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
-      if (age >= 18) {
+      if (age < 18) {
         errs.dob = 'Invalid Date of Birth. Must be a valid past date and age must be at least 18 years.';
       }
     }
@@ -270,6 +270,10 @@ export default function PassportUploadAll() {
   const [frontEditMode,  setFrontEditMode]  = useState(false);
   const [detailsFetched, setDetailsFetched] = useState(false);
   const [savingDetails,  setSavingDetails]  = useState(false);
+  // True once the user manually edits any OCR-filled field. Submit only
+  // validates (and can block) when the details have actually been touched —
+  // untouched OCR data is trusted and allowed through.
+  const [detailsEdited,  setDetailsEdited]  = useState(false);
 
   // Stores the uiMetadata route from the most recent upload response.
   // Used by handleProceed to navigate correctly instead of hardcoding '/esign'.
@@ -294,6 +298,10 @@ export default function PassportUploadAll() {
     if (exp)  setExpiryDate(normalizeIso(exp));
     if (nat)  setNationality(resolveCountryName(nat));
     if (gen)  setGender(gen);
+
+    // OCR-filled values are untouched by definition.
+    setDetailsEdited(false);
+    setErrors({});
   };
 
   const makeUploadFn =
@@ -342,6 +350,8 @@ export default function PassportUploadAll() {
     setExpiryDate(v => v || '2030-03-04');
     setNationality(v => v || 'India');
     setGender(v => v || 'Male');
+    // Auto-filled mock data is untouched by definition.
+    setDetailsEdited(false);
   };
 
   const frontUploaded = frontFiles.some(f => f.status === 'success');
@@ -356,6 +366,7 @@ export default function PassportUploadAll() {
     !issueDate || !expiryDate || !nationality.trim() || !gender.trim();
 
   const onFieldChange = (key: keyof PassportDetails) => {
+    setDetailsEdited(true);
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   };
 
@@ -366,14 +377,19 @@ export default function PassportUploadAll() {
   // which is stored in uploadRoute. Falls back to '/esign' only if the
   // upload never returned a uiMetadata route.
   const handleProceed = () => {
-    const current: PassportDetails = {
-      fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender,
-    };
-    const errs = validateDetails(current, isIndian);
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) {
-      toast.error('Please fix the highlighted fields and try again');
-      return;
+    // Only validate when the user has actually edited the OCR-filled details.
+    // Untouched OCR data is trusted and proceeds straight through — validation
+    // errors are meant to surface only when the user changes a value.
+    if (detailsEdited) {
+      const current: PassportDetails = {
+        fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender,
+      };
+      const errs = validateDetails(current, isIndian);
+      setErrors(errs);
+      if (Object.keys(errs).length > 0) {
+        toast.error('Please fix the highlighted fields and try again');
+        return;
+      }
     }
     router.push(uploadRoute ?? '/esign');
   };
@@ -414,6 +430,8 @@ export default function PassportUploadAll() {
       }
       toast.success(res?.message ?? 'Details updated successfully');
       setFrontEditMode(false);
+      // Saved values are now validated + persisted — treat as clean again.
+      setDetailsEdited(false);
     } catch {
       // apiService.handleError already surfaced the backend message.
     } finally {

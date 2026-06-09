@@ -134,7 +134,6 @@ export default function TradingExp() {
   };
 
   const handleSelect = async (option: string) => {
-    debugger;
     setSelected(option);
 
     const applicationId = sessionStorage.getItem("ApplicationId") ?? "";

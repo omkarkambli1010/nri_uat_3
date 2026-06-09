@@ -141,7 +141,6 @@ export default function AnnualIncome() {
   };
 
   const handleSelect = async (option: string) => {
-    debugger;
     setSelected(option);
 
     const applicationId = sessionStorage.getItem("ApplicationId") ?? "";

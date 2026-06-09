@@ -1,14 +1,14 @@
 import { Suspense } from 'react';
-import PermanentAddressUploadAll from '@/components/permanent-address/PermanentAddressUploadAll';
+import PermanentAddressUpload from '@/components/permanent-address/PermanentAddressUpload';
 
-// Route: /permanentAddress/upload — all-in-one Front + Back address-proof
-// upload (passport style). Reached from /permanentAddress. Replaces the old
-// /permanentAddress/step-1 page + upload modal.
+// Route: /permanentAddress/upload — Front + Back + Additional document upload for
+// the permanent address proof (layout mirrors /foreignAddress/upload). Reached
+// from /permanentAddress.
 
 export default function PermanentAddressUploadPage() {
   return (
     <Suspense fallback={null}>
-      <PermanentAddressUploadAll />
+      <PermanentAddressUpload />
     </Suspense>
   );
 }

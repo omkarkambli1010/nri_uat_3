@@ -1,15 +1,13 @@
 import { Suspense } from 'react';
-import PermanentAddressSelect from '@/components/permanent-address/PermanentAddressSelect';
+import PermanentAddress from '@/components/permanent-address/PermanentAddress';
 
 // Route: /permanentAddress
-// Screen 1 — Select Address Proof Type + Upload Front modal
-// Figma: Onboarding-Mob-PermanentAddress-Noselection-Upload (0:44186)
-//        Onboarding-Web-PermanentAddress-Noselection-Upload (0:43680, 0:43914)
+// Enter Permanent Address — manual form (mirrors /foreignAddress).
 
 export default function PermanentAddressPage() {
   return (
     <Suspense fallback={null}>
-      <PermanentAddressSelect />
+      <PermanentAddress />
     </Suspense>
   );
 }

@@ -18,6 +18,19 @@ export interface BankMasterIFSCResponse {
   address: string;
 }
 
+// Reverse-penny-drop bank verification status (GET …/bank/rpd/status).
+// Optional extras are mapped only when the backend includes them.
+export interface BankRpdStatusResponse {
+  status?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  holderName?: string;
+  bankName?: string;
+  accountType?: string;
+  micrCode?: string;
+  bankAddress?: string;
+}
+
 // API Service — equivalent to Angular APIService
 // Handles all HTTP communication with AES-encrypted payloads
 
@@ -180,7 +193,6 @@ class APIService {
     data: any,
     hideSpinner?: () => void,
   ): Promise<any> {
-    debugger;
     const url = this.api + '/' + controller;
     const headers = this.getHeaders();
     const payload = this.encryptPayload(data);
@@ -265,6 +277,56 @@ class APIService {
         },
       });
 
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, hideSpinner);
+    }
+  }
+
+  // Reverse-penny-drop bank verification status.
+  // GET …/applications/{applicationId}/bank/rpd/status?vendorSessionId=…
+  async getBankRpdStatus(
+    applicationId: string,
+    vendorSessionId: string,
+    hideSpinner?: () => void,
+  ): Promise<BankRpdStatusResponse> {
+    const url = `${this.nriapi}applications/${applicationId}/bank/rpd/status?vendorSessionId=${encodeURIComponent(
+      vendorSessionId,
+    )}`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          accept: "*/*",
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, hideSpinner);
+    }
+  }
+
+  // FATCA — submit tax residencies + US-person flag + country of birth.
+  // POST …/applications/{applicationId}/fatca
+  async submitFatca(
+    applicationId: string,
+    data: {
+      residencies: { countryCode: string; tin: string; tinProofDocumentId: string }[];
+      usCitizen: boolean;
+      countryOfBirth: string;
+      idempotencyKey: string;
+    },
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    const url = `${this.nriapi}applications/${applicationId}/fatca`;
+    try {
+      const response = await axios.post(url, data, {
+        headers: {
+          accept: "*/*",
+          "Content-Type": "application/json",
+        },
+      });
       return response.data;
     } catch (error) {
       return this.handleError(error, hideSpinner);
@@ -561,6 +623,60 @@ async submitForeignAddress(
   hideSpinner?: () => void,
 ): Promise<any> {
   const url = `${this.nriapi}applications/${applicationId}/address/foreign`;
+
+  const form = new FormData();
+
+  // Address fields
+  form.append("StateProvince", data.stateProvince ?? "");
+  form.append("ExpiryDate", data.expiryDate ?? "");
+  form.append("City", data.city ?? "");
+  form.append("ProofNumber", data.proofNumber ?? "");
+  form.append("IdempotencyKey", data.idempotencyKey ?? "");
+  form.append("Country", data.country ?? "");
+  form.append("PostalCode", data.postalCode ?? "");
+  form.append("Line1", data.line1 ?? "");
+  form.append("ProofType", data.proofType ?? "");
+  form.append("Line2", data.line2 ?? "");
+  form.append("Line3", data.line3 ?? "");
+
+  // Files
+  form.append("BackFile", data.backFile);
+  form.append("FrontFile", data.frontFile);
+
+  try {
+    const response = await axios.post(url, form, {
+      headers: {
+        accept: "*/*",
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    return this.handleError(error, hideSpinner);
+  }
+}
+
+// ─── Permanent Address ─────────────────────────────────────────────────────
+async submitPermanentAddress(
+  applicationId: string,
+  data: {
+    line1: string;
+    line2?: string;
+    line3?: string;
+    city: string;
+    stateProvince: string;
+    postalCode: string;
+    country: string;
+    proofType: string;
+    proofNumber: string;
+    expiryDate: string;
+    frontFile: File;
+    backFile: File;
+    idempotencyKey?: string;
+  },
+  hideSpinner?: () => void,
+): Promise<any> {
+  const url = `${this.nriapi}applications/${applicationId}/address/permanent`;
 
   const form = new FormData();
 

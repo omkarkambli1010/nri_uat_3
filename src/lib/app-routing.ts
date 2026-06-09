@@ -47,6 +47,7 @@
 // 'oci/upload'                       → src/app/oci/upload/page.tsx
 // 'fatca'                            → src/app/fatca/page.tsx
 // 'fatca/document'                   → src/app/fatca/document/page.tsx
+// 'fatca/upload'                     → src/app/fatca/upload/page.tsx
 // 'visa'                             → src/app/visa/page.tsx
 // 'visa/upload'                      → src/app/visa/upload/page.tsx
 // 'permanent-address-details'        → src/app/permanent-address-details/page.tsx

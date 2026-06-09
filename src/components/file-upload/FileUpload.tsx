@@ -14,7 +14,6 @@ import { FileUploadDropzone } from "./FileUploadDropzone";
 import { FileUploadItem } from "./FileUploadItem";
 import {
   deriveAcceptLabel,
-  getAcceptString,
   isImageFile,
 } from "./fileUpload.utils";
 import { SignatureCropperModal } from "../upload-signature/SignatureCropperModal";
@@ -182,11 +181,12 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
       {title && <p className={styles.uploadTitle}>{title}</p>}
 
       {/* Hidden file inputs */}
+      {/* No `accept` attribute: the OS picker shows "All Files" instead of
+          "Custom Files". File-type validation still runs in JS via config.accept. */}
       <input
         ref={inputRef}
         type="file"
         className={styles.hiddenInput}
-        accept={getAcceptString(config.accept)}
         multiple={!!config.multiple}
         onChange={handleInputChange}
         aria-hidden="true"

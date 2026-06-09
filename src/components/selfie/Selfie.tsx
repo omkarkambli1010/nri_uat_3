@@ -926,7 +926,7 @@ export default function Selfie() {
                       Upload
                     </button>
                   </div>
-                )} */}
+                )}
               </div>
 
               <div

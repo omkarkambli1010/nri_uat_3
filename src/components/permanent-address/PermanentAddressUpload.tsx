@@ -8,9 +8,9 @@ import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from '@/components/oci/oci.module.scss';
 
-// ForeignAddressUpload — /foreignAddress/upload
+// PermanentAddressUpload — /permanentAddress/upload
 // Uploads front + back proof files together with the address details captured
-// on /foreignAddress in a single multipart POST to /address/foreign.
+// on /permanentAddress in a single multipart POST to /address/permanent.
 //
 // KEY FIX: FileUploadCard here has NO uploadFn — files are selected locally
 // and held in state. The actual API call fires only on Proceed, sending both
@@ -25,6 +25,12 @@ const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG
 
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+
+// Unique key so the backend can de-duplicate retried submissions.
+const generateIdempotencyKey = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 const routeFromUiMetadata = (res: unknown): string | null => {
   const meta = (res ?? {}) as Record<string, unknown>;
@@ -48,7 +54,7 @@ function IconBackArrow() {
   );
 }
 
-export default function ForeignAddressUpload() {
+export default function PermanentAddressUpload() {
   const router = useRouter();
 
   const [proofType, setProofType] = useState('Document');
@@ -60,7 +66,7 @@ export default function ForeignAddressUpload() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('fa_documentType');
+    const saved = sessionStorage.getItem('pa_documentType');
     if (saved) setProofType(saved);
   }, []);
 
@@ -79,7 +85,7 @@ export default function ForeignAddressUpload() {
   // Proceed is enabled once both mandatory files are selected.
   const isDisabled = !frontReady || !backReady || submitting;
 
-  const handleBack = () => router.push('/foreignAddress');
+  const handleBack = () => router.push('/permanentAddress');
 
   // Single multipart POST — address details (from sessionStorage) + both files.
   // Field names match the curl exactly (PascalCase, handled by apiService).
@@ -92,10 +98,10 @@ export default function ForeignAddressUpload() {
       return;
     }
 
-    // Read address details saved by /foreignAddress on Proceed.
+    // Read address details saved by /permanentAddress on Proceed.
     let address: Record<string, string> = {};
     try {
-      address = JSON.parse(sessionStorage.getItem('fa_address') ?? '{}');
+      address = JSON.parse(sessionStorage.getItem('pa_address') ?? '{}');
     } catch {
       address = {};
     }
@@ -103,7 +109,7 @@ export default function ForeignAddressUpload() {
     // Guard: if essential fields are missing the API will 500 — show a clear message.
     if (!address.proofType || !address.line1 || !address.city) {
       toast.error('Address details are missing. Please re-enter them.');
-      router.push('/foreignAddress');
+      router.push('/permanentAddress');
       return;
     }
 
@@ -112,7 +118,7 @@ export default function ForeignAddressUpload() {
 
     setSubmitting(true);
     try {
-      const res = await apiService.submitForeignAddress(applicationId, {
+      const res = await apiService.submitPermanentAddress(applicationId, {
         // Address fields — camelCase keys; apiService maps to PascalCase for FormData
         line1: address.line1 ?? '',
         line2: address.line2 ?? '',
@@ -124,6 +130,7 @@ export default function ForeignAddressUpload() {
         proofType: address.proofType ?? '',
         proofNumber: address.proofNumber ?? '',
         expiryDate: address.expiryDate ?? '',
+        idempotencyKey: generateIdempotencyKey(),
         // Files — sent as binary parts
         frontFile,
         backFile,
@@ -175,7 +182,7 @@ export default function ForeignAddressUpload() {
   return (
     <>
       {/* ═══ MOBILE ════════════════════════════════════════════════════════════ */}
-      <div className={styles.mobilePage} aria-label="Upload Foreign Address">
+      <div className={styles.mobilePage} aria-label="Upload Permanent Address">
         <div className={styles.mobileHeader}>
           <div className={styles.mobileHeaderInner}>
             <div className={styles.mobileTopRow}>
@@ -184,9 +191,9 @@ export default function ForeignAddressUpload() {
               </button>
             </div>
             <div className={styles.mobileTitleBlock}>
-              <h1 className={styles.mobileTitle}>Upload Foreign Address</h1>
+              <h1 className={styles.mobileTitle}>Upload Permanent Address</h1>
               <p className={styles.mobileSubtitle}>
-                Upload your document (front &amp; back) for foreign address verification.
+                Upload your document (front &amp; back) for permanent address verification.
               </p>
             </div>
           </div>
@@ -211,16 +218,16 @@ export default function ForeignAddressUpload() {
       </div>
 
       {/* ═══ DESKTOP ═══════════════════════════════════════════════════════════ */}
-      <div className={styles.desktopPage} aria-label="Upload Foreign Address">
+      <div className={styles.desktopPage} aria-label="Upload Permanent Address">
         <div className={styles.desktopCard}>
           <div className={styles.desktopCardHeader}>
             <button type="button" className={styles.desktopBackBtn} onClick={handleBack} aria-label="Go back">
               <IconBackArrow />
             </button>
             <div className={styles.desktopTitleBlock}>
-              <h1 className={styles.desktopCardTitle}>Upload Foreign Address</h1>
+              <h1 className={styles.desktopCardTitle}>Upload Permanent Address</h1>
               <p className={styles.desktopCardSubtitle}>
-                Upload your document (front &amp; back) for foreign address verification.
+                Upload your document (front &amp; back) for permanent address verification.
               </p>
             </div>
           </div>

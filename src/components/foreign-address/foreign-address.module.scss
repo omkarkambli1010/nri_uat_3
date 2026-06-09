@@ -565,3 +565,26 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 8px;
   width: 100%;
 }
+
+// ── Inline validation error text ─────────────────────────────────────────────
+$error: #d92d20;
+
+// Mobile: sits directly under the field within its .fieldGroup (gap 8px).
+.fieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: $error;
+  line-height: 1.4;
+  margin: 0;
+}
+
+// Desktop: error rows are siblings of .desktopFieldRow in the form column, so
+// offset under the input column (231px label + 24px gap = 255px).
+.desktopFieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: $error;
+  line-height: 1.4;
+  margin: -16px 0 0; // pull up toward the field (form column gap is 24px)
+  padding-left: 255px;
+}

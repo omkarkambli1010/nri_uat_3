@@ -1,22 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSpinner } from '@/components/spinner/Spinner';
 import navigationService from '@/services/navigation.service';
+import apiService, { BankRpdStatusResponse } from '@/services/api.service';
+import { toast } from '@/services/toast.service';
 import styles from './manual-bankinfo.module.scss';
-
-// ── Placeholder bank data (replace with real data from state/API) ─────────────
-
-const BANK_DETAILS = {
-  bankName: 'State Bank of India',
-  nameAsPerBank: 'Saloni Kevin Shah',
-  accountType: 'Savings',
-  accountNumber: '123456789073256',
-  ifscCode: 'SBIN1234567',
-  micrCode: '12345678',
-  bankAddress: 'Lorem Ipsum is simply dummy text of the printing and typesetting industry.',
-} as const;
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 
@@ -48,7 +38,10 @@ function CheckCircleIcon() {
 
 // ── Detail row helper ─────────────────────────────────────────────────────────
 
-function DetailRow({ label, value }: { label: string; value: string }) {
+// Renders nothing when the value is empty — the RPD status response only
+// includes a subset of fields, so unsupplied rows are hidden.
+function DetailRow({ label, value }: { label: string; value?: string }) {
+  if (!value) return null;
   return (
     <p className={styles.detailRow}>
       {label}{' '}
@@ -59,7 +52,7 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 // ── Shared content blocks ─────────────────────────────────────────────────────
 
-function SuccessContent() {
+function SuccessContent({ details }: { details: BankRpdStatusResponse | null }) {
   return (
     <div className={styles.successContent}>
       <CheckCircleIcon />
@@ -67,13 +60,13 @@ function SuccessContent() {
         Your bank details has been added successfully
       </p>
       <div className={styles.detailsBox}>
-        <DetailRow label="Bank Name:" value={BANK_DETAILS.bankName} />
-        <DetailRow label="Name as per Bank:" value={BANK_DETAILS.nameAsPerBank} />
-        <DetailRow label="Account Type:" value={BANK_DETAILS.accountType} />
-        <DetailRow label="Account Number:" value={BANK_DETAILS.accountNumber} />
-        <DetailRow label="IFSC Code:" value={BANK_DETAILS.ifscCode} />
-        <DetailRow label="MICR Code:" value={BANK_DETAILS.micrCode} />
-        <DetailRow label="Bank Address:" value={BANK_DETAILS.bankAddress} />
+        <DetailRow label="Bank Name:" value={details?.bankName} />
+        <DetailRow label="Name as per Bank:" value={details?.holderName} />
+        <DetailRow label="Account Type:" value={details?.accountType} />
+        <DetailRow label="Account Number:" value={details?.accountNumber} />
+        <DetailRow label="IFSC Code:" value={details?.ifscCode} />
+        <DetailRow label="MICR Code:" value={details?.micrCode} />
+        <DetailRow label="Bank Address:" value={details?.bankAddress} />
       </div>
     </div>
   );
@@ -85,8 +78,47 @@ export default function ManualBankInfo() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
+  const [bankDetails, setBankDetails] = useState<BankRpdStatusResponse | null>(null);
+
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
+  }, []);
+
+  // Fetch the verified bank details (reverse-penny-drop status) on mount.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const applicationId = window.sessionStorage.getItem('ApplicationId') || '';
+    const vendorSessionId = window.sessionStorage.getItem('VendorSessionId') || '';
+
+    if (!applicationId || !vendorSessionId) {
+      toast.error('Your session has expired, please start again.', {
+        position: 'bottom-center',
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      showSpinner();
+      try {
+        const data = await apiService.getBankRpdStatus(
+          applicationId,
+          vendorSessionId,
+          hideSpinner,
+        );
+        if (!cancelled) setBankDetails(data);
+      } catch {
+        // apiService.handleError already surfaced the backend message.
+      } finally {
+        hideSpinner();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const goBack = () => {
@@ -128,7 +160,7 @@ export default function ManualBankInfo() {
         </div>
 
         <div className={styles.mobileCard}>
-          <SuccessContent />
+          <SuccessContent details={bankDetails} />
         </div>
 
         <div className={styles.mobileProceedArea}>
@@ -163,7 +195,7 @@ export default function ManualBankInfo() {
           </div>
 
           <div className={styles.desktopCardBody}>
-            <SuccessContent />
+            <SuccessContent details={bankDetails} />
 
             <div className={styles.desktopProceedWrapper}>
               <button

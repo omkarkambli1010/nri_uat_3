@@ -8,6 +8,7 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import { buildFaqUrl } from "@/lib/faq-link";
+import { COUNTRIES as ALL_COUNTRIES } from "@/components/country-select/countries";
 import styles from "./add-nominee.module.scss";
 
 // AddNominee — multi-state nominee form
@@ -34,13 +35,17 @@ const RELATIONSHIP_OPTIONS = [
   "Others",
 ];
 
+// Document Master (nominee proof) — per spec.
 const DOCUMENT_TYPE_OPTIONS = [
-  "PAN Card",
-  "Aadhaar",
   "Passport",
-  "Voter ID",
-  "Driving Licence",
+  "Driving License",
+  "Aadhaar",
 ];
+
+// FATF-restricted countries (Status = N) excluded from the nominee country
+// dropdown. Matched by ISO-2 so it's robust to display-name differences.
+const FATF_RESTRICTED_ISO2 = new Set(["kp", "ir", "mm", "sy", "ye"]);
+const COUNTRY_OPTIONS = ALL_COUNTRIES.filter((c) => !FATF_RESTRICTED_ISO2.has(c.iso2));
 
 type PrintPref = "yes" | "no" | "";
 
@@ -145,17 +150,6 @@ const dateToStr = (d: Date | null | undefined): string => {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
-};
-
-const computeAge = (dob: string): number | null => {
-  if (!dob) return null;
-  const d = new Date(dob);
-  if (Number.isNaN(d.getTime())) return null;
-  const today = new Date();
-  let age = today.getFullYear() - d.getFullYear();
-  const m = today.getMonth() - d.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
-  return age;
 };
 
 function BackArrow() {
@@ -460,12 +454,12 @@ export default function AddNominee() {
     errors[key] ? <p className={styles.errorText}>{errors[key]}</p> : null;
 
   // Document number entry rules depend on the selected type:
-  //   Aadhaar → last 4 digits only (digits, capped at 4)
-  //   everything else → free text, uppercased (e.g. PAN)
+  //   Aadhaar → exactly 4 digits (digits only, capped at 4)
+  //   everything else → alphanumeric only, uppercased
   const sanitizeDocumentNumber = (value: string): string =>
     current.documentType === "Aadhaar"
       ? value.replace(/[^0-9]/g, "").slice(0, 4)
-      : value.toUpperCase();
+      : value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
   // Switching document type invalidates any number already typed (a PAN value
   // is not a valid Aadhaar value, etc.) — clear it so stale input can't linger.
@@ -481,11 +475,6 @@ export default function AddNominee() {
       .replace(/[^0-9]/g, "")
       .replace(/^[0-5]+/, "")
       .slice(0, 10);
-
-  const isMinor = useMemo(() => {
-    const age = computeAge(current.dob);
-    return age !== null && age < 18;
-  }, [current.dob]);
 
   const nomineeFullName = (n: Nominee) =>
     [n.firstName, n.middleName, n.lastName].filter(Boolean).join(" ").trim();
@@ -515,30 +504,18 @@ export default function AddNominee() {
 
   const mapProofType = (documentType: string): string => {
     switch (documentType) {
-      case "PAN Card":
-        return "PanCard";
       case "Aadhaar":
         return "Aadhaar";
       case "Passport":
         return "Passport";
-      case "Voter ID":
-        return "VoterId";
-      case "Driving Licence":
+      case "Driving License":
         return "DrivingLicense";
       default:
         return documentType;
     }
   };
 
-  const mapGuardianRelationship = (relationship: string): string => {
-    if (relationship === "Legal Guardian") return "LegalGuardian";
-    return "NaturalGuardian";
-  };
-
   const mapNomineeToApiPayload = (n: Nominee): ApiNominee => {
-    const age = computeAge(n.dob);
-    const nomineeIsMinor = age !== null && age < 18;
-
     const apiNominee: ApiNominee = {
       fullName: nomineeFullName(n),
       dateOfBirth: n.dob,
@@ -558,22 +535,6 @@ export default function AddNominee() {
       pincode: n.sameAsApplicant ? "" : n.pincode,
       nomNamePrint: n.printPreference === "yes" ? "Yes" : "No",
     };
-
-    if (nomineeIsMinor) {
-      apiNominee.guardian = {
-        fullName: [
-          n.guardianFirstName,
-          n.guardianMiddleName,
-          n.guardianLastName,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .trim(),
-        dateOfBirth: "",
-        relationship: mapGuardianRelationship(n.guardianRelationship),
-        pan: "",
-      };
-    }
 
     return apiNominee;
   };
@@ -618,27 +579,23 @@ export default function AddNominee() {
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const mobileRe = /^[6-9]\d{9}$/;
     const pincodeRe = /^\d{6}$/;
-    const panRe = /^[A-Z]{5}\d{4}[A-Z]$/;
+    const alnumRe = /^[A-Za-z0-9]+$/;
     const aadhaarLast4Re = /^\d{4}$/;
 
-    // ── Name fields ────────────────────────────────────────────────────────
-    if (!current.firstName.trim()) e.firstName = "First name is required";
-    else if (current.firstName.trim().length < 2)
-      e.firstName = "Minimum 2 characters";
+    // ── Name fields — mandatory, alphabets only ─────────────────────────────
+    if (!current.firstName.trim()) e.firstName = "Please enter nominee name.";
     else if (!nameRe.test(current.firstName.trim()))
-      e.firstName = "Letters and spaces only";
+      e.firstName = "Only alphabets are allowed in nominee name.";
 
     if (current.middleName.trim() && !nameRe.test(current.middleName.trim()))
-      e.middleName = "Letters and spaces only";
+      e.middleName = "Only alphabets are allowed in nominee name.";
 
-    if (!current.lastName.trim()) e.lastName = "Last name is required";
-    else if (current.lastName.trim().length < 2)
-      e.lastName = "Minimum 2 characters";
+    if (!current.lastName.trim()) e.lastName = "Please enter nominee name.";
     else if (!nameRe.test(current.lastName.trim()))
-      e.lastName = "Letters and spaces only";
+      e.lastName = "Only alphabets are allowed in nominee name.";
 
     // ── Relationship / Allocation ──────────────────────────────────────────
-    if (!current.relationship) e.relationship = "Select a relationship";
+    if (!current.relationship) e.relationship = "Please select nominee relationship.";
 
     const allocNum = Number(current.allocation);
     if (!current.allocation || Number.isNaN(allocNum))
@@ -657,59 +614,48 @@ export default function AddNominee() {
     else if (!emailRe.test(current.email.trim()))
       e.email = "Enter a valid email address";
 
-    // ── DOB ────────────────────────────────────────────────────────────────
-    if (!current.dob) e.dob = "Date of birth is required";
+    // ── DOB — mandatory, valid past date ───────────────────────────────────
+    if (!current.dob) e.dob = "Please select nominee date of birth.";
     else {
       const d = new Date(current.dob);
-      if (Number.isNaN(d.getTime())) e.dob = "Invalid date";
-      else if (d > new Date()) e.dob = "Date of birth must be in the past";
+      if (Number.isNaN(d.getTime()) || d > new Date())
+        e.dob = "Please select nominee date of birth.";
     }
 
     // ── Address (only when "same as applicant" is unchecked) ───────────────
+    // Per spec the whole address block is mandatory; show one message on each
+    // empty field. Country must be a non-FATF country (Status = Y).
     if (!current.sameAsApplicant) {
-      if (!current.addressLine1.trim())
-        e.addressLine1 = "Address line 1 is required";
-      if (!current.city.trim()) e.city = "City is required";
-      if (!current.state.trim()) e.state = "State is required";
-      if (!current.country.trim()) e.country = "Country is required";
-      if (!current.pincode) e.pincode = "Pincode is required";
+      const ADDR_MSG = "Please enter complete address.";
+      if (!current.addressLine1.trim()) e.addressLine1 = ADDR_MSG;
+      if (!current.addressLine2.trim()) e.addressLine2 = ADDR_MSG;
+      if (!current.addressLine3.trim()) e.addressLine3 = ADDR_MSG;
+      if (!current.city.trim()) e.city = ADDR_MSG;
+      if (!current.country.trim()) e.country = ADDR_MSG;
+      if (!current.pincode) e.pincode = ADDR_MSG;
       else if (!pincodeRe.test(current.pincode))
         e.pincode = "Enter a valid 6-digit pincode";
     }
 
-    // ── Document ───────────────────────────────────────────────────────────
-    if (!current.documentType) e.documentType = "Select a document type";
+    // ── Document type ──────────────────────────────────────────────────────
+    if (!current.documentType)
+      e.documentType = "Please select a valid Address Proof Document Type.";
+
+    // ── Proof number — Aadhaar = exactly 4 digits; else alphanumeric ───────
     if (!current.documentNumber.trim())
-      e.documentNumber = "Document number is required";
+      e.documentNumber = "Please enter Address Proof number";
     else {
       const docNum = current.documentNumber.trim().toUpperCase();
-      // Each document type has its own format rule; the generic minimum-length
-      // check applies only to the remaining types (Passport, Voter ID, etc.).
-      if (current.documentType === "PAN Card") {
-        if (!panRe.test(docNum))
-          e.documentNumber = "Invalid PAN (format: ABCDE1234F)";
-      } else if (current.documentType === "Aadhaar") {
+      if (current.documentType === "Aadhaar") {
         if (!aadhaarLast4Re.test(docNum))
-          e.documentNumber = "Enter the last 4 digits of the Aadhaar number";
-      } else if (docNum.length < 5) {
-        e.documentNumber = "Minimum 5 characters";
+          e.documentNumber = "Aadhaar proof number must be exactly 4 digits.";
+      } else if (!alnumRe.test(docNum)) {
+        e.documentNumber = "Please enter a valid alphanumeric Address Proof number.";
       }
     }
 
     // ── Print preference ───────────────────────────────────────────────────
     if (!current.printPreference) e.printPreference = "Please select Yes or No";
-
-    // ── Guardian (only when nominee is a minor) ────────────────────────────
-    if (isMinor) {
-      if (!current.guardianFirstName.trim())
-        e.guardianFirstName = "Guardian first name is required";
-      else if (!nameRe.test(current.guardianFirstName.trim()))
-        e.guardianFirstName = "Letters and spaces only";
-      if (!current.guardianRelationship)
-        e.guardianRelationship = "Guardian relationship is required";
-      if (!current.guardianAddressLine1.trim())
-        e.guardianAddressLine1 = "Guardian address is required";
-    }
 
     return e;
   };
@@ -1228,25 +1174,29 @@ export default function AddNominee() {
                           </div>
                           <div className={styles.fieldStack}>
                             <input
-                              className={styles.inputHalf}
+                              className={`${styles.inputHalf} ${errCls("addressLine2")}`}
                               placeholder="Enter address line 2"
                               value={current.addressLine2}
                               onChange={(e) =>
                                 updateCurrent("addressLine2", e.target.value)
                               }
                             />
+                            {errMsg("addressLine2")}
                           </div>
                         </div>
                       </div>
                       <div className={styles.lastNameRow}>
-                        <input
-                          className={styles.input}
-                          placeholder="Address line 3"
-                          value={current.addressLine3}
-                          onChange={(e) =>
-                            updateCurrent("addressLine3", e.target.value)
-                          }
-                        />
+                        <div className={styles.fieldStack} style={{ flex: "none" }}>
+                          <input
+                            className={`${styles.input} ${errCls("addressLine3")}`}
+                            placeholder="Address line 3"
+                            value={current.addressLine3}
+                            onChange={(e) =>
+                              updateCurrent("addressLine3", e.target.value)
+                            }
+                          />
+                          {errMsg("addressLine3")}
+                        </div>
                       </div>
                       <div className={styles.row}>
                         <p className={styles.rowLabel}>City &amp; State</p>
@@ -1278,14 +1228,20 @@ export default function AddNominee() {
                       <div className={styles.row}>
                         <p className={styles.rowLabel}>Country</p>
                         <div className={styles.fieldStack}>
-                          <input
-                            className={`${styles.input} ${errCls("country")}`}
-                            placeholder="Enter country"
+                          <select
+                            className={`${styles.select} ${errCls("country")}`}
                             value={current.country}
                             onChange={(e) =>
                               updateCurrent("country", e.target.value)
                             }
-                          />
+                          >
+                            <option value="">Select country</option>
+                            {COUNTRY_OPTIONS.map((c) => (
+                              <option key={c.iso2} value={c.name}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
                           {errMsg("country")}
                         </div>
                       </div>
@@ -1305,70 +1261,6 @@ export default function AddNominee() {
                             }
                           />
                           {errMsg("pincode")}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {/* Guardian (Minor only) */}
-                  {isMinor && (
-                    <>
-                      <p className={styles.nomineeTitle}>Guardian Details</p>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Guardian Name</p>
-                        <div className={styles.fieldStack}>
-                          <input
-                            className={`${styles.input} ${errCls("guardianFirstName")}`}
-                            placeholder="Guardian full name"
-                            value={current.guardianFirstName}
-                            onChange={(e) =>
-                              updateCurrent(
-                                "guardianFirstName",
-                                e.target.value.replace(/[^a-zA-Z\s]/g, ""),
-                              )
-                            }
-                          />
-                          {errMsg("guardianFirstName")}
-                        </div>
-                      </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Guardian Relationship</p>
-                        <div className={styles.fieldStack}>
-                          <select
-                            className={`${styles.select} ${errCls("guardianRelationship")}`}
-                            value={current.guardianRelationship}
-                            onChange={(e) =>
-                              updateCurrent(
-                                "guardianRelationship",
-                                e.target.value,
-                              )
-                            }
-                          >
-                            <option value="">Select</option>
-                            {["Father", "Mother", "Legal Guardian"].map((r) => (
-                              <option key={r} value={r}>
-                                {r}
-                              </option>
-                            ))}
-                          </select>
-                          {errMsg("guardianRelationship")}
-                        </div>
-                      </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Guardian Address</p>
-                        <div className={styles.fieldStack}>
-                          <input
-                            className={`${styles.input} ${errCls("guardianAddressLine1")}`}
-                            placeholder="Guardian address"
-                            value={current.guardianAddressLine1}
-                            onChange={(e) =>
-                              updateCurrent(
-                                "guardianAddressLine1",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          {errMsg("guardianAddressLine1")}
                         </div>
                       </div>
                     </>
@@ -1724,24 +1616,26 @@ export default function AddNominee() {
                 <div className={styles.mobField}>
                   <label className={styles.mobLabel}>Address Line 2</label>
                   <input
-                    className={styles.mobInput}
+                    className={`${styles.mobInput} ${errCls("addressLine2", true)}`}
                     placeholder="Enter address line 2"
                     value={current.addressLine2}
                     onChange={(e) =>
                       updateCurrent("addressLine2", e.target.value)
                     }
                   />
+                  {errMsg("addressLine2")}
                 </div>
                 <div className={styles.mobField}>
                   <label className={styles.mobLabel}>Address Line 3</label>
                   <input
-                    className={styles.mobInput}
+                    className={`${styles.mobInput} ${errCls("addressLine3", true)}`}
                     placeholder="Address line 3"
                     value={current.addressLine3}
                     onChange={(e) =>
                       updateCurrent("addressLine3", e.target.value)
                     }
                   />
+                  {errMsg("addressLine3")}
                 </div>
                 <div className={styles.mobFieldRow}>
                   <div className={styles.mobField}>
@@ -1767,12 +1661,18 @@ export default function AddNominee() {
                 </div>
                 <div className={styles.mobField}>
                   <label className={styles.mobLabel}>Country</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("country", true)}`}
-                    placeholder="Enter country"
+                  <select
+                    className={`${styles.mobSelect} ${errCls("country", true)}`}
                     value={current.country}
                     onChange={(e) => updateCurrent("country", e.target.value)}
-                  />
+                  >
+                    <option value="">Select country</option>
+                    {COUNTRY_OPTIONS.map((c) => (
+                      <option key={c.iso2} value={c.name}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
                   {errMsg("country")}
                 </div>
                 <div className={styles.mobField}>
@@ -1790,59 +1690,6 @@ export default function AddNominee() {
                     }
                   />
                   {errMsg("pincode")}
-                </div>
-              </>
-            )}
-
-            {isMinor && (
-              <>
-                <p className={styles.nomineeTitle}>Guardian Details</p>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Guardian Name</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("guardianFirstName", true)}`}
-                    placeholder="Guardian full name"
-                    value={current.guardianFirstName}
-                    onChange={(e) =>
-                      updateCurrent(
-                        "guardianFirstName",
-                        e.target.value.replace(/[^a-zA-Z\s]/g, ""),
-                      )
-                    }
-                  />
-                  {errMsg("guardianFirstName")}
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>
-                    Guardian Relationship
-                  </label>
-                  <select
-                    className={`${styles.mobSelect} ${errCls("guardianRelationship", true)}`}
-                    value={current.guardianRelationship}
-                    onChange={(e) =>
-                      updateCurrent("guardianRelationship", e.target.value)
-                    }
-                  >
-                    <option value="">Select</option>
-                    {["Father", "Mother", "Legal Guardian"].map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                  {errMsg("guardianRelationship")}
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Guardian Address</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("guardianAddressLine1", true)}`}
-                    placeholder="Guardian address"
-                    value={current.guardianAddressLine1}
-                    onChange={(e) =>
-                      updateCurrent("guardianAddressLine1", e.target.value)
-                    }
-                  />
-                  {errMsg("guardianAddressLine1")}
                 </div>
               </>
             )}
