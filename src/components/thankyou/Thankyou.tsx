@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './thankyou.module.scss';
 import { publicPath } from "@/utils/publicPath";
 // Thankyou component — equivalent to Angular ThankyouComponent
@@ -143,9 +144,9 @@ export default function Thankyou() {
                       </p>
                     </div>
                     <div className={styles.proceedBtn}>
-                      <button className="btn btn_cls" onClick={openAggregatorModal}>
+                      <LoadingButton className="btn btn_cls" onClick={openAggregatorModal}>
                         Activate Derivative
-                      </button>
+                      </LoadingButton>
                     </div>
                   </form>
                 )}
@@ -176,9 +177,9 @@ export default function Thankyou() {
                 </form>
               </div>
               <div className={styles.btnAlign}>
-                <button className="btn btn_cls" onClick={redirectesign}>
+                <LoadingButton className="btn btn_cls" onClick={redirectesign}>
                   Back to E-Sign
-                </button>
+                </LoadingButton>
               </div>
             </div>
           </div>

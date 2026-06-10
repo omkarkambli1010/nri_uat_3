@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './permanent-address.module.scss';
 import { FOREIGN_UPLOAD_TYPES } from '@/constants/foreignUpload-type';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -326,7 +327,7 @@ export default function PermanentAddress() {
 
       {/* Fixed bottom — always enabled */}
       <div className={styles.mobileProceedArea}>
-        <button
+        <LoadingButton
           type="button"
           className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
           onClick={handleProceed}
@@ -334,7 +335,7 @@ export default function PermanentAddress() {
           aria-disabled={isDisabled}
         >
           {btnLabel}
-        </button>
+        </LoadingButton>
       </div>
     </div>
   );
@@ -518,7 +519,7 @@ export default function PermanentAddress() {
 
           {/* Proceed — always enabled */}
           <div className={styles.desktopProceedWrapper}>
-            <button
+            <LoadingButton
               type="button"
               className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
               onClick={handleProceed}
@@ -526,7 +527,7 @@ export default function PermanentAddress() {
               aria-disabled={isDisabled}
             >
               {btnLabel}
-            </button>
+            </LoadingButton>
           </div>
         </div>
 

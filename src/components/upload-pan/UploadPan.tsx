@@ -6,8 +6,10 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './upload-pan.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 // UploadPan — Upload PAN card image when name mismatch detected
 // Equivalent to Angular UploadPanComponent
 
@@ -20,7 +22,7 @@ export default function UploadPan() {
   const [isProceedDisabled, setIsProceedDisabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const rejectStatus = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -150,12 +152,12 @@ export default function UploadPan() {
               </div>
 
               <div className="stickybtn_desk desktop_css">
-                <button className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</button>
+                <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</LoadingButton>
               </div>
             </form>
           </div>
           <div className="stickybtn mobile_css">
-            <button className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</button>
+            <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</LoadingButton>
           </div>
         </div>
       </div>

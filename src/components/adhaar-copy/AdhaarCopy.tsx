@@ -7,6 +7,8 @@ import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
 import styles from './adhaar-copy.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import LoadingButton from '@/components/ui/LoadingButton';
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // AdhaarCopy — Aadhaar DigiLocker verification result screen
 // Figma: 8TizndCcBb3VyE5CIJBEZe
@@ -110,9 +112,7 @@ export default function AdhaarCopy() {
   const [name, setName] = useState('');
   const [maskedNumber, setMaskedNumber] = useState('');
 
-  const rejectStatus = typeof window !== 'undefined'
-    ? sessionStorage.getItem('RejectStatus')
-    : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -352,13 +352,13 @@ export default function AdhaarCopy() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={styles.mobileProceedBtn}
             onClick={handleContinue}
           >
             Proceed to Personal Details
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -408,13 +408,13 @@ export default function AdhaarCopy() {
                 <ShieldIcon />
                 Your PAN details are safe and secure with us.
               </p>
-              <button
+              <LoadingButton
                 type="button"
                 className={styles.proceedBtn}
                 onClick={handleContinue}
               >
                 Continue
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

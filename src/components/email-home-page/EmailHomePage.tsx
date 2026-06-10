@@ -7,6 +7,7 @@ import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
 import styles from './email-home-page.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // EmailHomePage — Figma: SEMI--FULL-NRE-NRO / Email ID Verification (text entry)
 // Desktop: 1:76966   Mobile: 1:72753
@@ -144,14 +145,14 @@ export default function EmailHomePage() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isSendDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={getEmailOtp}
             disabled={isSendDisabled}
           >
             Send OTP
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -195,14 +196,14 @@ export default function EmailHomePage() {
             )}
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isSendDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={getEmailOtp}
                 disabled={isSendDisabled}
               >
                 Send OTP
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

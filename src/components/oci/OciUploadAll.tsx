@@ -7,6 +7,7 @@ import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from './oci.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // OciUploadAll — all-in-one OCI/PIO upload screen (passport-upload style).
 // Reached from /oci (the Document Type + Card No. landing page). Two sections:
@@ -201,7 +202,7 @@ export default function OciUploadAll() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled || submitting ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -209,7 +210,7 @@ export default function OciUploadAll() {
             aria-disabled={isDisabled || submitting}
           >
             {submitting ? 'Saving…' : 'Proceed'}
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -238,7 +239,7 @@ export default function OciUploadAll() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled || submitting ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -246,7 +247,7 @@ export default function OciUploadAll() {
                 aria-disabled={isDisabled || submitting}
               >
                 {submitting ? 'Saving…' : 'Proceed'}
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

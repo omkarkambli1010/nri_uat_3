@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import LoadingButton from '@/components/ui/LoadingButton';
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSpinner } from "@/components/spinner/Spinner";
@@ -1079,7 +1080,7 @@ export default function ManualBankDetails() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
             onClick={handleProceed}
@@ -1087,7 +1088,7 @@ export default function ManualBankDetails() {
             suppressHydrationWarning
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -1127,7 +1128,7 @@ export default function ManualBankDetails() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
                 onClick={handleProceed}
@@ -1135,7 +1136,7 @@ export default function ManualBankDetails() {
                 suppressHydrationWarning
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

@@ -7,6 +7,7 @@ import navigationService from '@/services/navigation.service';
 import apiService, { BankRpdStatusResponse } from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from './manual-bankinfo.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 
@@ -164,14 +165,14 @@ export default function ManualBankInfo() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={styles.mobileProceedBtn}
             onClick={handleProceed}
             suppressHydrationWarning
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -198,14 +199,14 @@ export default function ManualBankInfo() {
             <SuccessContent details={bankDetails} />
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={styles.desktopProceedBtn}
                 onClick={handleProceed}
                 suppressHydrationWarning
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

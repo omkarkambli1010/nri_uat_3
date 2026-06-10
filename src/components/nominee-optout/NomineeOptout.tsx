@@ -6,6 +6,7 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './nominee-optout.module.scss';
 import { publicPath } from "@/utils/publicPath";
 
@@ -100,11 +101,11 @@ export default function NomineeOptout() {
             </div>
 
             <div className="stickybtn_desk desktop_css">
-              <button className="btn btn_cls" disabled={!agreed} onClick={confirmOptOut}>Confirm Opt-Out</button>
+              <LoadingButton className="btn btn_cls" disabled={!agreed} onClick={confirmOptOut}>Confirm Opt-Out</LoadingButton>
             </div>
           </div>
           <div className="stickybtn mobile_css">
-            <button className="btn btn_cls" disabled={!agreed} onClick={confirmOptOut}>Confirm Opt-Out</button>
+            <LoadingButton className="btn btn_cls" disabled={!agreed} onClick={confirmOptOut}>Confirm Opt-Out</LoadingButton>
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './passport-upload.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // PassportDetails — Passport type selection screen
 // Figma: Onboarding-Mob-Passportdetails (0:35835) + desktop (0:35923)
@@ -109,7 +110,7 @@ export default function PassportDetails() {
 
         {/* Fixed bottom button */}
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -117,7 +118,7 @@ export default function PassportDetails() {
             aria-disabled={isDisabled}
           >
             Upload Passport Front
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -154,7 +155,7 @@ export default function PassportDetails() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -162,7 +163,7 @@ export default function PassportDetails() {
                 aria-disabled={isDisabled}
               >
                 Upload Passport Front
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

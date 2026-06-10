@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './fnoesign.module.scss';
 import { publicPath } from "@/utils/publicPath";
 
@@ -96,13 +97,13 @@ export default function Fnoesign() {
                   height={80}
                 />
                 <p className="mt-3">{errorMsg}</p>
-                <button
+                <LoadingButton
                   type="button"
                   className="btn btn_cls mt-3"
                   onClick={() => getFnoEsignData(formNumber)}
                 >
                   Retry
-                </button>
+                </LoadingButton>
               </div>
             )}
 

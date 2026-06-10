@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './visa.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // VisaEntry — /visa entry screen (Figma node 0:119049 mobile, 0:119133 desktop).
 // One field — Select Visa Expiry — and a single "Upload" button that routes
@@ -124,7 +125,7 @@ export default function VisaEntry() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${!canUpload ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleUpload}
@@ -132,7 +133,7 @@ export default function VisaEntry() {
             aria-disabled={!canUpload}
           >
             Upload
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -159,7 +160,7 @@ export default function VisaEntry() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${!canUpload ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleUpload}
@@ -167,7 +168,7 @@ export default function VisaEntry() {
                 aria-disabled={!canUpload}
               >
                 Upload
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

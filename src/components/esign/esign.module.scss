@@ -30,8 +30,6 @@ $pageBg: #f8f8f8;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  // 90px global header + 48px (margin top+bottom) + buffer
-  max-height: calc(100vh - 138px);
 }
 
 .deskHeader {
@@ -120,7 +118,7 @@ $pageBg: #f8f8f8;
   gap: 36px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
+  // Desktop: page scrolls instead of an inner form scroller.
   overflow-x: hidden;
   padding: 8px 24px;
 

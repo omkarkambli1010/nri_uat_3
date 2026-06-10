@@ -9,6 +9,7 @@ import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import { Country } from 'country-state-city';
 import styles from './visa.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // VisaUpload — all-in-one Visa screen. Two FileUploadCards (Front + Back) on
 // top, then ONE consolidated "extracted details" card (Figma 0:117650) holding
@@ -592,7 +593,7 @@ export default function VisaUpload() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled || submitting ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -600,7 +601,7 @@ export default function VisaUpload() {
             aria-disabled={isDisabled || submitting}
           >
             {submitting ? 'Saving…' : 'Proceed'}
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -630,7 +631,7 @@ export default function VisaUpload() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled || submitting ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -638,7 +639,7 @@ export default function VisaUpload() {
                 aria-disabled={isDisabled || submitting}
               >
                 {submitting ? 'Saving…' : 'Proceed'}
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

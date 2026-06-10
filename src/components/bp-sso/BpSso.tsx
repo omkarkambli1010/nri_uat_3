@@ -6,6 +6,7 @@ import DateField from '@/components/date-field/DateField';
 import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './bp-sso.module.scss';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
@@ -23,13 +24,14 @@ const dateToStr = (d: Date | null | undefined): string => {
 export default function BpSso() {
   const router = useRouter();
   const params = useParams();
-  const { show: showSpinner, hide: hideSpinner } = useSpinner();
+  const { hide: hideSpinner } = useSpinner();
 
   const [pan, setPan] = useState('');
   const [dob, setDob] = useState('');
   const [panError, setPanError] = useState('');
   const [dobError, setDobError] = useState('');
   const [formNumber, setFormNumber] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     document.title = 'Branch Partner SSO | SBI Securities';
@@ -56,7 +58,8 @@ export default function BpSso() {
     setDobError(dobErr);
     if (panErr || dobErr) return;
 
-    showSpinner();
+    // In-button loader drives feedback here (no full-screen overlay).
+    setSubmitting(true);
     try {
       const response = await apiService.postRequest('api/v1/bp/sso/verify', {
         PAN: pan.toUpperCase(),
@@ -80,7 +83,7 @@ export default function BpSso() {
     } catch {
       // error handled by apiService
     } finally {
-      hideSpinner();
+      setSubmitting(false);
     }
   };
 
@@ -138,9 +141,9 @@ export default function BpSso() {
               </div>
 
               <div className={styles.proceedBtn}>
-                <button type="submit" className="btn btn_cls">
+                <LoadingButton type="submit" loading={submitting} className="btn btn_cls">
                   Verify &amp; Proceed
-                </button>
+                </LoadingButton>
               </div>
             </form>
           </div>

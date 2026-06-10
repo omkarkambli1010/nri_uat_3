@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AdditionalDocument from './AdditionalDocument';
 import { additionalDocumentStore, type AdditionalDocumentFile } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // AdditionalDocumentPreview — dedicated preview screen for the file picked in
 // the AdditionalDocument modal. Mirrors OCI/passport preview pages.
@@ -109,9 +110,9 @@ export default function AdditionalDocumentPreview() {
         </div>
 
         <div className={styles.mobileDoubleButtonArea}>
-          <button type="button" className={styles.mobileProceedBtn} onClick={handleProceed}>
+          <LoadingButton type="button" className={styles.mobileProceedBtn} onClick={handleProceed}>
             Proceed
-          </button>
+          </LoadingButton>
           <button type="button" className={styles.mobileOutlineBtn} onClick={handleReupload}>
             Re-Upload
           </button>
@@ -145,9 +146,9 @@ export default function AdditionalDocumentPreview() {
               <button type="button" className={styles.desktopOutlineBtn} onClick={handleReupload}>
                 Re-Upload
               </button>
-              <button type="button" className={styles.desktopProceedBtn} onClick={handleProceed}>
+              <LoadingButton type="button" className={styles.desktopProceedBtn} onClick={handleProceed}>
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

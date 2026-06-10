@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './yono-email.module.scss';
 
 export default function YonoEmail() {
@@ -168,13 +169,13 @@ export default function YonoEmail() {
                 </div>
 
                 <div className={styles.proceedBtn}>
-                  <button
+                  <LoadingButton
                     type="button"
                     className="btn btn_cls"
                     onClick={sendOtp}
                   >
                     Send OTP
-                  </button>
+                  </LoadingButton>
                 </div>
               </>
             ) : (
@@ -230,14 +231,14 @@ export default function YonoEmail() {
                 </div>
 
                 <div className={styles.proceedBtn}>
-                  <button
+                  <LoadingButton
                     type="button"
                     className="btn btn_cls"
                     onClick={verifyOtp}
                     disabled={otp.join('').length !== 6}
                   >
                     Verify OTP
-                  </button>
+                  </LoadingButton>
                 </div>
               </>
             )}

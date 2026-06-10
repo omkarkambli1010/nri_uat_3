@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './fatca.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // FatcaDetails — FATCA form.
 // Top: Country of Birth + Citizenship + Country of Tax Residency (mandatory).
@@ -306,13 +307,13 @@ export default function FatcaDetails() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={styles.mobileProceedBtn}
             onClick={handleProceed}
           >
             Upload TIN Document
-          </button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -345,13 +346,13 @@ export default function FatcaDetails() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={styles.desktopProceedBtn}
                 onClick={handleProceed}
               >
                 Upload TIN Document
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

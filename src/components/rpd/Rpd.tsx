@@ -6,8 +6,10 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './rpd.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 // Rpd — Desktop QR code variant of Reverse Penny Drop
 // Equivalent to Angular RpdComponent
 // Shows UPI QR code, polls for payment status, navigates to reversePennyDrop/2 on success
@@ -28,7 +30,7 @@ export default function Rpd() {
   const [seconds, setSeconds] = useState(0);
   const [showMismatchModal, setShowMismatchModal] = useState(false);
 
-  const rejectStatus = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   const rpdWebHookIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const countdownRef = useRef<NodeJS.Timeout | null>(null);
@@ -235,8 +237,8 @@ export default function Rpd() {
                 </div>
               </div>
               <div className="modal-footer flex-nowrap">
-                <button type="button" className="btn btn_cls" onClick={() => { setShowMismatchModal(false); hideSpinner(); }}>No</button>
-                <button type="button" className="btn btn_cls" onClick={redirectPlanSelection}>Yes</button>
+                <LoadingButton type="button" className="btn btn_cls" onClick={() => { setShowMismatchModal(false); hideSpinner(); }}>No</LoadingButton>
+                <LoadingButton type="button" className="btn btn_cls" onClick={redirectPlanSelection}>Yes</LoadingButton>
               </div>
             </div>
           </div>

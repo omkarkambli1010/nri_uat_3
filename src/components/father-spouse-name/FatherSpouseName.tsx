@@ -7,6 +7,8 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./father-spouse-name.module.scss";
+import LoadingButton from '@/components/ui/LoadingButton';
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // FatherSpouseName — step 5: Father/Spouse Name (KYC)
 // Equivalent to Angular FatherSpouseNameComponent
@@ -23,10 +25,7 @@ export default function FatherSpouseName() {
   const [fatherNameSpace, setFatherNameSpace] = useState(false);
   const [guid, setGuid] = useState("");
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -341,7 +340,7 @@ export default function FatherSpouseName() {
                   <div
                     className={`${styles.proceedRow} ${styles.desktopProceed}`}
                   >
-                    <button
+                    <LoadingButton
                       type="button"
                       className={styles.proceedBtn}
                       disabled={isPersonalForm}
@@ -349,7 +348,7 @@ export default function FatherSpouseName() {
                       onClick={PersonalDetailsave}
                     >
                       Proceed
-                    </button>
+                    </LoadingButton>
                   </div>
                 </div>
               </form>
@@ -357,7 +356,7 @@ export default function FatherSpouseName() {
 
             {/* Mobile: Proceed button outside card, on gray background */}
             <div className={styles.mobileProceedRow}>
-              <button
+              <LoadingButton
                 type="button"
                 className={styles.mobileProceedBtn}
                 disabled={isPersonalForm}
@@ -365,7 +364,7 @@ export default function FatherSpouseName() {
                 onClick={PersonalDetailsave}
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

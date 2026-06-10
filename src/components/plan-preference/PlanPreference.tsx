@@ -8,6 +8,8 @@ import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
+import LoadingButton from '@/components/ui/LoadingButton';
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -265,7 +267,7 @@ export default function PlanPreference() {
   const [showKnowMore, setShowKnowMore]   = useState(false);
   const [knowMoreIndex, setKnowMoreIndex] = useState(0);
 
-  const rejectStatus  = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
   // Mobile layout selection by plan count:
   //   1 plan      → single full-detail card (no carousel)
   //   2–3 plans   → tab strip + comparison table
@@ -422,14 +424,15 @@ export default function PlanPreference() {
         </div>
 
         <div className={styles.slideActions}>
-          <button
+          <LoadingButton
             type="button"
             className={styles.slideProceedBtn}
+            loading={isThisProceeding}
             disabled={isProceeding}
             onClick={(e) => { e.stopPropagation(); setSelectedIndex(i); proceedWithPlan(i); }}
           >
             {isThisProceeding ? 'Processing…' : 'Proceed'}
-          </button>
+          </LoadingButton>
           <button
             type="button"
             className={styles.slideKnowMore}
@@ -525,9 +528,10 @@ export default function PlanPreference() {
           </div>
 
           <div className={styles.dCardActions} style={{ gap: s.actionsGap }}>
-            <button
+            <LoadingButton
               type="button"
               className={styles.dProceedBtn}
+              loading={isThisProceeding}
               disabled={isProceeding}
               onClick={(e) => {
                 e.stopPropagation();
@@ -536,7 +540,7 @@ export default function PlanPreference() {
               }}
             >
               {isThisProceeding ? 'Processing…' : 'Proceed'}
-            </button>
+            </LoadingButton>
             <button
               type="button"
               className={styles.dKnowMoreBtn}
@@ -641,14 +645,15 @@ export default function PlanPreference() {
                 </div>
 
                 {/* Proceed button */}
-                <button
+                <LoadingButton
                   type="button"
                   className={styles.singlePlanProceedBtn}
+                  loading={isThisProceeding}
                   disabled={isProceeding}
                   onClick={() => proceedWithPlan(0)}
                 >
                   {isThisProceeding ? 'Processing…' : 'Proceed'}
-                </button>
+                </LoadingButton>
 
                 {proceedError && (
                   <p style={{ color: '#d32f2f', fontSize: 13, textAlign: 'center' }}>

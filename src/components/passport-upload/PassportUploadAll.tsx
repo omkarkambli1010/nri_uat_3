@@ -9,6 +9,7 @@ import { COUNTRIES } from '@/components/country-select/countries';
 import { apiService } from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from './passport-upload.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // PassportUploadAll — all-in-one Passport screen.
 // Two sections:
@@ -677,7 +678,7 @@ export default function PassportUploadAll() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -685,7 +686,7 @@ export default function PassportUploadAll() {
             aria-disabled={isDisabled}
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -710,7 +711,7 @@ export default function PassportUploadAll() {
               {backSection}
             </div>
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -718,7 +719,7 @@ export default function PassportUploadAll() {
                 aria-disabled={isDisabled}
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useSpinner } from '@/components/spinner/Spinner';
 import navigationService from '@/services/navigation.service';
 import styles from './permanent-address-details.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // PermanentAddressDetails — gateway screen before permanent address flow
 // Figma: NRO-PERMENANT-IND-ADDRESS — Desktop 2:4200, Mobile 2:4109
@@ -101,7 +102,7 @@ export default function PermanentAddressDetails() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isProceedDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -109,7 +110,7 @@ export default function PermanentAddressDetails() {
             suppressHydrationWarning
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -133,7 +134,7 @@ export default function PermanentAddressDetails() {
               {renderQuestion('aadhaarLinked-desk')}
             </div>
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isProceedDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -141,7 +142,7 @@ export default function PermanentAddressDetails() {
                 suppressHydrationWarning
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

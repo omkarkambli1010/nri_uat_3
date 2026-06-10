@@ -10,6 +10,7 @@ import apiService from '@/services/api.service';
 import { buildFaqUrl } from '@/lib/faq-link';
 import styles from './upload-process.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import LoadingButton from '@/components/ui/LoadingButton';
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
 
@@ -473,9 +474,9 @@ export default function UploadProcess() {
 
           {/* Figma: 328×48, bg #280071, 16px SemiBold white */}
           <div className={styles.mobileProceedArea}>
-            <button type="submit" className={styles.mobileProceedBtn}>
+            <LoadingButton type="submit" className={styles.mobileProceedBtn}>
               Verify PAN
-            </button>
+            </LoadingButton>
           </div>
         </form>
       </div>
@@ -658,13 +659,13 @@ export default function UploadProcess() {
                 <SecurityBanner />
                 {/* Figma: centered, w-350, h-56, bg #280071, 16px SemiBold white */}
                 <div className={styles.desktopProceedWrapper}>
-                  <button
+                  <LoadingButton
                     type="submit"
                     className={styles.desktopProceedBtn}
                     suppressHydrationWarning
                   >
                     Verify PAN
-                  </button>
+                  </LoadingButton>
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./occup-details.module.scss";
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // OccupDetails — step 4: Occupation Details
 // Figma: 8TizndCcBb3VyE5CIJBEZe
@@ -72,10 +73,7 @@ export default function OccupDetails() {
   // const [selectedOccupation, setSelectedOccupation] = useState('');
   // const [guid, setGuid] = useState('');
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);

@@ -7,6 +7,8 @@ import { useSpinner } from "@/components/spinner/Spinner";
 // import apiService from '@/services/api.service';
 import navigationService from "@/services/navigation.service";
 import styles from "./link-bank-account.module.scss";
+import LoadingButton from '@/components/ui/LoadingButton';
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // LinkBankAccount — step 6: Bank Details (Select Bank Account Type)
 // Figma: MzSMJbkZfKDT6S8z3G0rVU
@@ -113,10 +115,7 @@ export default function LinkBankAccount() {
   // Both unchecked by default — any one must be checked to enable Proceed
   const [selected, setSelected] = useState<string[]>([]);
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -232,14 +231,14 @@ export default function LinkBankAccount() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
             onClick={handleProceed}
             disabled={isDisabled}
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -272,14 +271,14 @@ export default function LinkBankAccount() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
                 onClick={handleProceed}
                 disabled={isDisabled}
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

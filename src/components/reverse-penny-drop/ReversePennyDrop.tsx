@@ -6,8 +6,10 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './reverse-penny-drop.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 // ReversePennyDrop — Bank account verification via UPI (reverse penny drop)
 // Equivalent to Angular ReversePennyDropComponent (multi-step)
 // Step 1: Mobile → choose UPI app, Desktop → scan QR code
@@ -43,7 +45,7 @@ export default function ReversePennyDrop() {
 
   const [showMismatchModal, setShowMismatchModal] = useState(false);
 
-  const rejectStatus = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
   const isIos = typeof window !== 'undefined' ? sessionStorage.getItem('isIos') : null;
 
   const rpdWebHookIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -421,9 +423,9 @@ export default function ReversePennyDrop() {
 
                   <div className="btn_align stickybtn_desk desktop_css">
                     {!hideCTAbtn ? (
-                      <button className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</button>
+                      <LoadingButton className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</LoadingButton>
                     ) : (
-                      <button className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</button>
+                      <LoadingButton className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</LoadingButton>
                     )}
                   </div>
                 </form>
@@ -431,9 +433,9 @@ export default function ReversePennyDrop() {
 
               <div className="btn_align stickybtn mobile_css">
                 {!hideCTAbtn ? (
-                  <button className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</button>
+                  <LoadingButton className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</LoadingButton>
                 ) : (
-                  <button className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</button>
+                  <LoadingButton className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</LoadingButton>
                 )}
               </div>
             </div>
@@ -496,15 +498,15 @@ export default function ReversePennyDrop() {
                   </div>
                   <div className="btn_align stickybtn_desk desktop_css">
                     {hideCTAbtn && (
-                      <button className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</button>
+                      <LoadingButton className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</LoadingButton>
                     )}
                   </div>
                 </form>
                 <div className="btn_align stickybtn mobile_css">
                   {!hideCTAbtn ? (
-                    <button className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</button>
+                    <LoadingButton className="btn btn_cls" onClick={sendVerifyBank}>Send ₹1 to verify bank</LoadingButton>
                   ) : (
-                    <button className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</button>
+                    <LoadingButton className="btn btn_cls" onClick={redirecttoPennyDrop}>Proceed to enter details manually</LoadingButton>
                   )}
                 </div>
               </div>
@@ -570,14 +572,14 @@ export default function ReversePennyDrop() {
                     </div>
                   </div>
                   <div className="btn_align stickybtn_desk desktop_css">
-                    <button className="btn btn_cls_outline" onClick={backToOne}>Choose another account</button>
-                    <button className="btn btn_cls" onClick={redirectPlanSelection}>Proceed</button>
+                    <LoadingButton className="btn btn_cls_outline" onClick={backToOne}>Choose another account</LoadingButton>
+                    <LoadingButton className="btn btn_cls" onClick={redirectPlanSelection}>Proceed</LoadingButton>
                   </div>
                 </form>
               </div>
               <div className="btn_align stickybtn mobile_css">
-                <button className="btn btn_cls_outline" onClick={backToOne}>Choose another account</button>
-                <button className="btn btn_cls" onClick={redirectPlanSelection}>Proceed</button>
+                <LoadingButton className="btn btn_cls_outline" onClick={backToOne}>Choose another account</LoadingButton>
+                <LoadingButton className="btn btn_cls" onClick={redirectPlanSelection}>Proceed</LoadingButton>
               </div>
             </div>
           </div>
@@ -598,7 +600,7 @@ export default function ReversePennyDrop() {
                 </div>
               </form>
               <div className="stickybtn">
-                <button className="btn btn_cls">Proceed</button>
+                <LoadingButton className="btn btn_cls">Proceed</LoadingButton>
               </div>
             </div>
           </div>
@@ -624,8 +626,8 @@ export default function ReversePennyDrop() {
                 </div>
               </div>
               <div className="modal-footer flex-nowrap">
-                <button type="button" className="btn btn_cls" onClick={() => { setShowMismatchModal(false); hideSpinner(); }}>No</button>
-                <button type="button" className="btn btn_cls" onClick={redirectPlanSelection}>Yes</button>
+                <LoadingButton type="button" className="btn btn_cls" onClick={() => { setShowMismatchModal(false); hideSpinner(); }}>No</LoadingButton>
+                <LoadingButton type="button" className="btn btn_cls" onClick={redirectPlanSelection}>Yes</LoadingButton>
               </div>
             </div>
           </div>

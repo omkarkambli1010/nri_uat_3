@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './yono-mobile.module.scss';
 
 export default function YonoMobile() {
@@ -169,14 +170,14 @@ export default function YonoMobile() {
                 </div>
 
                 <div className={styles.proceedBtn}>
-                  <button
+                  <LoadingButton
                     type="button"
                     className="btn btn_cls"
                     onClick={sendOtp}
                     disabled={mobileNumber.length !== 10}
                   >
                     Send OTP
-                  </button>
+                  </LoadingButton>
                 </div>
               </>
             ) : (
@@ -232,14 +233,14 @@ export default function YonoMobile() {
                 </div>
 
                 <div className={styles.proceedBtn}>
-                  <button
+                  <LoadingButton
                     type="button"
                     className="btn btn_cls"
                     onClick={verifyOtp}
                     disabled={otp.join('').length !== 6}
                   >
                     Verify OTP
-                  </button>
+                  </LoadingButton>
                 </div>
               </>
             )}

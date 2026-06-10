@@ -7,10 +7,12 @@ import { useSpinner } from "@/components/spinner/Spinner";
 import { toast } from "@/services/toast.service";
 import navigationService from "@/services/navigation.service";
 import { buildFaqUrl } from "@/lib/faq-link";
+import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./selfie.module.scss";
 import blobService from "@/services/blob.service";
 import apiService from "@/services/api.service";
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 const DOS = [
   {
@@ -249,10 +251,7 @@ export default function Selfie() {
   // the green outline + hint so the user knows their face is properly settled.
   const [faceAligned, setFaceAligned] = useState(false);
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -952,22 +951,22 @@ export default function Selfie() {
                       margin: "0 auto",
                     }}
                   >
-                    <button
+                    <LoadingButton
                       type="button"
                       className="btn btn_cls_outline"
                       onClick={retake}
                       style={{ flex: 1 }}
                     >
                       Retake
-                    </button>
-                    <button
+                    </LoadingButton>
+                    <LoadingButton
                       type="button"
                       className="btn btn_cls"
                       onClick={uploadSelfie}
                       style={{ flex: 1 }}
                     >
                       Upload
-                    </button>
+                    </LoadingButton>
                   </div>
                 )}
               </div>

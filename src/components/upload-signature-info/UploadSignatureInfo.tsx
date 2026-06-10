@@ -8,6 +8,7 @@ import { buildFaqUrl } from '@/lib/faq-link';
 import { SignatureUploadModal } from '@/components/upload-signature/SignatureUploadModal';
 import { signatureStore } from '@/components/upload-signature/signatureStore';
 import styles from './upload-signature-info.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 const DESKTOP_MQ = '(min-width: 992px)';
 
@@ -197,9 +198,9 @@ export default function UploadSignatureInfo() {
         </div>
 
         <div className={styles.mobBtnBar}>
-          <button type="button" className={styles.mobProceedBtn} onClick={handleProceed}>
+          <LoadingButton type="button" className={styles.mobProceedBtn} onClick={handleProceed}>
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -243,9 +244,9 @@ export default function UploadSignatureInfo() {
             </div>
 
             <div className={styles.deskBtnRow}>
-              <button type="button" className={styles.proceedBtn} onClick={handleProceed}>
+              <LoadingButton type="button" className={styles.proceedBtn} onClick={handleProceed}>
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

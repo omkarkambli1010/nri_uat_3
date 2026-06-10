@@ -7,6 +7,7 @@ import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from '@/components/oci/oci.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // PermanentAddressUpload — /permanentAddress/upload
 // Uploads front + back proof files together with the address details captured
@@ -205,7 +206,7 @@ export default function PermanentAddressUpload() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -213,7 +214,7 @@ export default function PermanentAddressUpload() {
             aria-disabled={isDisabled}
           >
             {submitting ? 'Submitting…' : 'Proceed'}
-          </button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -239,7 +240,7 @@ export default function PermanentAddressUpload() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -247,7 +248,7 @@ export default function PermanentAddressUpload() {
                 aria-disabled={isDisabled}
               >
                 {submitting ? 'Submitting…' : 'Proceed'}
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

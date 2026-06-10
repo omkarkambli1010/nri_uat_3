@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
 import aesService from '@/services/aes.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './fnothankyou.module.scss';
 import { publicPath } from "@/utils/publicPath";
 
@@ -132,9 +133,9 @@ export default function Fnothankyou() {
                 </div>
               </div>
               <div className={styles.btnAlign}>
-                <button className="btn btn_cls" onClick={redirectEsign}>
+                <LoadingButton className="btn btn_cls" onClick={redirectEsign}>
                   Back to FNO E-Sign
-                </button>
+                </LoadingButton>
               </div>
             </div>
           </div>

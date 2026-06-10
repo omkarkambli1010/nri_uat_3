@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { publicPath } from "@/utils/publicPath";
+import LoadingButton from '@/components/ui/LoadingButton';
 
 const PLAN_NAMES = ['Basic', 'Special', 'Premium'];
 const PLAN_ICONS = [
@@ -148,14 +149,14 @@ export default function SegmentPreference() {
 
           {/* Sticky Proceed button */}
           <div className="stickybtn">
-            <button
+            <LoadingButton
               type="button"
               onClick={handleProceed}
               className="btn btn_cls"
               disabled={!canProceed}
             >
               {proceedLabel}
-            </button>
+            </LoadingButton>
           </div>
         </section>
       </div>
@@ -227,14 +228,14 @@ export default function SegmentPreference() {
 
               {/* Proceed button pinned to bottom */}
               <div className="sp-proceed-row">
-                <button
+                <LoadingButton
                   type="button"
                   onClick={handleProceed}
                   className="btn btn_cls sp-proceed-btn"
                   disabled={!canProceed}
                 >
                   {proceedLabel}
-                </button>
+                </LoadingButton>
               </div>
             </div>
           </div>

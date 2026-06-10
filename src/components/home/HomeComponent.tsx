@@ -13,6 +13,7 @@ import moengagesdkService from "@/services/moengagesdk.service";
 import styles from "./home.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { APP_VERSION } from "@/lib/version";
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // Home component — equivalent to Angular HomeComponent
 // Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
@@ -745,7 +746,7 @@ export default function HomeComponent() {
                       </div>
                     )}
 
-                    <button
+                    <LoadingButton
                       type="button"
                       className={`btn ${styles.submitBtn}`}
                       disabled={isDisabledLoginBtn}
@@ -753,7 +754,7 @@ export default function HomeComponent() {
                       onClick={handleGetStarted}
                     >
                       Get Started
-                    </button>
+                    </LoadingButton>
                   </div>
                 </form>
               </div>

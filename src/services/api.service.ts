@@ -753,7 +753,7 @@ async submitPermanentAddress(
     try {
       const response = await axios.post(
         url,
-        { stagename: 'DIGILOCKER', idempotencyKey: null },
+        { stagename: 'DIGILOCKER', idempotencyKey: this.generateIdempotencyKey() },
         { headers: { 'Content-Type': 'application/json', accept: '*/*' } },
       );
       return response.data;

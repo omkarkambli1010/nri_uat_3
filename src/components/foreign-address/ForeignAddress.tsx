@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './foreign-address.module.scss';
 import { FOREIGN_UPLOAD_TYPES } from '@/constants/foreignUpload-type';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -439,7 +440,7 @@ export default function ForeignAddress() {
 
       {/* Fixed bottom — disabled until every field is valid */}
       <div className={styles.mobileProceedArea}>
-        <button
+        <LoadingButton
           type="button"
           className={`${styles.mobileProceedBtn}${!isValid ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
           onClick={handleProceed}
@@ -447,7 +448,7 @@ export default function ForeignAddress() {
           aria-disabled={!isValid}
         >
           {btnLabel}
-        </button>
+        </LoadingButton>
       </div>
     </div>
   );
@@ -650,7 +651,7 @@ export default function ForeignAddress() {
 
           {/* Proceed — disabled until every field is valid */}
           <div className={styles.desktopProceedWrapper}>
-            <button
+            <LoadingButton
               type="button"
               className={`${styles.desktopProceedBtn}${!isValid ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
               onClick={handleProceed}
@@ -658,7 +659,7 @@ export default function ForeignAddress() {
               aria-disabled={!isValid}
             >
               {btnLabel}
-            </button>
+            </LoadingButton>
           </div>
         </div>
 

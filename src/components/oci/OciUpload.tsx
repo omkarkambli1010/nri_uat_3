@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './oci.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // OciUpload — Screen 1: Document Type + Card No. form
 // Figma: Onboarding-Mob-OCI/PIO-Upload (0:38489 empty / 0:38815 filled)
@@ -120,7 +121,7 @@ export default function OciUpload() {
 
         {/* Fixed bottom button */}
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleUploadClick}
@@ -128,7 +129,7 @@ export default function OciUpload() {
             aria-disabled={isDisabled}
           >
             {buttonLabel}
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -191,7 +192,7 @@ export default function OciUpload() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleUploadClick}
@@ -199,7 +200,7 @@ export default function OciUpload() {
                 aria-disabled={isDisabled}
               >
                 {buttonLabel}
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

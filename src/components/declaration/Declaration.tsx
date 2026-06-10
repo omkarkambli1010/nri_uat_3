@@ -6,8 +6,10 @@ import { useSpinner } from "@/components/spinner/Spinner";
 import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
+import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./declaration.module.scss";
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 // Declaration — plan process step 1
 // Figma: Onboarding / Step 4 / Declaration → 0:25471 (mobile) + 0:25592 (desktop)
 
@@ -369,10 +371,7 @@ export default function Declaration() {
   const [showFundCycleModal, setShowFundCycleModal] = useState(false);
   const [showConfirmPrefModal, setShowConfirmPrefModal] = useState(false);
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
   const utmSource =
     typeof window !== "undefined"
       ? sessionStorage.getItem("UTMSOURCE") || "search-engine"
@@ -1187,7 +1186,7 @@ export default function Declaration() {
 
         {/* Proceed button area — pb-16 */}
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={styles.mobileProceedBtn}
             disabled={isProceedButton}
@@ -1195,7 +1194,7 @@ export default function Declaration() {
             onClick={declarationAPICall}
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
       </main>
 
@@ -1247,7 +1246,7 @@ export default function Declaration() {
 
               {/* Proceed — 350×56 (Figma) */}
               <div className={styles.desktopProceedWrapper}>
-                <button
+                <LoadingButton
                   type="button"
                   className={styles.desktopProceedBtn}
                   disabled={isProceedButton}
@@ -1255,7 +1254,7 @@ export default function Declaration() {
                   onClick={declarationAPICall}
                 >
                   Proceed
-                </button>
+                </LoadingButton>
               </div>
             </div>
           </article>
@@ -1333,13 +1332,13 @@ export default function Declaration() {
                   <div dangerouslySetInnerHTML={{ __html: taxPayerData }} />
                 </div>
                 <div className="modal-footer p-0">
-                  <button
+                  <LoadingButton
                     type="button"
                     className="btn btn_cls"
                     onClick={() => setShowTaxpayerModal(false)}
                   >
                     Done
-                  </button>
+                  </LoadingButton>
                 </div>
               </div>
             </div>
@@ -1614,7 +1613,7 @@ export default function Declaration() {
                     </strong>
                   </p>
                   <div className={`modal-footer p-0 mt-4 ${styles.btnAlign}`}>
-                    <button
+                    <LoadingButton
                       type="button"
                       className="btn btn_cls_outline"
                       onClick={() => {
@@ -1623,8 +1622,8 @@ export default function Declaration() {
                       }}
                     >
                       Continue
-                    </button>
-                    <button
+                    </LoadingButton>
+                    <LoadingButton
                       type="button"
                       className="btn btn_cls"
                       onClick={() => {
@@ -1633,7 +1632,7 @@ export default function Declaration() {
                       }}
                     >
                       Do not change
-                    </button>
+                    </LoadingButton>
                   </div>
                 </div>
               </div>

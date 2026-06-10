@@ -8,6 +8,7 @@ import apiService from '@/services/api.service';
 import { buildFaqUrl } from '@/lib/faq-link';
 import { EsignIllustration } from './EsignIllustration';
 import styles from './esign.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // Esign — "Finish Account Setup using E-Sign" landing screen.
 // Figma:
@@ -188,14 +189,14 @@ export default function Esign() {
         maxLength={20}
         onChange={(e) => onRmCodeChange(e.target.value)}
       />
-      <button
+      <LoadingButton
         type="button"
         className={styles.rmSubmitBtn}
         disabled={submitDisabled}
         onClick={submitRmCode}
       >
         Submit
-      </button>
+      </LoadingButton>
     </div>
   );
 

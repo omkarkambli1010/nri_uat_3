@@ -1,0 +1,75 @@
+// LoadingButton — inline loader placed right beside the label, with no layout
+// shift when toggling between normal and loading states.
+//
+// The host className (e.g. .btn_cls) keeps full control of colours, padding,
+// radius, width and height. We only lay out the label + spinner as a centred
+// group and fade the spinner in/out.
+
+.btn {
+  // Smoothly ease colour/opacity changes between normal ⇄ loading ⇄ disabled.
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+// Centred [spacer] [label] [spinner] group. Inline-flex so it is centred by the
+// host button's existing centring (text-align / justify-content) regardless of
+// the button's display type.
+.content {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.label {
+  min-width: 0;
+}
+
+// ── Inline spinner ──────────────────────────────────────────────────────────
+// Inherits the button's text colour via currentColor: white on solid buttons,
+// brand purple on outline buttons — no per-variant configuration needed.
+// Sits immediately to the right of the label (8px gap).
+.spinner {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-left: 8px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-top-color: currentColor;
+  box-sizing: border-box;
+
+  // Hidden until loading — fade in for a smooth state change. Its space is
+  // always reserved (flex-basis above) so toggling never shifts the layout.
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+// Invisible counterpart on the left, same footprint as the spinner + gap, so
+// the label remains optically centred in both states.
+.spacer {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.isLoading .spinner {
+  opacity: 1;
+  animation: loadingButtonSpin 0.6s linear infinite;
+}
+
+@keyframes loadingButtonSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Accessibility: keep the spinner visible (still conveys "busy") but slow the
+// rotation right down for users who prefer reduced motion.
+@media (prefers-reduced-motion: reduce) {
+  .isLoading .spinner {
+    animation-duration: 1.6s;
+  }
+}

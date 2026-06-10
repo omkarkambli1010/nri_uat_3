@@ -8,6 +8,7 @@ import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import { DOCUMENT_TYPES } from '@/constants/document-types';
 import styles from '@/components/oci/oci.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // FatcaUpload — /fatca/upload
 // Single "FATCA TIN Image Upload" section. The file uploads immediately on
@@ -184,7 +185,7 @@ export default function FatcaUpload() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${!uploaded || submitting ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -192,7 +193,7 @@ export default function FatcaUpload() {
             aria-disabled={!uploaded || submitting}
           >
             {submitting ? 'Submitting…' : 'Proceed'}
-          </button>
+          </LoadingButton>
         </div>
       </div>
 
@@ -217,7 +218,7 @@ export default function FatcaUpload() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${!uploaded || submitting ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -225,7 +226,7 @@ export default function FatcaUpload() {
                 aria-disabled={!uploaded || submitting}
               >
                 {submitting ? 'Submitting…' : 'Proceed'}
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

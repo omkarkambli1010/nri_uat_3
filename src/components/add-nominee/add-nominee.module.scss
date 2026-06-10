@@ -33,9 +33,6 @@ $pageBg: #f8f8f8;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  // Cap the card height so the inner form scrolls instead of pushing the page.
-  // 90px global header + 48px (margin top+bottom) + a small buffer.
-  max-height: calc(100vh - 138px);
 }
 
 .deskHeader {
@@ -123,7 +120,6 @@ $pageBg: #f8f8f8;
   gap: 24px;
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
   overflow-x: hidden;
   padding-right: 8px;
   margin-right: -8px;

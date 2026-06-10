@@ -10,6 +10,7 @@ import aesService from '@/services/aes.service';
 import moengagesdkService from '@/services/moengagesdk.service';
 import styles from './digilocker-screen.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // DigilockerScreen — Aadhaar & PAN verification via DigiLocker
 // Figma: ExXo1tRiZv7Zcb9DGMnyiI
@@ -174,9 +175,9 @@ export default function DigilockerScreen() {
 
         {/* Sticky bottom button — pb-16, w-328, h-48, bg #280071 */}
         <div className={styles.mobileProceedArea}>
-          <button type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
+          <LoadingButton type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
             Verify with Digilocker
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -270,9 +271,9 @@ export default function DigilockerScreen() {
 
             {/* CTA — centered, w-350, h-56, bg #280071 */}
             <div className={styles.desktopProceedWrapper}>
-              <button type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
+              <LoadingButton type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
                 Verify with Digilocker
-              </button>
+              </LoadingButton>
             </div>
 
           </div>

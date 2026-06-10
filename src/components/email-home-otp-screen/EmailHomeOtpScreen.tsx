@@ -8,6 +8,7 @@ import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
 import styles from './email-home-otp-screen.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // EmailHomeOtpScreen — equivalent to Angular EmailHomeOtpScreenComponent
 // OTP verification for email — Figma: Email-UI-Revamp nodes 0:18445, 0:18194, 0:19259, 0:18708, 0:18971
@@ -275,14 +276,14 @@ export default function EmailHomeOtpScreen() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isVerifyDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={getEmailOtpVerify}
             disabled={isVerifyDisabled}
           >
             Verify
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -302,14 +303,14 @@ export default function EmailHomeOtpScreen() {
           <div className={styles.desktopCardBody}>
             {otpForm}
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isVerifyDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={getEmailOtpVerify}
                 disabled={isVerifyDisabled}
               >
                 Verify
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

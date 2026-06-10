@@ -8,6 +8,7 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
 import styles from './mobile-home-otp-screen.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import LoadingButton from '@/components/ui/LoadingButton';
 
 const BackArrowSvg = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -239,14 +240,14 @@ export default function MobileHomeOtpScreen() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isVerifyDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={getMobileOtpVerify}
             disabled={isVerifyDisabled}
           >
             Verify
-          </button>
+          </LoadingButton>
         </div>
       </section>
 
@@ -273,14 +274,14 @@ export default function MobileHomeOtpScreen() {
           <div className={styles.desktopCardBody}>
             {otpForm}
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isVerifyDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={getMobileOtpVerify}
                 disabled={isVerifyDisabled}
               >
                 Verify
-              </button>
+              </LoadingButton>
             </div>
           </div>
         </div>

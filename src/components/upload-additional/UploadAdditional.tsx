@@ -6,6 +6,7 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './upload-additional.module.scss';
 import { publicPath } from "@/utils/publicPath";
 
@@ -164,12 +165,12 @@ export default function UploadAdditional() {
               </div>
 
               <div className="stickybtn_desk desktop_css">
-                <button className="btn btn_cls" disabled={isProceedDisabled} onClick={upload}>Proceed</button>
+                <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={upload}>Proceed</LoadingButton>
               </div>
             </form>
           </div>
           <div className="stickybtn mobile_css">
-            <button className="btn btn_cls" disabled={isProceedDisabled} onClick={upload}>Proceed</button>
+            <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={upload}>Proceed</LoadingButton>
           </div>
         </div>
       </div>

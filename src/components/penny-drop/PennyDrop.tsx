@@ -6,8 +6,10 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
+import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './penny-drop.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // PennyDrop — Bank account verification via IFSC + account number
 // Equivalent to Angular PennyDropComponent (multi-step form)
@@ -30,7 +32,7 @@ export default function PennyDrop() {
   const [isBankAccountForm, setIsBankAccountForm] = useState(true);
   const [allBanks, setAllBanks] = useState<any[]>([]);
 
-  const rejectStatus = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
   const utmSource = typeof window !== 'undefined' ? sessionStorage.getItem('UTMSOURCE') || 'NA' : 'NA';
 
   useEffect(() => {
@@ -328,28 +330,28 @@ export default function PennyDrop() {
                         </div>
                       </div>
                       <div className="stickybtn_desk desktop_css">
-                        <button
+                        <LoadingButton
                           aria-disabled={isBankAccountForm}
                           disabled={isBankAccountForm}
                           onClick={verifyBank}
                           className="btn btn_cls"
                         >
                           Verify
-                        </button>
+                        </LoadingButton>
                       </div>
                     </div>
                   </div>
                 </form>
               </div>
               <div className="stickybtn mobile_css">
-                <button
+                <LoadingButton
                   aria-disabled={isBankAccountForm}
                   disabled={isBankAccountForm}
                   onClick={verifyBank}
                   className="btn btn_cls"
                 >
                   Verify
-                </button>
+                </LoadingButton>
               </div>
             </div>
           </div>

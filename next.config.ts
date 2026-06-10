@@ -60,15 +60,16 @@ const nextConfig: NextConfig = {
     includePaths: ["./src"],
     additionalData: `
     @use "sass:color";
+    @use "sass:string";
 
     $public-base-path: "${environment.basePath || ""}";
 
     @function public-url($path) {
-      @if str-index($path, "data:") == 1 {
+      @if string.index($path, "data:") == 1 {
         @return url("#{$path}");
       }
 
-      @if str-index($path, "http://") == 1 or str-index($path, "https://") == 1 {
+      @if string.index($path, "http://") == 1 or string.index($path, "https://") == 1 {
         @return url("#{$path}");
       }
 

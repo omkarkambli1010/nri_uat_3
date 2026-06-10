@@ -8,6 +8,8 @@ import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
 import styles from './aadhaar-upload.module.scss';
+import LoadingButton from '@/components/ui/LoadingButton';
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 // AadhaarUploadAll — all-in-one Aadhaar Front + Back upload (passport-upload
 // style). Reached from /aadhar. Two FileUploadCard sections, each wired to the
@@ -72,7 +74,7 @@ export default function AadhaarUploadAll() {
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
 
-  const rejectStatus = typeof window !== 'undefined' ? sessionStorage.getItem('RejectStatus') : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -175,7 +177,7 @@ export default function AadhaarUploadAll() {
         </div>
 
         <div className={styles.mobileProceedArea}>
-          <button
+          <LoadingButton
             type="button"
             className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
@@ -183,7 +185,7 @@ export default function AadhaarUploadAll() {
             aria-disabled={isDisabled}
           >
             Proceed
-          </button>
+          </LoadingButton>
         </div>
 
       </div>
@@ -214,7 +216,7 @@ export default function AadhaarUploadAll() {
             </div>
 
             <div className={styles.desktopProceedWrapper}>
-              <button
+              <LoadingButton
                 type="button"
                 className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
@@ -222,7 +224,7 @@ export default function AadhaarUploadAll() {
                 aria-disabled={isDisabled}
               >
                 Proceed
-              </button>
+              </LoadingButton>
             </div>
           </div>
 

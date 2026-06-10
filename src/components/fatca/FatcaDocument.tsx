@@ -6,6 +6,7 @@ import styles from './fatca.module.scss';
 import FatcaUploadSheet from './FatcaUploadSheet';
 import AdditionalDocument from '@/components/additional-document/AdditionalDocument';
 import { fatcaStore, type FatcaFile } from './fatcaStore';
+import LoadingButton from '@/components/ui/LoadingButton';
 
 // FatcaDocument — Screen 2: uploaded TIN document preview
 //        Route: /fatca/document
@@ -108,9 +109,9 @@ export default function FatcaDocument() {
       </div>
 
       <div className={styles.mobileDoubleButtonArea}>
-        <button type="button" className={styles.mobileProceedBtn} onClick={() => setShowAdditional(true)}>
+        <LoadingButton type="button" className={styles.mobileProceedBtn} onClick={() => setShowAdditional(true)}>
           Upload Additional Document
-        </button>
+        </LoadingButton>
         <button type="button" className={styles.mobileOutlineBtn} onClick={handleReupload}>
           Re-upload
         </button>
@@ -139,9 +140,9 @@ export default function FatcaDocument() {
           </div>
 
           <div className={styles.desktopDoubleButtonWrapper}>
-            <button type="button" className={styles.desktopProceedBtn} onClick={() => setShowAdditional(true)}>
+            <LoadingButton type="button" className={styles.desktopProceedBtn} onClick={() => setShowAdditional(true)}>
               Upload Additional Document
-            </button>
+            </LoadingButton>
             <button type="button" className={styles.desktopOutlineBtn} onClick={handleReupload}>
               Re-upload
             </button>

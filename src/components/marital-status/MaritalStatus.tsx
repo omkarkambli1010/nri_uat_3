@@ -7,6 +7,7 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./maritalstatus.module.scss";
+import { useSessionValue } from '@/hooks/useSessionValue';
 
 
 const MARITAL_OPTIONS = ["Single", "Married"];
@@ -52,10 +53,7 @@ export default function MaritalStatus() {
 
   const [selected, setSelected] = useState("");
 
-  const rejectStatus =
-    typeof window !== "undefined"
-      ? sessionStorage.getItem("RejectStatus")
-      : null;
+  const rejectStatus = useSessionValue('RejectStatus');
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);

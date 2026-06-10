@@ -265,7 +265,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 .desktopCard {
   width: 100%;
   max-width: 800px;
-  max-height: calc(100vh - 160px);
   border: 1px solid $border;
   border-radius: 24px;
   box-shadow: $shadow-desk;
@@ -340,8 +339,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 24px;
   flex: 1 1 auto;
   min-height: 0;
-  max-height: 457px;
-  overflow-y: auto;
   overflow-x: hidden;
   margin-bottom: 24px;
 
