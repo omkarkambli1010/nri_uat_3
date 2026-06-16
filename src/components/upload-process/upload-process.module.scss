@@ -1,0 +1,653 @@
+// UploadProcess — PAN Manual Entry
+// Figma: 1:4282 (form), 1:4567 (form + verifying overlay), 1:5501 (mobile sheet)
+
+$primary:   #280071;
+$bg-page:   #f8f8f8;
+$border:    #d9d9d9;
+$text-dark: #2b2b2b;
+$text-gray: #666666;
+
+// ── MOBILE ────────────────────────────────────────────────────────────────────
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 90px);
+  background: $bg-page;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Figma mobile header: gray bg, px-16, pb-12
+.mobileHeader {
+  background: $bg-page;
+  padding: 16px 16px 12px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma: 16px SemiBold #2b2b2b
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+}
+
+// Figma: 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark;
+  margin: 0;
+}
+
+// Figma: bg white, border-top-radius 24px, shadow, p-24, flex-1
+.mobileCard {
+  background: white;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+// Mobile stacked form field (label above, input full-width)
+.mobileFormField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 14px Regular #666 (mobile label)
+.mobileLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-gray;
+  margin: 0;
+}
+
+// Full-width mobile input
+.mobileInput {
+  width: 100%;
+  height: 48px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  background: white;
+  outline: none;
+  box-sizing: border-box;
+
+  &::placeholder {
+    font-weight: 400;
+    color: #aaa;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.mobileInputError {
+  border-color: #dc3545;
+}
+
+.mobileErrorText {
+  font-size: 12px;
+  color: #dc3545;
+  margin: 0;
+}
+
+
+// Figma: pb-16, centered, 328×48, bg #280071, white, rounded-8
+.mobileProceedArea {
+  background: $bg-page;
+  padding: 12px 16px 16px;
+  display: flex;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.mobileProceedBtn {
+  width: 328px;
+  height: 48px;
+  background: $primary;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 20px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ── DESKTOP ───────────────────────────────────────────────────────────────────
+
+.desktopPage {
+  display: none;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+  align-items: center;
+  justify-content: center;
+
+  @media (min-width: 768px) { display: flex; }
+}
+
+// Figma: w-800, rounded-24, border #d9d9d9, shadow 0 2px 10px
+.desktopCard {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid $border;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  width: 800px;
+  display: flex;
+  flex-direction: column;
+}
+
+// Figma: p-24, flex, gap-8, border-bottom 0.5px #d9d9d9
+.desktopCardHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  border-bottom: 0.5px solid $border;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 4px;
+  line-height: 0;
+}
+
+// Figma: flex-1, flex col, gap-8
+.desktopHeaderContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+// Figma: flex, justify-between, align-center, h-24
+.desktopHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
+}
+
+// Figma: 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+  margin: 0;
+  white-space: nowrap;
+}
+
+// Figma: 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-gray;
+  margin: 0;
+}
+
+// Figma: Need Help? — bg rgba(207,169,255,0.09), border 0.5px #d9d9d9, rounded-25px, px-11, py-8
+.needHelpBadge {
+  background: rgba(207, 169, 255, 0.09);
+  border: 0.5px solid $border;
+  border-radius: 25px;
+  padding: 8px 11px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $primary;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+// Figma: p-24, flex col, justify-between, h-581
+.desktopCardBody {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 500px;
+}
+
+// Figma: flex col, gap-24, overflow-clip, h-461
+.desktopFieldsArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  overflow: hidden;
+}
+
+// Desktop horizontal form row: label (left) + input (right)
+// Figma: label w-231px 16px Regular #666; input w-250px h-40 border #d9d9d9 rounded-8
+.desktopFormRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.desktopFormRowCenter {
+  align-items: center;
+}
+
+// Figma: 16px Regular #666 — consistent width for all form rows
+.desktopLabel {
+  font-size: 16px;
+  font-weight: 400;
+  color: $text-gray;
+  flex-shrink: 0;
+  white-space: nowrap;
+  line-height: 40px; // aligns with input height
+  width: 160px;
+}
+
+// Wrapper for input + accordion (PAN field)
+.desktopInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: h-40, w-250, border #d9d9d9, rounded-8, px-16, 14px SemiBold #222
+.desktopInput {
+  width: 250px;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222222;
+  background: white;
+  outline: none;
+  box-sizing: border-box;
+
+  &::placeholder {
+    font-weight: 400;
+    color: #aaa;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.desktopInputError {
+  border-color: #dc3545;
+}
+
+.desktopErrorText {
+  font-size: 12px;
+  color: #dc3545;
+  margin: 0;
+}
+
+// DOB — PrimeReact Calendar wrapper (desktop, fixed 250px)
+.desktopCalWrap {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+// ── "View sample PAN" accordion toggle ───────────────────────────────────────
+
+// Figma 1-74034 / 1-73533: gray pill toggle below PAN input
+.accordionToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: $bg-page;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  width: 100%;
+  box-sizing: border-box;
+
+  @media (min-width: 768px) {
+    width: 250px;
+  }
+
+  &:hover {
+    background: #efefef;
+  }
+}
+
+// Figma: 14px Regular #280071
+.accordionToggleText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $primary;
+}
+
+// ── PAN card Splide carousel ──────────────────────────────────────────────────
+
+.panCarouselWrap {
+  width: 250px;
+  overflow: hidden;
+
+  @media (max-width: 767px) {
+    width: 100%;
+  }
+}
+
+.panSplide {
+  :global(.splide__pagination) {
+    position: static;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 0 0;
+    line-height: 0;
+  }
+
+  :global(.splide__pagination__page) {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+
+    &:global(.is-active) {
+      background: $primary;
+      transform: scale(1.2);
+    }
+  }
+
+  :global(.splide__track) {
+    overflow: hidden;
+    border-radius: 10px;
+  }
+
+  :global(.splide__list) {
+    display: flex;
+    align-items: stretch;
+  }
+}
+
+.panSlide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+// Figma: image 3215 — real PAN card photo
+.panCardImg {
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  display: block;
+}
+
+// ── PAN card back (slide 2) ───────────────────────────────────────────────────
+
+.panCardMini {
+  width: 225px;
+  height: 141px;
+  background: white;
+  border: 0.8px solid $border;
+  border-radius: 9.6px;
+  overflow: hidden;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.panCardBackStrip {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 28px;
+  background: #333;
+}
+
+.panCardBackLabel {
+  position: absolute;
+  top: 58px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 6px;
+  font-weight: 600;
+  color: $text-dark;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.panCardBackLabelSm {
+  top: 120px;
+  font-size: 5px;
+  font-weight: 400;
+  color: $text-gray;
+}
+
+.panCardBackBarcode {
+  position: absolute;
+  top: 72px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  height: 32px;
+  background: repeating-linear-gradient(
+    90deg,
+    #333 0px,
+    #333 2px,
+    white 2px,
+    white 4px
+  );
+}
+
+// ── Security banner (above Verify PAN button) ─────────────────────────────────
+// Figma 1:64494: icon + "Your PAN details are safe and secure with us."
+
+.securityBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  justify-content: center;
+}
+
+.securityText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-gray;
+  margin: 0;
+}
+
+// Mobile: security banner area sits between scrollable card and button footer
+.mobileSecurityArea {
+  background: $bg-page;
+  padding: 12px 16px 0;
+  flex-shrink: 0;
+}
+
+// Desktop: wraps security banner + button together with 32px gap
+.desktopBottomSection {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+// ── Desktop proceed ───────────────────────────────────────────────────────────
+
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+}
+
+// Figma: w-350, h-56, bg #280071, 16px SemiBold white, rounded-8
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  background: $primary;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  line-height: 20px;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// ── VERIFYING OVERLAY (desktop) ───────────────────────────────────────────────
+
+// Figma 1:4567: rgba(0,0,0,0.6) fullscreen overlay
+.verifyingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+
+  @media (min-width: 768px) { display: flex; }
+}
+
+// Figma: bg white, border #ddd, rounded-20px, p-24, w-500px, shadow 3 4 10 rgba(0,0,0,0.15)
+.verifyingDialog {
+  background: white;
+  border: 1px solid #dddddd;
+  border-radius: 20px;
+  padding: 24px;
+  width: 500px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+// Figma: 150×46px loading animation
+.loadingImg {
+  width: 150px;
+  height: 46px;
+  object-fit: cover;
+}
+
+// Figma: 20px SemiBold #2b2b2b
+.verifyingTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  text-align: center;
+}
+
+// Figma: 18px Regular #2b2b2b, line-height 1.5
+.verifyingSubtitle {
+  font-size: 18px;
+  font-weight: 400;
+  color: $text-dark;
+  margin: 0;
+  text-align: center;
+  line-height: 1.5;
+}
+
+// ── VERIFYING SHEET (mobile) ──────────────────────────────────────────────────
+
+// Figma 1:5501: fixed bottom sheet, rounded-top-20px
+.verifyingSheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Figma: bg white, border #ddd, rounded-tl-20 rounded-tr-20, p-24, shadow 3 4 10
+.verifyingSheet {
+  background: white;
+  border: 1px solid #dddddd;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  box-shadow: 3px 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+// Figma: dash handle centered, 100×24px button
+.sheetDashBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sheetDashImg {
+  width: 40px;
+  height: 4px;
+  background: #d9d9d9;
+  border-radius: 2px;
+}
+
+.sheetContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}

@@ -1,0 +1,954 @@
+$primary-color: #280071;
+$white: #fff;
+$light-bg: #f8f9fa;
+$dark: #25313c;
+$dark-grey: #231f20;
+
+// ===== Banner Section =====
+.banner {
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  background: linear-gradient(160.85deg, #eff6ff 0%, #eef2ff 50%, #faf5ff 100%);
+
+  .bannerImg {
+    min-height: 500px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+    padding: 40px 0;
+
+    @media (max-width: 767px) {
+      min-height: auto;
+      flex-direction: column;
+      padding: 24px 0 0;
+    }
+  }
+}
+
+// Decorative circles
+.decorCirclePink {
+  position: absolute;
+  width: 112px;
+  height: 112px;
+  border-radius: 50%;
+  background: #d71e53;
+  opacity: 0.1;
+  top: 21px;
+  right: 60px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.decorCircleBlue {
+  position: absolute;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: #00a7e1;
+  opacity: 0.1;
+  bottom: 74px;
+  left: 47px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+// Pagination dots
+.paginationDots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+
+  img {
+    display: block;
+    height: 10px;
+    width: auto;
+  }
+}
+
+// ===== Banner Left — headline + phone + cards =====
+.bannerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+
+  @media (max-width: 767px) {
+    gap: 16px;
+    padding-bottom: 24px;
+  }
+}
+
+.bannerHeadline {
+  font-size: 45px;
+  font-weight: 700;
+  color: #292075;
+  line-height: 50px;
+  margin: 0;
+
+  @media (max-width: 991px) {
+    font-size: 32px;
+    line-height: 40px;
+  }
+
+  @media (max-width: 767px) {
+    font-size: 28px;
+    line-height: 36px;
+  }
+}
+
+.phoneContainer {
+  position: relative;
+  height: 265px;
+
+  @media (max-width: 767px) {
+    height: 220px;
+  }
+}
+
+.phoneMockup {
+  position: absolute;
+  left: 119px;
+  top: 0;
+  width: 229px;
+  height: 265px;
+  object-fit: cover;
+
+  @media (max-width: 767px) {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: auto;
+  }
+}
+
+// Floating info cards — positions match Figma node 0-28 exactly
+.floatingCard {
+  position: absolute;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 14px;
+}
+
+.cardZero {
+  background: #eae8ff;
+  border-radius: 8px;
+  left: 8px;
+  top: 38px;
+  width: 140px;
+  padding: 10px 5px;
+
+  @media (max-width: 767px) {
+    left: 0;
+    top: 24px;
+    transform: scale(0.85);
+    transform-origin: top left;
+  }
+}
+
+.cardRate {
+  background: #e6f6fc;
+  left: 367px;
+  top: 6px;
+  width: 130px;
+
+  @media (max-width: 767px) {
+    left: auto;
+    right: 0;
+    top: 6px;
+    transform: scale(0.85);
+    transform-origin: top right;
+  }
+}
+
+.cardFree {
+  background: #fce8ed;
+  left: 302px;
+  top: 183px;
+  width: 130px;
+
+  @media (max-width: 767px) {
+    left: auto;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    transform: scale(0.85);
+    transform-origin: bottom right;
+  }
+}
+
+.cardValuePrimary {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  color: #292075;
+  line-height: 1.2;
+}
+
+.cardValueBlue {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  color: #00a7e1;
+  line-height: 24.5px;
+}
+
+.cardValueRed {
+  display: block;
+  font-size: 30px;
+  font-weight: 700;
+  color: #d71e53;
+  line-height: 24.5px;
+}
+
+.cardDesc {
+  display: block;
+  font-size: 12px;
+  color: #4a5565;
+  line-height: 14px;
+  width: 107px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.rupeeSymbol {
+  font-size: 20px;
+}
+
+// ===== Form Card =====
+.mobileForm {
+  background: $white;
+  border-radius: 15px;
+  padding: 38px 30px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 2;
+
+  @media (max-width: 767px) {
+    margin: 0 12px 24px;
+    padding: 24px 20px;
+    border-radius: 15px;
+  }
+
+  h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(to right, #2a1f75 16%, #da1d52);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 20px;
+    line-height: 1.3;
+
+    @media (max-width: 767px) {
+      font-size: 18px;
+    }
+  }
+
+  div {
+    margin-bottom: 16px;
+  }
+
+  :global(.iti),
+  :global(.iti) div {
+    margin-bottom: 0;
+  }
+}
+
+.btnAlign {
+  margin-top: 8px;
+}
+
+// ===== Resume Application link =====
+.resumeRow {
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.resumeLink {
+  font-size: 14px;
+  font-weight: 400;
+  background: linear-gradient(90deg, #292075 0%, #d71e53 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-decoration: underline;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
+}
+
+// ===== Form gradient submit button =====
+.submitBtn {
+  background: linear-gradient(90deg, #2a2076 0%, #2a2076 32%, #d82053 100%) !important;
+  color: $white !important;
+  border: none !important;
+  border-radius: 4px !important;
+  padding: 10px 24px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  width: 100%;
+  cursor: pointer;
+  margin-top: 20px;
+
+  &:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    opacity: 1;
+    cursor: not-allowed;
+    background: #b0b0b0 !important;
+  }
+}
+
+// ===== Account Type radio group =====
+.accountTypeSection {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 0;
+}
+
+.accountTypeLabel {
+  font-size: 13px;
+  color: #212529;
+  line-height: 1.5;
+  flex-shrink: 0;
+  padding-top: 4px;
+  min-width: 80px;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 0;
+}
+
+.radioOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  cursor: pointer;
+  padding-top: 5px;
+
+  input[type='radio'] {
+    flex-shrink: 0;
+    margin-top: 2px;
+    width: 15px;
+    height: 15px;
+    accent-color: $primary-color;
+    cursor: pointer;
+    border: 1px solid #ddd;
+  }
+
+  span {
+    font-size: 12px;
+    color: #212529;
+    line-height: 1.4;
+
+    small {
+      font-size: 10px;
+      color: #212529;
+    }
+  }
+}
+
+// ===== Terms checkbox row =====
+.termsRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 0 !important;
+}
+
+.termsCheck {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  cursor: pointer;
+  accent-color: $primary-color;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+}
+
+.termsLabel {
+  font-size: 12px;
+  color: #212529;
+  line-height: 1.5;
+  cursor: pointer;
+
+  a {
+    font-weight: 700;
+    text-decoration: underline;
+    color: #212529;
+  }
+}
+
+.textGradient {
+  background-image: linear-gradient(to right, rgb(48, 32, 116) 2%, rgb(48, 32, 116) 11%, rgb(198, 30, 86) 82%, rgb(198, 30, 86) 96%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+}
+
+.linkText {
+  cursor: pointer;
+  text-decoration: underline;
+  display: inline;
+}
+
+.linkText:focus-visible {
+  outline: 2px solid #280071;
+  outline-offset: 2px;
+}
+
+// ===== Why Open Demat Section =====
+.whyOpenDemat {
+  background: $white;
+  padding: 60px 0;
+}
+
+.align {
+  text-align: center;
+
+  h2 {
+    font-size: 30px;
+    font-weight: 600;
+    color: $dark;
+    margin-bottom: 40px;
+
+    @media (max-width: 767px) {
+      font-size: 24px;
+      margin-bottom: 28px;
+    }
+  }
+}
+
+.cardAlign {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+// Icon with two overlaid Figma layers
+.iconWrapper {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  flex-shrink: 0;
+
+  @media (max-width: 767px) {
+    width: 42px;
+    height: 42px;
+  }
+}
+
+.iconLayer {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.cardCls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  background: $white;
+  border-radius: 18px;
+  padding: 20px 16px;
+  min-width: 200px;
+  max-width: 200px;
+  min-height: 185px;
+  justify-content: center;
+  box-shadow: 6px 6px 22px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(35, 31, 32, 0.6);
+
+  @media (max-width: 767px) {
+    min-width: 150px;
+    max-width: 150px;
+    min-height: 135px;
+    padding: 14px 10px;
+  }
+
+  img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+
+    @media (max-width: 767px) {
+      width: 42px;
+      height: 42px;
+    }
+  }
+
+  p {
+    font-size: 14px;
+    color: $dark;
+    font-weight: 500;
+    margin: 0;
+    line-height: 1.4;
+
+    @media (max-width: 767px) {
+      font-size: 14px;
+    }
+  }
+
+  h6 {
+    font-size: 18px;
+    color: $dark;
+    font-weight: 600;
+    margin: 0;
+
+    @media (max-width: 767px) {
+      font-size: 14px;
+    }
+  }
+
+  // Testimonial card variant
+  &:has(> span) {
+    max-width: 100%;
+    min-height: auto;
+    text-align: left;
+    gap: 8px;
+
+    p {
+      font-size: 15px;
+      font-weight: 400;
+      color: rgba(35, 31, 32, 0.8);
+      line-height: 1.6;
+    }
+
+    span {
+      font-weight: 400;
+      color: #6d7d8b;
+      font-size: 14px;
+    }
+  }
+}
+
+.cardClsArrow {
+  display: flex;
+  align-items: center;
+  // padding-bottom: 36px;
+  padding: 0;
+
+  @media (max-width: 767px) {
+    display: block;
+  }
+}
+
+.cardSubheading {
+  font-size: 20px;
+  font-weight: 600;
+  color: $dark;
+  margin-bottom: 2px;
+
+  @media (max-width: 767px) {
+    font-size: 14px;
+  }
+}
+
+// ===== Easy Demat Process Section (gradient bg) =====
+.ezdemat {
+  padding: 60px 0;
+  background: linear-gradient(to right, #2a1f75 16%, #da1d52);
+
+  .align h2 {
+    color: $white;
+  }
+
+  .cardAlign {
+    align-items: center;
+  }
+
+  .cardCls {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    min-width: 80px;
+    max-width: 115px;
+    min-height: auto;
+    padding: 10px 8px;
+    gap: 20px;
+
+    img {
+      filter: brightness(0) invert(1);
+      width: 52px;
+      height: 52px;
+
+      @media (max-width: 767px) {
+        width: 36px;
+        height: 36px;
+      }
+    }
+
+    p {
+      color: $white;
+      font-size: 15px;
+      font-weight: 700;
+
+      @media (max-width: 767px) {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .cardClsArrow {
+    padding: 0px;
+
+    img {
+      filter: brightness(0) invert(1);
+    }
+  }
+}
+
+// ===== Videos / Carousel Section =====
+.benefitsSection {
+  padding: 60px 0;
+  background: $white;
+}
+
+.trustCss {
+  h2 {
+    font-size: 30px;
+    font-weight: 600;
+    color: $dark;
+    margin-bottom: 32px;
+    text-align: center;
+
+    @media (max-width: 767px) {
+      font-size: 24px;
+    }
+  }
+}
+
+.carouselCls {
+  padding: 0 8px;
+}
+
+.item {
+  iframe {
+    width: 100%;
+    border-radius: 12px;
+  }
+
+  h6 {
+    margin-top: 12px;
+    font-size: 15px;
+    color: $dark-grey;
+    line-height: 1.5;
+    font-weight: 500;
+  }
+}
+
+// ===== Testimonial Section =====
+.trustSection {
+  padding: 60px 0;
+  background: $white;
+}
+
+.trustHeading {
+  font-size: 30px;
+  font-weight: 600;
+  color: #231f20;
+  text-transform: capitalize;
+  margin-bottom: 8px;
+}
+
+.trustSubtitle {
+  font-size: 20px;
+  color: rgba(35, 31, 32, 0.6);
+  margin-bottom: 40px;
+}
+
+.testimonialSplide {
+  // Splide is narrowed by 56px so the next arrow can sit outside the right
+  // edge of the track without overflowing the Bootstrap column
+  width: calc(100% - 56px);
+
+  :global(.splide__arrow--prev) {
+    display: none;
+  }
+
+  :global(.splide__arrow--next) {
+    right: -56px;
+    width: 34px;
+    height: 34px;
+    background: $white;
+    border: none;
+    border-radius: 50%;
+    opacity: 1;
+    box-shadow: 5.064px 5.064px 17.362px rgba(0, 0, 0, 0.06),
+                0 0 0 0.723px rgba(35, 31, 32, 0.12);
+
+    svg {
+      fill: #6d7d8b;
+      width: 14px;
+      height: 14px;
+    }
+  }
+}
+
+// ===== FATF Modal =====
+.fatfButton {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  font-family: inherit;
+  color: inherit;
+  text-decoration: unset;
+
+  &:focus {
+    outline: 2px solid #280071;
+    outline-offset: 2px;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+.modalContent {
+  background: $white;
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  animation: slideUp 0.3s ease-in-out;
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @media (max-width: 767px) {
+    width: 95%;
+    max-width: 100%;
+  }
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  border-bottom: 1px solid #e5e7eb;
+
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: $dark;
+  }
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: $dark;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+
+  &:hover {
+    background: #f3f4f6;
+  }
+
+  &:focus {
+    outline: 2px solid $primary-color;
+    outline-offset: 2px;
+  }
+}
+
+.modalBody {
+  padding: 15px;
+}
+
+.countriesList {
+  margin: 0;
+  padding-left: 24px;
+
+  li {
+    font-size: 16px;
+    color: $dark;
+    margin-bottom: 12px;
+    line-height: 1.6;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.testimonialCard {
+  background: $white;
+  border: 0.919px solid rgba(35, 31, 32, 0.6);
+  border-radius: 18.374px;
+  padding: 20px 20px 20px;
+  box-shadow: 6.431px 6.431px 22.049px 0px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 207px;
+}
+
+.quoteIcon {
+  width: 46px;
+  height: 46px;
+  flex-shrink: 0;
+  margin-bottom: 10px;
+}
+
+.testimonialText {
+  font-size: 16px;
+  color: rgba(35, 31, 32, 0.8);
+  line-height: 19.23px;
+  flex: 1;
+  margin-bottom: 12px;
+}
+
+.testimonialAuthor {
+  font-size: 14px;
+  color: #6d7d8b;
+  line-height: 1.506;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.testimonialLine {
+  display: block;
+  width: 75px;
+  height: 1px;
+  flex-shrink: 0;
+}
+
+// ===== What is Demat Section =====
+.dematSection {
+  padding: 60px 0;
+  background: $light-bg;
+
+  p {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.7;
+    margin-bottom: 16px;
+  }
+}
+
+// ===== FAQ Section =====
+.faqSection {
+  padding: 60px 0;
+
+  h2 {
+    font-size: 30px;
+    font-weight: 700;
+    color: $dark;
+
+    @media (max-width: 767px) {
+      font-size: 24px;
+    }
+  }
+
+  :global(.accordion-item) {
+    border: 1px solid rgba(35, 31, 32, 0.6) !important;
+    border-radius: 18px !important;
+    margin-bottom: 16px;
+    box-shadow: 6px 6px 22px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+  }
+
+  :global(.accordion-button) {
+    font-size: 20px;
+    color: $dark-grey;
+    background: $white;
+    font-family: Arial, sans-serif;
+    font-weight: 400;
+    padding: 20px 24px;
+    border-radius: 18px !important;
+
+    &:not(.collapsed) {
+      color: $dark-grey;
+      background-color: $white;
+      box-shadow: none;
+    }
+
+    @media (max-width: 767px) {
+      font-size: 16px;
+      padding: 18px 16px;
+    }
+  }
+
+  :global(.accordion-body) {
+    font-size: 15px;
+    color: #555;
+    line-height: 1.6;
+    padding: 0 24px 20px;
+
+    @media (max-width: 767px) {
+      padding: 0 16px 16px;
+    }
+  }
+}
+

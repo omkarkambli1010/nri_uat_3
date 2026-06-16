@@ -1,0 +1,15 @@
+# Build output
+.next/
+
+# Dependency directories
+node_modules/
+
+# Local env files
+.env*
+
+# TypeScript build cache
+.tsbuildinfo
+
+# Editor / tool folders
+.claude/
+.vscode/

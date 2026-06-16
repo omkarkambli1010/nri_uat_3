@@ -1,0 +1,92 @@
+$primary-color: #280071;
+$primary-soft:  rgba(40, 0, 113, 0.12);
+
+// ── Full-screen overlay — frosted backdrop, gentle fade-in ──────────────────
+.spinnerOverlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9999;
+  animation: overlayFade 0.25s ease both;
+}
+
+// ── Brand (SBI Securities) logo loader ──────────────────────────────────────
+.brandLoader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+// Logo "breathes" — subtle scale + opacity pulse, brand-forward and calm.
+.brandLogo {
+  width: 184px;
+  height: auto;
+  object-fit: contain;
+  animation: logoBreathe 1.8s ease-in-out infinite;
+}
+
+// Slim indeterminate progress bar beneath the logo.
+.progressTrack {
+  position: relative;
+  width: 184px;
+  height: 3px;
+  border-radius: 3px;
+  background: $primary-soft;
+  overflow: hidden;
+}
+
+.progressBar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 40%;
+  border-radius: inherit;
+  background: $primary-color;
+  animation: indeterminate 1.2s ease-in-out infinite;
+}
+
+// ── Caption ─────────────────────────────────────────────────────────────────
+.spinnerText {
+  margin: 0;
+  color: $primary-color;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  animation: textPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes overlayFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes logoBreathe {
+  0%, 100% { transform: scale(0.97); opacity: 0.78; }
+  50%      { transform: scale(1);    opacity: 1; }
+}
+
+@keyframes indeterminate {
+  0%   { left: -40%; }
+  100% { left: 100%; }
+}
+
+@keyframes textPulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
+// Respect reduced-motion: hold the logo steady, keep only a slow sweep.
+@media (prefers-reduced-motion: reduce) {
+  .spinnerOverlay { animation: none; }
+  .brandLogo      { animation: none; opacity: 1; }
+  .progressBar    { animation-duration: 2.4s; }
+  .spinnerText    { animation: none; }
+}

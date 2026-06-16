@@ -1,0 +1,649 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: Upload Additional Document
+//   Desktop dialog: 0:48996 (inside 0:48751)
+//   Mobile sheet:   0:49036
+
+$primary:      #280071;
+$primary-hover:#1a004d;
+$bg-page:      #f8f8f8;
+$bg-white:     #ffffff;
+$border:       #d9d9d9;
+$text-dark:    #222222;
+$text-dark-2:  #2b2b2b;
+$text-body:    #666666;
+$text-optional:#999999;
+$chip-bg:      #f3f1ff;
+$chip-border:  #e1e8f1;
+$error-red:    #d32f2f;
+$shadow-mob:   0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// OVERLAY — position:fixed covers full viewport including AppShell header
+// ═══════════════════════════════════════════════════════════════════════════
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+
+  // Mobile: sheet rises from bottom
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+
+  // Desktop: centered dialog (Figma: rgba(0,0,0,0.6) backdrop, 0:48995)
+  @media (min-width: 768px) {
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.6);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SHEET / DIALOG card
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Figma mobile: rounded-tl-20 rounded-tr-20, white, shadow, p-24, gap-24
+// Figma desktop: w-500, rounded-20, shadow, p-24, gap-24 (node 0:48996)
+.sheet {
+  background: $bg-white;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  padding: 0 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 3px 4px 10px 0px rgba(0, 0, 0, 0.15);
+  // Prevent backdrop click from closing when clicking inside card
+  position: relative;
+
+  @media (min-width: 768px) {
+    border-radius: 20px;
+    width: 100%;
+    max-width: 500px;
+    padding: 24px;
+    max-height: 90vh;
+  }
+}
+
+// ── Drag handle — mobile only ────────────────────────────────────────────────
+.handleRow {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0 0;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Gray pill drag-handle (was a Figma asset img, now a CSS-only div)
+.handleImg {
+  display: block;
+  width: 100px;
+  height: 4px;
+  border-radius: 4px;
+  background: #d9d9d9;
+}
+
+// ── Title row + close ─────────────────────────────────────────────────────────
+// Figma: 20px SemiBold #2b2b2b + X icon right
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+  flex-shrink: 0;
+}
+
+// ── Subtitle with "(Optional)" ────────────────────────────────────────────────
+// Figma: 12px Regular #2b2b2b inline, "(Optional)" in #999
+.subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  line-height: 20px;
+  margin: -16px 0 0; // pull up to compensate for gap-24
+}
+
+.subtitleOptional {
+  color: $text-optional;
+}
+
+// ── Icon row — TWO boxes on mobile (camera + upload) ─────────────────────────
+// Figma 0:49068: gap-48px, both 80×80
+.iconRowMobile {
+  display: flex;
+  gap: 48px;
+  justify-content: center;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// ── Single icon box — desktop only ───────────────────────────────────────────
+// Figma 0:49012: single 80×80 upload box
+.iconBoxDesktopWrap {
+  display: none;
+
+  @media (min-width: 768px) { display: flex; }
+}
+
+// Common 80×80 icon box style
+.iconBox {
+  width: 80px;
+  height: 80px;
+  background: $chip-bg;
+  border: 1px dashed $chip-border;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.15s ease;
+
+  &:hover { background: #ebe8ff; }
+}
+
+// ── Disclaimers ───────────────────────────────────────────────────────────────
+// Mobile: 12px (Figma 0:49087); Desktop: 14px (Figma 0:49032 in dialog)
+.disclaimerBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.disclaimerLine {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  line-height: normal;
+  margin: 0;
+
+  @media (min-width: 768px) { font-size: 14px; }
+}
+
+// ── Buttons area ──────────────────────────────────────────────────────────────
+.buttonBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// Primary: Skip / Proceed
+.primaryBtn {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.primaryBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// Reupload outline
+.outlineBtn {
+  width: 100%;
+  height: 48px;
+  border: 1.5px solid $text-optional;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-optional;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background: rgba(0, 0, 0, 0.02); }
+}
+
+// ── Uploading state ───────────────────────────────────────────────────────────
+
+// 48×48 upload cloud icon, left-aligned
+.uploadingIconRow {
+  display: flex;
+  align-items: flex-start;
+}
+
+.uploadingIconBox {
+  width: 48px;
+  height: 48px;
+  background: $chip-bg;
+  border: 1px dashed $chip-border;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+// File chip
+.fileChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 47px;
+  background: $chip-bg;
+  border: 1px dashed $chip-border;
+  border-radius: 8px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.fileChipError {
+  border-color: $error-red;
+  background: #fff5f5;
+}
+
+.fileChipName {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  color: $text-dark-2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fileChipRemove {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+// 8px-height progress bar (Figma: Rectangle 8 in 0:47762)
+.progressTrack {
+  width: 100%;
+  height: 8px;
+  background: rgba(40, 0, 113, 0.15);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: $primary;
+  border-radius: 4px;
+  transition: width 1.8s ease;
+}
+
+// Error message
+.errorMsg {
+  font-size: 12px;
+  font-weight: 400;
+  color: $error-red;
+  margin: 0;
+  line-height: 1.4;
+}
+
+// ── Preview area (used by the dedicated /additional-document/preview page) ───
+// Dashed container holds the cropped image (or a PDF placeholder note).
+// The image preserves its natural aspect ratio (no letterboxing).
+.previewZone {
+  width: 100%;
+  border: 1px dashed $border;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.previewImg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 4px;
+}
+
+.pdfPreviewNote {
+  margin: 0;
+  padding: 8px 16px;
+  font-size: 13px;
+  color: $text-body;
+  text-align: center;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PREVIEW PAGE LAYOUT — /additional-document/preview
+// Mirrors the OCI / passport preview screens (mobile sheet header + scrollable
+// white card + fixed bottom buttons; desktop centred card).
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background-color: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.mobileHeader {
+  background-color: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileTopRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobileTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobileCardUpload {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.mobileDoubleButtonArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  z-index: 200;
+}
+
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $bg-white;
+  background-color: $primary;
+  cursor: pointer;
+
+  &:hover { background-color: $primary-hover; }
+}
+
+.mobileOutlineBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background-color: rgba(40, 0, 113, 0.05); }
+}
+
+// ── Desktop card ─────────────────────────────────────────────────────────────
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.desktopContentArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: center;
+  flex: 1;
+}
+
+.desktopDoubleButtonRow {
+  display: flex;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $bg-white;
+  background-color: $primary;
+  cursor: pointer;
+
+  &:hover { background-color: $primary-hover; }
+}
+
+.desktopOutlineBtn {
+  width: 350px;
+  height: 56px;
+  border: 1.5px solid $primary;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 20px;
+  color: $primary;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background-color: rgba(40, 0, 113, 0.05); }
+}
+
+// Uploading two-button row (Reupload + Proceed side-by-side)
+.buttonRow {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.reuploadRowBtn {
+  flex: 1;
+  height: 48px;
+  border: 1.5px solid $text-optional;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-optional;
+  background: $bg-white;
+  cursor: pointer;
+
+  &:hover { background: rgba(0, 0, 0, 0.02); }
+}
+
+.proceedRowBtn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+
+  &:hover { background: $primary-hover; }
+}
+
+.proceedRowBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}

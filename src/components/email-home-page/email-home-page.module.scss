@@ -1,0 +1,379 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: SEMI--FULL-NRE-NRO / Email ID Verification (text entry)
+//   Desktop: 1:76966   Mobile: 1:72753
+
+$primary: #280071;
+$primary-hover: #1a004d;
+$bg-page: #f8f8f8;
+$bg-white: #ffffff;
+$border: #d9d9d9;
+$text-dark: #222222;
+$text-dark-2: #2b2b2b;
+$text-label: #666666;
+$error-border: #fa4c67; // Figma 0:17705 — invalid email input border/text
+$error-msg: #ff2e00; // error message text color
+$shadow-mob: 0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// ── Gray rounded-bottom header ─────────────────────────────────────────────
+.mobileHeader {
+  background: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma: 16px SemiBold #2b2b2b
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ── White scrollable card ───────────────────────────────────────────────────
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 32px 24px 100px; // extra bottom for fixed button
+  flex: 1;
+}
+
+// ── Email field (mobile — vertical layout) ──────────────────────────────────
+.mobileEmailField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 14px Regular #666
+.mobileEmailLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+}
+
+// Figma: h-40, border #d9d9d9, rounded-8, 14px Regular #222
+.mobileEmailInput {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark;
+  background: $bg-white;
+  outline: none;
+  transition: border-color 0.15s ease;
+
+  &::placeholder {
+    color: #999999;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.mobileEmailInputError {
+  border-color: $error-border !important;
+  color: $error-border !important;
+
+  &:focus {
+    border-color: $error-border !important;
+  }
+}
+
+// ── Fixed bottom button ─────────────────────────────────────────────────────
+// Figma 1:72833 — gray bg, no shadow, py-16px
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-page;
+  padding: 16px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+// Figma: w-328, h-48, bg #280071, rounded-8, 16px SemiBold white
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: $primary-hover;
+  }
+}
+
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.2) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (Figma: 800px card, rounded-24)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+// Figma: w-800, h-732, rounded-24, border #d9d9d9, shadow
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+// Header: border-bottom 0.5px, p-24
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma: 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma: 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 1:77166 — p-24, justify-between, min-height to push button to bottom
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+// ── Email form row (desktop — horizontal label + input) ─────────────────────
+// Figma 1:77183: label 231px wide, gap 24px, input 265px wide
+.desktopEmailRow {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 520px; // 231 + 24 + 265
+}
+
+// Figma: 16px Regular #666, w-231px
+.desktopEmailLabel {
+  font-size: 16px;
+  font-weight: 400;
+  color: $text-label;
+  flex-shrink: 0;
+  width: 231px;
+}
+
+// Figma: h-40, border #d9d9d9, rounded-8, w-265px, 14px Regular #222
+.desktopEmailInput {
+  width: 265px;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark;
+  background: $bg-white;
+  outline: none;
+  transition: border-color 0.15s ease;
+
+  &::placeholder {
+    color: #999999;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.desktopEmailInputError {
+  border-color: $error-border !important;
+  color: $error-border !important;
+
+  &:focus {
+    border-color: $error-border !important;
+  }
+}
+
+// ── Error message (Figma 0:17705) ───────────────────────────────────────────
+// Exclamation icon + "Enter valid Email ID" in #ff2e00, positioned under input
+.emailErrorRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 400;
+  color: $error-msg;
+  margin-top: 6px;
+}
+
+// Desktop error row aligned under the input (label 231px + gap 24px)
+.desktopEmailErrorWrapper {
+  width: 100%;
+  max-width: 520px;
+  // margin-top: 8px;
+  padding-left: 255px; // 231 + 24 — align under input
+}
+
+// Mobile error row
+.mobileEmailErrorWrapper {
+  margin-top: 4px;
+}
+
+// Figma 1:77195 — w-350, h-56; spacing handled by justify-between on card body
+.desktopProceedWrapper {
+  margin-top: 0;
+}
+
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: $primary-hover;
+  }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.2) !important;
+  }
+}

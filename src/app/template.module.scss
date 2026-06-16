@@ -1,0 +1,35 @@
+// Page entry transition — subtle fade + slide-up, modern SaaS feel.
+//
+// Timing: 320ms with an "ease-out-expo"-ish curve so it starts quickly and
+// settles gently — feels fast and premium, never sluggish.
+//
+// IMPORTANT — no lingering transform:
+//   `animation-fill-mode: backwards` applies the *from* keyframe before the
+//   animation starts (preventing a flash of final state), then releases the
+//   element back to its un-transformed base style once finished. We deliberately
+//   do NOT use `forwards`/`both`, and do NOT set `will-change: transform`,
+//   because a retained transform (or will-change:transform) creates a containing
+//   block that would re-anchor the app's `position: fixed` sticky buttons. With
+//   `backwards`, the page has zero transform at rest, so fixed elements behave
+//   normally the instant the animation ends.
+.pageTransition {
+  animation: pageEnter 0.32s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 10px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+// Respect users who prefer reduced motion — no movement, instant content.
+@media (prefers-reduced-motion: reduce) {
+  .pageTransition {
+    animation: none;
+  }
+}

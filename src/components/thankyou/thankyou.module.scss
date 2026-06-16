@@ -1,0 +1,119 @@
+$primary-color: #280071;
+
+.panDetailsForm {
+  padding-bottom: 40px;
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+}
+
+.appNumber {
+  font-size: 32px;
+  font-weight: 700;
+  color: $primary-color;
+  letter-spacing: 2px;
+}
+
+.proceedBtn {
+  margin: 24px 16px;
+
+  @media (min-width: 992px) {
+    max-width: 320px;
+    margin: 24px auto;
+  }
+}
+
+.btnAlign {
+  padding: 16px;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+// ===== Figma Thank You card =====
+.thankyouCard {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.cardHeader {
+  background: #fff;
+  border-bottom: 1px solid #d9d9d9;
+  padding: 24px;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222;
+    margin-bottom: 8px;
+  }
+
+  p {
+    font-size: 12px;
+    color: #2b2b2b;
+    margin: 0;
+  }
+}
+
+.cardBody {
+  background: #fff;
+  padding: 24px;
+}
+
+.successMessage {
+  font-size: 14px;
+  color: #222;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(236, 238, 255, 0.5);
+  border: 1px dashed #c3c7ed;
+  border-radius: 8px;
+  padding: 16px;
+  width: fit-content;
+  margin: 16px auto;
+  cursor: pointer;
+  text-decoration: none;
+  color: #2b2b2b;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(236, 238, 255, 0.8);
+    color: #2b2b2b;
+    text-decoration: none;
+  }
+}
+
+.helpText {
+  font-size: 14px;
+  color: #2b2b2b;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.trackLink {
+  display: block;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: $primary-color;
+  text-decoration: underline;
+  margin-top: 40px;
+
+  &:hover {
+    color: $primary-color;
+    text-decoration: underline;
+  }
+}

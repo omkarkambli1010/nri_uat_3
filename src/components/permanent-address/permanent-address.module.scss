@@ -1,0 +1,528 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Permanent Address - Manual form (mirrors the Foreign Address - Manual styles).
+
+$primary: #280071;
+$primary-hover: #1a004d;
+$bg-page: #f8f8f8;
+$bg-white: #ffffff;
+$border: #d9d9d9;
+$text-dark: #222222;
+$text-dark-2: #2b2b2b;
+$text-label: #666666;
+$text-ph: #999999;
+$text-info: #3b4c72;
+$shadow-mob: 0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// ── Gray rounded-bottom header ─────────────────────────────────────────────
+.mobileHeader {
+  background: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// ── White scrollable card ───────────────────────────────────────────────────
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 100px; // extra bottom for fixed button
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+// ── Field group (label + input stacked) ────────────────────────────────────
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  line-height: 20px;
+  margin: 0;
+}
+
+// ── Select wrapper ──────────────────────────────────────────────────────────
+.fieldSelectWrap {
+  position: relative;
+  width: 100%;
+}
+
+.fieldSelect {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 36px 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  background: $bg-white;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.fieldSelectPlaceholder {
+  color: $text-ph;
+}
+
+.fieldSelectCaret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  line-height: 0;
+}
+
+// ── Text input ──────────────────────────────────────────────────────────────
+.fieldInput {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  background: $bg-white;
+  outline: none;
+
+  &::placeholder {
+    color: $text-ph;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+// ── City + State side-by-side row ───────────────────────────────────────────
+.mobileRowGroup {
+  display: flex;
+  gap: 24px;
+  width: 100%;
+}
+
+.mobileRowField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+// ── Pincode info hint ───────────────────────────────────────────────────────
+.pincodeHint {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+
+.pincodeHintText {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-ph;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// ── Fixed bottom button area ────────────────────────────────────────────────
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+.mobileProceedBtn {
+  max-width: 100%;
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    background: $primary-hover;
+  }
+}
+
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.2) !important;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.desktopFormArea {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  margin-bottom: 24px;
+
+  // Custom scrollbar
+  &::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 2px;
+  }
+}
+
+// ── Desktop horizontal field row ────────────────────────────────────────────
+.desktopFieldRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+  width: 100%;
+}
+
+.desktopLabel {
+  font-size: 16px;
+  font-weight: 400;
+  color: $text-label;
+  line-height: normal;
+  width: 231px;
+  flex-shrink: 0;
+  margin: 0;
+}
+
+// ── Desktop inputs — 250px single / 212px paired ────────────────────────────
+.desktopInputSingle {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.desktopInputPair {
+  display: flex;
+  gap: 24px;
+  flex: 1;
+  min-width: 0;
+}
+
+.desktopInputHalf {
+  width: 212px;
+  flex-shrink: 0;
+}
+
+.desktopAddrLine3Row {
+  display: flex;
+  align-items: center;
+  padding-left: 255px;
+}
+
+.desktopSelectWrap {
+  position: relative;
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.desktopSelectWrapHalf {
+  position: relative;
+  width: 212px;
+  flex-shrink: 0;
+}
+
+.deskInput {
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  background: $bg-white;
+  outline: none;
+
+  &::placeholder {
+    color: $text-ph;
+  }
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.deskSelect {
+  width: 100%;
+  height: 40px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  padding: 0 36px 0 16px;
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  background: $bg-white;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $primary;
+  }
+}
+
+.deskSelectCaret {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  line-height: 0;
+}
+
+.deskCalendarWrap {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+// ── Pincode hint — desktop ──────────────────────────────────────────────────
+.desktopPincodeHint {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding-left: 255px;
+}
+
+.desktopPincodeHintText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-info;
+  line-height: 1.5;
+  margin: 0;
+}
+
+// ── Desktop proceed button area ─────────────────────────────────────────────
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+  padding-top: 0;
+  flex-shrink: 0;
+}
+
+.desktopProceedBtn {
+  width: 100%;
+  max-width: 400px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    background: $primary-hover;
+  }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.2) !important;
+  }
+}
+
+// ── Pincode group wrapper (field + hint below) ──────────────────────────────
+.pincodeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+ 

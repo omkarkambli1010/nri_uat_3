@@ -1,0 +1,326 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// Figma: NRO-PERMENANT-IND-ADDRESS / Enter Permanent (Indian) Address Details
+//   Desktop: 2:4200   Mobile: 2:4109
+
+$primary:     #280071;
+$bg-page:     #f8f8f8;
+$bg-white:    #ffffff;
+$border:      #d9d9d9;
+$text-dark:   #222222;
+$text-dark-2: #2b2b2b;
+$text-label:  #666666;
+$shadow-mob:  0px 3px 5px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOBILE  (< 768px)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background: $bg-page;
+  min-height: calc(100vh - 90px);
+  gap: 16px;
+  padding: 0;
+
+  @media (min-width: 768px) { display: none; }
+}
+
+// Gray header area
+.mobileHeader {
+  background: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  flex-shrink: 0;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+// Figma 2:4182 — 16px SemiBold #2b2b2b
+.mobileTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 2:4183 — 12px Regular #2b2b2b
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// White scrollable card
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+// Fixed bottom button area — Figma 2:4198: pb-16, gray bg
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-page;
+  padding: 16px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+// Figma 2:4199 — w-328, h-48
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover:not(:disabled) { background: #1a004d; }
+}
+
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.3) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  pointer-events: none;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DESKTOP  (≥ 768px)
+// ══════════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+// Figma 2:4387 — 800px card, rounded-24, border, shadow
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+// Figma 2:4388 — header p-24, border-bottom 0.5px
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Figma 2:4396 — 18px SemiBold #222
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 2:4397 — 14px Regular #666
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  margin: 0;
+  line-height: normal;
+}
+
+// Figma 2:4398 — h-581, p-24, justify-between
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 520px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.desktopScrollArea {
+  flex: 1;
+}
+
+// Figma 2:4411 — Proceed button centered
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+// Figma 2:4412 — w-350, h-56
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  &:hover:not(:disabled) { background: #1a004d; }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.3) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  pointer-events: none;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHARED — Question + Radio group
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Figma 2:4400 / 2:4187 — input-field block
+.questionBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Figma 2:4401 / 2:4188 — 14px Regular #666, leading-20
+.questionLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  line-height: 20px;
+  margin: 0;
+}
+
+// Figma 2:4402 / 2:4189 — flex-row, gap-16
+.radioGroup {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.radioOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+// Figma 2:4404 — 20px circle, border 0.5px #d9d9d9 (unselected)
+.radioInput {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid $border;
+  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border-radius: 50%;
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+
+  &:checked {
+    border-color: $primary;
+
+    &::before {
+      background: $primary;
+    }
+  }
+}
+
+// Figma 2:4406 — 14px Regular #666
+.radioLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  line-height: normal;
+  cursor: pointer;
+}

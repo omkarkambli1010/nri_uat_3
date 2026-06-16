@@ -1,0 +1,266 @@
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+// All-in-one Aadhaar Front + Back upload (passport-upload style).
+
+$primary:      #280071;
+$primary-hover:#1a004d;
+$bg-page:      #f8f8f8;
+$bg-white:     #ffffff;
+$border:       #d9d9d9;
+$text-dark:    #222222;
+$text-dark-2:  #2b2b2b;
+$text-body:    #666666;
+$shadow-mob:   0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+$shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MOBILE LAYOUT  (visible below 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.mobilePage {
+  display: flex;
+  flex-direction: column;
+  background-color: $bg-page;
+  min-height: calc(100vh - 90px);
+
+  @media (min-width: 768px) { display: none; }
+}
+
+.mobileHeader {
+  background-color: $bg-page;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  overflow: hidden;
+  flex-shrink: 0;
+  width: 100%;
+}
+
+.mobileHeaderInner {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 16px;
+}
+
+.mobileTopRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.mobileTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobileTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.mobileSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobileCard {
+  background: $bg-white;
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  box-shadow: $shadow-mob;
+  padding: 24px 24px 104px; // extra for fixed button
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  flex: 1;
+}
+
+.mobileProceedArea {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: $bg-white;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
+  padding: 12px 16px env(safe-area-inset-bottom, 16px);
+  display: flex;
+  justify-content: center;
+  z-index: 200;
+}
+
+.mobileProceedBtn {
+  width: calc(100% - 32px);
+  max-width: 328px;
+  height: 48px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.mobileProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DESKTOP LAYOUT  (visible ≥ 768 px)
+// ═══════════════════════════════════════════════════════════════════════════
+
+.desktopPage {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $bg-page;
+    min-height: calc(100vh - 80px);
+    padding: 40px 20px;
+  }
+}
+
+.desktopCard {
+  width: 100%;
+  max-width: 800px;
+  border: 1px solid $border;
+  border-radius: 24px;
+  box-shadow: $shadow-desk;
+  background: $bg-white;
+  overflow: hidden;
+}
+
+.desktopCardHeader {
+  background: $bg-white;
+  border-bottom: 0.5px solid $border;
+  padding: 24px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.desktopBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  line-height: 0;
+}
+
+.desktopTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.desktopCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.desktopCardSubtitle {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-body;
+  margin: 0;
+}
+
+.desktopCardBody {
+  background: $bg-white;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 400px;
+  border-bottom-left-radius: 24px;
+  border-bottom-right-radius: 24px;
+}
+
+.desktopContentArea {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  flex: 1;
+}
+
+.desktopProceedWrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.desktopProceedBtn {
+  width: 350px;
+  height: 56px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: $bg-white;
+  background: $primary;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+
+  &:hover { background: $primary-hover; }
+}
+
+.desktopProceedBtnDisabled {
+  background: rgba(40, 0, 113, 0.2) !important;
+  cursor: not-allowed;
+
+  &:hover { background: rgba(40, 0, 113, 0.2) !important; }
+}
+
+// ── All-in-one upload sections (front + back) ──────────────────────────────
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: $text-dark-2;
+  margin: 0;
+  line-height: normal;
+}

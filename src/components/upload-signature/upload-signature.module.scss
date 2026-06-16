@@ -1,0 +1,493 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// UploadSignature — Draw/Upload Signature screen
+// Figma:
+//   Desktop: node 0:39305 (1440x1024, card 800px wide)
+//   Mobile:  node 0:39223 (360x800)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Desktop
+// ══════════════════════════════════════════════════════════════════════════════
+
+.deskCard {
+  width: 800px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  box-shadow: 0 2px 10px 0 rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.deskHeader {
+  width: 100%;
+  background: #fff;
+  border-bottom: 0.5px solid #d9d9d9;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.deskHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #222222;
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  p {
+    font-size: 14px;
+    font-weight: 400;
+    color: #666666;
+    margin: 0;
+    line-height: 1.4;
+  }
+}
+
+.deskTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.backBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.deskBody {
+  background: #fff;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 36px;
+  min-height: 476px;
+}
+
+// ── Signature pad container (desktop) ────────────────────────────────────────
+.padWrap {
+  position: relative;
+  width: 630px;
+  max-width: 100%;
+  height: 292px;
+}
+
+.padBox {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed #d9d9d9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+
+.padCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  // Pencil cursor — SVG with tip at (2, 22) acts as the hotspot.
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'><path d='M14.5 3.5L20.5 9.5L9 21H3V15L14.5 3.5Z' fill='%23fff' stroke='%23280071' stroke-width='1.5' stroke-linejoin='round'/><path d='M12.5 5.5L18.5 11.5' stroke='%23280071' stroke-width='1.5' stroke-linecap='round'/></svg>") 2 22, crosshair;
+}
+
+.padPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  background: #fff;
+}
+
+.eraseChip {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(174, 117, 255, 0.09);
+  border: 0.5px solid #d9d9d9;
+  border-radius: 100px;
+  padding: 9px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 400;
+  color: #280071;
+  line-height: 22px;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// ── Desktop button row ───────────────────────────────────────────────────────
+.deskBtnFooter {
+  background: #fff;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.deskBtnRow {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  width: 100%;
+}
+
+.btnOutline {
+  width: 350px;
+  height: 56px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btnFilled {
+  width: 350px;
+  height: 56px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: #b9b9b9;
+    cursor: not-allowed;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Mobile
+// ══════════════════════════════════════════════════════════════════════════════
+
+.mobGrayHeader {
+  background: #f8f8f8;
+  padding: 12px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobBackRow {
+  display: flex;
+  align-items: center;
+}
+
+.mobBackBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+}
+
+.mobTitleBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.mobTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.mobTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #222;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.needHelpChip {
+  background: rgba(207, 169, 255, 0.09);
+  border: 0.5px solid #d9d9d9;
+  border-radius: 25px;
+  padding: 8px 11px;
+  font-size: 12px;
+  font-weight: 400;
+  color: #280071;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.mobSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: #2b2b2b;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mobContentCard {
+  background: #ffffff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 3px 10px 0 rgba(0, 0, 0, 0.05);
+  padding: 24px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  min-height: 0;
+}
+
+.mobPadWrap {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 477px;
+  margin: 0 auto;
+}
+
+.mobPadBox {
+  width: 100%;
+  height: 100%;
+  border: 1px dashed #d9d9d9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+  position: relative;
+}
+
+.mobBtnBar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #f8f8f8;
+  padding: 8px 16px 16px;
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: center;
+}
+
+.mobBtnOutline {
+  flex: 0 0 152px;
+  height: 48px;
+  background: #fff;
+  border: 1px solid #280071;
+  border-radius: 8px;
+  color: #280071;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(40, 0, 113, 0.05);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.mobBtnFilled {
+  flex: 1 1 0;
+  height: 48px;
+  background: #280071;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    background: #3d0087;
+  }
+
+  &:disabled {
+    background: #b9b9b9;
+    cursor: not-allowed;
+  }
+}
+
+.hiddenInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Verify state — shown after file upload completes via the modal.
+// Figma desktop 0:39533, mobile 0:44339.
+// ══════════════════════════════════════════════════════════════════════════════
+
+.verifyBody {
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+  width: 100%;
+  padding: 0 24px;
+}
+
+.verifyBodyMob {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  width: 100%;
+}
+
+.filePill {
+  background: #f3f1ff;
+  border-radius: 8px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.filePillMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.filePillName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #2b2b2b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.filePillRemove {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.previewBox {
+  border: 1px dashed #d9d9d9;
+  border-radius: 16px;
+  background: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  width: 100%;
+}
+
+.previewImg {
+  max-width: 100%;
+  max-height: 240px;
+  object-fit: contain;
+  display: block;
+}
+
+.pdfText {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+  text-align: center;
+}
+
+.mobInfoBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobInfoLine {
+  font-size: 12px;
+  font-weight: 400;
+  color: #666;
+  margin: 0;
+  line-height: 1.5;
+}
+
+// Vertical button column (verify state on mobile — Proceed top, Re-upload below)
+.mobBtnBarStack {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.04);
+
+  .mobBtnFilled,
+  .mobBtnOutline {
+    width: 328px;
+    max-width: 100%;
+    flex: none;
+  }
+}

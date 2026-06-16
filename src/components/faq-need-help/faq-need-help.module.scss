@@ -1,0 +1,306 @@
+// FAQ & Need Help — Figma 0:36334 (desktop default), 0:36186 (mobile default),
+// 0:35922 / 0:35773 (FAQ #1 expanded), 0:35508 / 0:35359 (FAQ #2 expanded).
+
+$primary: #280071;
+$text-dark: #222222;
+$text-body: #666666;
+$text-soft: #2b2b2b;
+$border-light: #d9d9d9;
+$bg-page: #f8f8f8;
+$bg-help-card: rgba(241, 241, 246, 0.37);
+
+// ==========================================================
+// MOBILE
+// ==========================================================
+
+.faqMobBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 24px;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0px 3px 10px 0px rgba(0, 0, 0, 0.05);
+  width: 100%;
+  flex: 1 0 auto;
+  margin-top: 16px; // Figma: 16px gap from gray header to white body card
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.faqMobHeading {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.moreFaqs {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.helpButtonsMob {
+  display: flex;
+  gap: 16px;
+  width: 100%;
+}
+
+.helpBtnMob {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0.5px solid $border-light;
+  border-radius: 8px;
+  background: $bg-help-card;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  height: 48px;
+
+  &:hover {
+    background: rgba(241, 241, 246, 0.6);
+  }
+
+  span {
+    line-height: normal;
+  }
+}
+
+// ==========================================================
+// DESKTOP
+// ==========================================================
+
+.deskCard {
+  width: 100%;
+  max-width: 800px;
+  background: #fff;
+  border: 1px solid $border-light;
+  border-radius: 24px;
+  box-shadow: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 767px) {
+    display: none;
+  }
+}
+
+.deskHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 24px;
+  border-bottom: 0.5px solid $border-light;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+
+  h5 {
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-dark;
+    margin: 0;
+    line-height: normal;
+  }
+}
+
+.deskBody {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 24px;
+  // min-height: 533px;
+  background: #fff;
+  border-radius: 0 0 24px 24px;
+}
+
+.deskFaqSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  flex: 1;
+}
+
+.helpText {
+  font-size: 14px;
+  color: #222;
+  margin: 0px;
+
+  a {
+    color: #280071;
+    text-decoration: none;
+    font-weight: 500;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+
+
+// ==========================================================
+// SHARED
+// ==========================================================
+
+.stageLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: $primary;
+  margin: 0;
+  line-height: normal;
+}
+
+.faqList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.faqItem {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $border-light;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.faqQuestion {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+
+  span {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 400;
+    color: $text-dark;
+    line-height: 1.5;
+  }
+}
+
+.faqAnswer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  p {
+    font-size: 14px;
+    font-weight: 400;
+    color: $text-dark;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.faqAnswerIntro {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.faqAnswerList {
+  list-style: disc;
+  padding-left: 20px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  li {
+    font-size: 14px;
+    color: $text-dark;
+    line-height: 1.5;
+  }
+}
+
+.stillNeedHelp {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.stillNeedHelpTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+// Desktop-only: side-by-side bordered contact cards (Figma 0:36563)
+.helpCardsDesk {
+  display: flex;
+  gap: 16px;
+}
+
+.helpCardDesk {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: $bg-help-card;
+  border: 0.5px solid $border-light;
+  border-radius: 8px;
+  // width: 217px;
+  width: auto;
+  height: 71px;
+  text-decoration: none;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(241, 241, 246, 0.6);
+  }
+}
+
+.helpCardText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.helpCardLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.helpCardValue {
+  font-size: 12px;
+  font-weight: 500;
+  color: $text-dark;
+  margin: 0;
+  line-height: normal;
+}
+
+.helpCardValueLink {
+  color: $primary;
+}
