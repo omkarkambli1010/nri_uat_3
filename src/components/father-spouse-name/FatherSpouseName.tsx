@@ -359,14 +359,20 @@ export default function FatherSpouseName() {
               </form>
             </div>
 
-            {/* Mobile: Proceed button outside card, on gray background */}
-            <div className={styles.mobileProceedRow}>
-              <LoadingButton
-                onClick={PersonalDetailsave}
-              >
-                Proceed
-              </LoadingButton>
-            </div>
+          </div>
+
+          {/* Mobile: Proceed pinned to the bottom of the gray background —
+              matches Figma (node 0:57726) and the shared .stickybtn pattern
+              used by the other KYC steps. Sibling of the column so it spans
+              the full width and sits at the bottom rather than under the card. */}
+          <div className="stickybtn mobile_css">
+            <LoadingButton
+              className="btn btn_cls"
+              disabled={isPersonalForm}
+              onClick={PersonalDetailsave}
+            >
+              Proceed
+            </LoadingButton>
           </div>
         </div>
       </div>

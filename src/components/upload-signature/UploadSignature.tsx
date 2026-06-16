@@ -166,6 +166,11 @@ function SmallXIcon() {
 
 const DESKTOP_MQ = "(min-width: 992px)";
 
+// Drawn-signature export tuning: whitespace kept around the ink (CSS px) and
+// the cap on device-pixel scaling so high-DPI screens don't bloat the file.
+const SIGN_TRIM_PADDING = 12;
+const SIGN_MAX_EXPORT_RATIO = 2;
+
 export default function UploadSignature() {
   const router = useRouter();
   const pathname = usePathname();
@@ -319,8 +324,8 @@ export default function UploadSignature() {
   };
 
   const onModalUploaded = (file: UploadedSignature) => {
-    if (!blobService.isFileSizeValid(file.blob, 4)) {
-      toast.error("Signature file size should be less than 4 MB.");
+    if (!blobService.isFileSizeValid(file.blob, 5)) {
+      toast.error("Signature file size should be less than 5 MB.");
       blobService.revokePreviewUrl(file.objectUrl);
       return;
     }
@@ -347,6 +352,94 @@ export default function UploadSignature() {
     sessionStorage.removeItem("SignatureVerified");
   };
 
+  // Export the drawn signature as a tightly-cropped, transparent PNG (the
+  // backend requires a transparent background). Exporting the full canvas
+  // instead produced multi-MB files even for a single dot, because the bitmap
+  // is sized at devicePixelRatio (e.g. 630x292 CSS px becomes ~1890x876 on a
+  // 3x display) and the whole transparent area gets serialized. Trimming to
+  // the ink bounds and capping the export scale keeps it to a few KB.
+  const getDrawnSignatureBlob = (): Promise<Blob | null> => {
+    const canvas = canvasRef.current;
+    const pad = padRef.current;
+
+    if (!canvas || !pad || pad.isEmpty()) {
+      return Promise.resolve(null);
+    }
+
+    const ratio = Math.max(window.devicePixelRatio || 1, 1);
+
+    // toData() returns points in CSS coordinates; device px = css * ratio.
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    for (const group of pad.toData()) {
+      for (const point of group.points) {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      }
+    }
+
+    const exportRegion = (
+      sx: number,
+      sy: number,
+      sw: number,
+      sh: number,
+      outW: number,
+      outH: number,
+    ): Promise<Blob | null> => {
+      const out = document.createElement("canvas");
+      out.width = Math.max(1, Math.round(outW));
+      out.height = Math.max(1, Math.round(outH));
+
+      const ctx = out.getContext("2d");
+      if (!ctx) return Promise.resolve(null);
+
+      // No background fill — keep the canvas transparent so the exported PNG
+      // preserves an alpha channel (backend requirement).
+      ctx.drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+
+      return new Promise((resolve) =>
+        out.toBlob((blob) => resolve(blob), "image/png"),
+      );
+    };
+
+    // No usable bounds (shouldn't happen when not empty) — fall back to the
+    // whole canvas so we still produce something.
+    if (!Number.isFinite(minX)) {
+      return exportRegion(
+        0,
+        0,
+        canvas.width,
+        canvas.height,
+        canvas.width / ratio,
+        canvas.height / ratio,
+      );
+    }
+
+    const cssW = canvas.width / ratio;
+    const cssH = canvas.height / ratio;
+
+    const left = Math.max(0, minX - SIGN_TRIM_PADDING);
+    const top = Math.max(0, minY - SIGN_TRIM_PADDING);
+    const right = Math.min(cssW, maxX + SIGN_TRIM_PADDING);
+    const bottom = Math.min(cssH, maxY + SIGN_TRIM_PADDING);
+
+    const outRatio = Math.min(ratio, SIGN_MAX_EXPORT_RATIO);
+
+    return exportRegion(
+      left * ratio,
+      top * ratio,
+      (right - left) * ratio,
+      (bottom - top) * ratio,
+      (right - left) * outRatio,
+      (bottom - top) * outRatio,
+    );
+  };
+
   const getSignatureBlob = async (): Promise<Blob | null> => {
     if (verifyFile) {
       if (verifyFile.blob && verifyFile.blob.size > 0) {
@@ -356,16 +449,7 @@ export default function UploadSignature() {
       return null;
     }
 
-    const canvas = canvasRef.current;
-    const pad = padRef.current;
-
-    if (!canvas || !pad || pad.isEmpty()) {
-      return null;
-    }
-
-    return new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), "image/png");
-    });
+    return getDrawnSignatureBlob();
   };
 
   const proceed = async () => {
@@ -393,8 +477,8 @@ export default function UploadSignature() {
       return;
     }
 
-    if (!blobService.isFileSizeValid(blob, 4)) {
-      toast.error("Signature file size should be less than 4 MB.");
+    if (!blobService.isFileSizeValid(blob, 5)) {
+      toast.error("Signature file size should be less than 5 MB.");
       return;
     }
 
@@ -730,7 +814,7 @@ export default function UploadSignature() {
                 Files supported: JPG, PNG & PDF
               </p>
 
-              <p className={styles.mobInfoLine}>Maximum size less than 4 MB</p>
+              <p className={styles.mobInfoLine}>Maximum size less than 5 MB</p>
 
               <p className={styles.mobInfoLine}>
                 Please ensure that you don&apos;t upload password protected

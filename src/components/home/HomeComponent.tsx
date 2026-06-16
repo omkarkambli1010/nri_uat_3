@@ -189,7 +189,9 @@ export default function HomeComponent() {
         if (!mounted || !phoneInputRef.current) return;
 
         const iti = intlTelInput(phoneInputRef.current, {
-          initialCountry: "in",
+          // No default country: the selector shows a "Code" placeholder
+          // (see home.module.scss) until the user picks a country.
+          initialCountry: "",
           separateDialCode: true,
           countrySearch: true,
           formatAsYouType: true,

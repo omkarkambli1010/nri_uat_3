@@ -32,9 +32,9 @@ export interface SignatureUploadModalProps {
 
 const ACCEPTED_INPUT_HINT = 'image/*,application/pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,.pdf';
 const ACCEPTED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'heic', 'heif', 'webp', 'pdf'];
-const MAX_BYTES = 4 * 1024 * 1024;
+const MAX_BYTES = 5 * 1024 * 1024;
 const ACCEPT_LABEL = 'JPG, PNG & PDF';
-const MAX_LABEL = '4 MB';
+const MAX_LABEL = '5 MB';
 
 function isAcceptedFile(f: File): boolean {
   if (f.type) {
