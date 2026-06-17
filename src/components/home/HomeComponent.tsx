@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Carousel } from "primereact/carousel";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
 import { Toast } from "primereact/toast";
 import type { Iti } from "intl-tel-input";
@@ -18,41 +17,6 @@ import LoadingButton from '@/components/ui/LoadingButton';
 // Home component — equivalent to Angular HomeComponent
 // Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
 
-const TESTIMONIALS = [
-  {
-    message:
-      "I've been using this platform for several months now and I'm impressed. The interface is user-friendly and makes it easy to keep track of my investments.",
-    author: "Rohit Sharma",
-  },
-  {
-    message:
-      "I love the variety of investment options available on this platform. I'm able to diversify my portfolio and feel confident that I'm making smart investment decisions.",
-    author: "Sayali Prasad",
-  },
-  {
-    message:
-      "The app is fantastic and makes it easy to manage my investments on-the-go. I'm able to keep track of my portfolio and make trades quickly and efficiently from my phone.",
-    author: "Dorothy D'souza",
-  },
-];
-
-const VIDEOS = [
-  {
-    url: "https://www.youtube.com/embed/0cfFB8d_n60?si=Mwd2ApOaaT1SXOhM",
-    caption: "Invest to your FULL POTENTIAL with the SBI Securities App!",
-  },
-  {
-    url: "https://www.youtube.com/embed/Rb7IE_P3UcA",
-    caption: "Begin your Investment journey with India's trusted Nivesh SAATHI",
-  },
-];
-
-const RESPONSIVE_VIDEO_OPTIONS = [
-  { breakpoint: "1024px", numVisible: 2, numScroll: 1 },
-  { breakpoint: "768px", numVisible: 1, numScroll: 1 },
-  { breakpoint: "560px", numVisible: 1, numScroll: 1 },
-];
-
 const WHY_DEMAT_CARDS = [
   {
     imgs: [
@@ -62,7 +26,9 @@ const WHY_DEMAT_CARDS = [
       },
     ],
     alt: "SBI's Legacy and Trust",
-    label: "SBI's Legacy and Trust",
+    title: "Trusted Brand",
+    subtitle:
+      "Backed by the strength of SBI, India's most trusted and largest public sector bank.",
   },
   {
     imgs: [
@@ -72,7 +38,9 @@ const WHY_DEMAT_CARDS = [
       },
     ],
     alt: "Community of 4+ million investors",
-    label: "Community of 4+ million investors",
+    title: "Global Access",
+    subtitle:
+      "Trade from anywhere in the world with our secure and user-friendly online trading platform.",
   },
   {
     imgs: [
@@ -82,7 +50,9 @@ const WHY_DEMAT_CARDS = [
       },
     ],
     alt: "Invest in multiple products with a single app",
-    label: "Invest in multiple products with a single app",
+    title: "Dedicated Support",
+    subtitle:
+      "Get expert assistance and guidance tailored specifically for NRIs.",
   },
   {
     imgs: [
@@ -92,14 +62,128 @@ const WHY_DEMAT_CARDS = [
       },
     ],
     alt: "Wide Network of 80+ Branches across India",
-    label: "Wide Network of 80+ Branches across India",
+    title: "Competitive Charges",
+    subtitle:
+      "Transparent and competitive brokerage charges, ensuring value for your investments.",
   },
   {
     imgs: [
       { src: publicPath("/assets/images/why-demat/research-2.svg"), inset: "0 0 0 0.01%" },
     ],
     alt: "Research recommended stocks",
-    label: "Research recommended stocks",
+    title: "Multi-Account Integration",
+    subtitle:
+      "Easily link your NRE/NRO bank accounts for smooth repatriation and fund management.",
+  },
+];
+
+const NRI_INFO_TABS: {
+  label: string;
+  intro?: string;
+  points: { strong?: string; text?: string; sub?: string[] }[];
+}[] = [
+  {
+    label: "Eligibility Criteria",
+    intro: "To open an NRI Demat and Trading Account, you must:",
+    points: [
+      { text: "You have attained NRI status as per FEMA guidelines." },
+      {
+        text: "You have an NRE or NRO savings account with State Bank of India (SBI).",
+      },
+      { text: "You have a valid PAN card and complete KYC documentation." },
+    ],
+  },
+  {
+    label: "How to Get Started",
+    points: [
+      {
+        strong: "Fill the Online Form:",
+        text: "Start your journey by filling out a simple online application form.",
+      },
+      {
+        strong: "Submit KYC Documents:",
+        text: "Upload necessary documents such as passport, proof of NRI status, and bank details.",
+      },
+      {
+        strong: "PIS Permission:",
+        text: " Get assistance in obtaining RBI’s PIS approval for trading.",
+      },
+      {
+        strong: "Start Trading:",
+        text: "Once your account is activated, you’re ready to trade and invest in the Indian stock markets!",
+      },
+    ],
+  },
+  {
+    label: "KYC Documents required",
+    points: [
+      {
+        text: "Copy of Valid Passport (with relevant pages showing personal details and validity)",
+      },
+      {
+        text: "Valid visa or Resident / Work permit showing current residential status outside India",
+      },
+      {
+        text: "Proof of Overseas address (Tenancy Contract, Utility bills etc.)",
+      },
+      { text: "Indian address proof (as applicable)" },
+      { text: "Aadhar card (as applicable)" },
+      { text: "TIN (Tax Identification Number) Proof of Overseas country" },
+      { text: "Latest 3 months' SBI NRE/NRO Bank Account statement" },
+      { text: "Two recent passport-sized photographs" },
+    ],
+  },
+  {
+    label: "Important Points to Note",
+    points: [
+      {
+        text: "All KYC & Bank documents should be self-attested and notarized by authorized officials.",
+      },
+      {
+        text: "In-person verification with original seen & verified attestation is mandatory on your KYC documents",
+      },
+      {
+        strong: "For Face-to-Face Customers (When in India):",
+        text: " KYC documents must be verified in person with the original attestation by State Bank of India (SBI) or SBI Securities Limited (SSL) officials.",
+      },
+      {
+        strong: "For Non-Face-to-Face Customers (When Outside India):",
+        text: "KYC documents must be verified in person with the original attestation by any one of the following:",
+        sub: [
+          "SBI Overseas Branch officials (with their SS number)",
+          "Existing bankers",
+          "Authorized officials of overseas branches of Scheduled Commercial Banks registered in India",
+          "Notary Public, Court, Magistrate, Judge",
+          "Indian Embassy/Consulate General in the country where you reside (with relevant details of such officials)",
+          "KYC documents in any language other than English or Hindi must be translated into English by a certified translator/interpreter; or an official of the Embassy of the Country where the document is issued.",
+        ],
+      },
+    ],
+  },
+];
+
+const FOOTER_LINKS = [
+  { label: "Investor Charter", href: "https://www.sbisecurities.in/investor-charter" },
+  { label: "Investor Awareness", href: "https://www.sbisecurities.in/investor-awareness" },
+  { label: "Security tips", href: "https://www.sbisecurities.in/security-tips" },
+  { label: "Disclaimer", href: "https://www.sbisecurities.in/disclaimer" },
+  {
+    label: "Privacy Policy",
+    href: "https://www.sbisecurities.in/fileserver/pdf/Privacy-Policy.pdf",
+  },
+  {
+    label: "Cookies Policy",
+    href: "https://www.sbisecurities.in/fileserver/pdf/Cookies-Policy.pdf",
+  },
+  { label: "Terms & Conditions", href: "https://www.sbisecurities.in/terms" },
+  { label: "SCORES", href: "https://www.scores.gov.in/scores/Welcome.html" },
+  {
+    label: "Online Resolution of Disputes (ODR)",
+    href: "https://smartodr.in/intermediary/login",
+  },
+  {
+    label: "DND Policy",
+    href: "https://www.sbisecurities.in/fileserver/pdf/compliance/DND%20Policy.pdf",
   },
 ];
 
@@ -123,6 +207,7 @@ export default function HomeComponent() {
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const itiRef = useRef<Iti | null>(null);
   const toastRef = useRef<Toast>(null);
+  const homeRef = useRef<HTMLDivElement>(null);
 
   // OTP state — kept for API integration (getMobileOtpVerify / startTimer)
   const [otpMobile, setOtpMobile] = useState("");
@@ -136,6 +221,9 @@ export default function HomeComponent() {
 
   // FATF Modal state
   const [showFatfModal, setShowFatfModal] = useState(false);
+
+  // NRI info tabs (Eligibility / How to Get Started / KYC / Important Points)
+  const [activeInfoTab, setActiveInfoTab] = useState(0);
 
   const FATF_COUNTRIES = [
     "South Sudan",
@@ -175,6 +263,45 @@ export default function HomeComponent() {
     typeof window !== "undefined"
       ? (sessionStorage.getItem("clientid") ?? "")
       : "";
+
+  // Reveal-on-scroll: fade + slide each section into view as it enters the
+  // viewport. The first (banner) section is above the fold, so it animates in
+  // on page load. Honours prefers-reduced-motion.
+  useEffect(() => {
+    const root = homeRef.current;
+    if (!root) return;
+
+    const sections = Array.from(
+      root.querySelectorAll<HTMLElement>(":scope > section, :scope > footer"),
+    );
+    if (!sections.length) return;
+
+    const prefersReduced = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+
+    if (prefersReduced || !("IntersectionObserver" in window)) {
+      sections.forEach((el) => el.classList.add(styles.revealVisible));
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add(styles.revealVisible);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      // No negative bottom margin: thin, bottom-pinned elements (like the
+      // version bar) must still reveal once scrolled fully into view.
+      { threshold: 0.08, rootMargin: "0px" },
+    );
+
+    sections.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     document.title =
@@ -521,25 +648,8 @@ export default function HomeComponent() {
     }
   };
 
-  const videoTemplate = (item: (typeof VIDEOS)[0]) => (
-    <div className={styles.carouselCls}>
-      <div className={styles.item}>
-        <iframe
-          width="560"
-          height="245"
-          src={item.url}
-          title="YouTube video player"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-        />
-        <h6>{item.caption}</h6>
-      </div>
-    </div>
-  );
-
   return (
-    <>
+    <div className={styles.homeRoot} ref={homeRef}>
       {/* Banner Section */}
       <section
         aria-label="Open Demat and Trading Account"
@@ -768,6 +878,34 @@ export default function HomeComponent() {
         </div>
       </section>
 
+      {/* Invest in India Intro Section */}
+      <section
+        aria-label="Invest in India from Anywhere in the World"
+        className={styles.investIntro}
+      >
+        <div className="container">
+          <div className="row">
+            <div className="col-12">
+              <h2 className={styles.investIntroHeading}>
+                Invest in India from Anywhere in the World
+              </h2>
+              <p className={styles.investIntroText}>
+                SBI Securities offers you a seamless way to invest in the{" "}
+                <span className={styles.investIntroHighlight}>Indian</span> stock
+                markets, no matter where you are. With our comprehensive{" "}
+                <span className={styles.investIntroHighlight}>
+                  NRI Demat and Trading
+                </span>{" "}
+                account, Non-Resident Indians (NRIs) can trade and manage
+                investments effortlessly in{" "}
+                <span className={styles.investIntroHighlight}>Indian</span>{" "}
+                equities, bonds, IPOs and more.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Why Open Demat Section */}
       <section
         aria-label="Why Open Demat Account With SBI Securities"
@@ -777,11 +915,11 @@ export default function HomeComponent() {
           <div className="row">
             <div className={styles.align}>
               <h2 className="page-heading">
-                Why Open Demat Account With SBI Securities?
+               Why Choose SBI Securities?
               </h2>
               <div className={styles.cardAlign}>
                 {WHY_DEMAT_CARDS.map((card) => (
-                  <div key={card.label} className={styles.cardCls}>
+                  <div key={card.title} className={styles.cardCls}>
                     <div className={styles.iconWrapper}>
                       {card.imgs.map((img, i) => (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -795,7 +933,8 @@ export default function HomeComponent() {
                         />
                       ))}
                     </div>
-                    <p>{card.label}</p>
+                    <h6>{card.title}</h6>
+                    <p>{card.subtitle}</p>
                   </div>
                 ))}
               </div>
@@ -804,136 +943,58 @@ export default function HomeComponent() {
         </div>
       </section>
 
-      {/* Easy Demat Process Section */}
+      {/* Key Features Section */}
       <section
-        aria-label="Easy Demat Account Opening Process"
-        className={styles.ezdemat}
-      >
-        <div className="container">
-          <div className="row">
-            <div className={styles.align}>
-              <h2>Easy Demat Account Opening Process</h2>
-              <div className={styles.cardAlign}>
-                {[
-                  {
-                    src: publicPath("/assets/images/diy/add-user.png"),
-                    alt: "Sign Up For SBI Demat Account",
-                    label: "Sign Up",
-                  },
-                  {
-                    src: publicPath("/assets/images/diy/verify-bank.png"),
-                    alt: "Verify Your Bank Account",
-                    label: "Verify Bank A/C",
-                  },
-                  {
-                    src: publicPath("/assets/images/diy/select-plan.png"),
-                    alt: "Select Brokerage Plan",
-                    label: "Select Plan",
-                  },
-                  {
-                    src: publicPath("/assets/images/diy/upload-doc.png"),
-                    alt: "Upload Documents for Demat Account",
-                    label: "Upload Documents",
-                  },
-                  {
-                    src: publicPath("/assets/images/diy/esign.png"),
-                    alt: "E-sign for your Demat Account",
-                    label: "E-Sign",
-                  },
-                ].reduce<React.ReactNode[]>((acc, card, idx, arr) => {
-                  acc.push(
-                    <div key={card.label} className={styles.cardCls}>
-                      <Image
-                        src={card.src}
-                        alt={card.alt}
-                        width={60}
-                        height={60}
-                        draggable={false}
-                      />
-                      <p>{card.label}</p>
-                    </div>,
-                  );
-                  if (idx < arr.length - 1) {
-                    acc.push(
-                      <div key={`arrow-${idx}`} className={styles.cardClsArrow}>
-                        <Image
-                          src={publicPath("/assets/images/diy/Line.png")}
-                          alt=""
-                          width={30}
-                          height={10}
-                          aria-hidden
-                          draggable={false}
-                        />
-                      </div>,
-                    );
-                  }
-                  return acc;
-                }, [])}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Documents Required Section */}
-      <section
-        aria-label="Documents Required for Demat Account"
+        aria-label="Key Features of NRI Demat & Trading Account"
         className={styles.whyOpenDemat}
       >
         <div className="container">
           <div className="row">
             <div className={styles.align}>
               <h2 className="page-heading">
-                Documents Required to Open a Demat &amp; Trading A/C
+                Key Features of NRI Demat & Trading Account
               </h2>
               <div className={styles.cardAlign}>
                 {[
                   {
                     src: publicPath("/assets/images/diy/pancardicon.png"),
-                    alt: "Identity Proof",
-                    subheading: "Identity Proof",
-                    label: "PAN Card",
+                    title: "Simple and Fast Account Opening",
+                    desc: "Hassle-free online process with minimal documentation.",
                   },
                   {
                     src: publicPath("/assets/images/diy/addressprooficon-1.png"),
-                    alt: "Address Proof",
-                    subheading: "Address Proof",
-                    label: "Aadhar Card",
+                    title: "Multiple Investment Options",
+                    desc: "Access a wide range of investment opportunities, including equities, IPOs, mutual funds, ETFs, and bonds.",
                   },
                   {
                     src: publicPath("/assets/images/diy/nominee-icon.png"),
-                    alt: "Add Nominee",
-                    subheading: "Nominee Addition",
-                    label: "Nominee's Proof of Identity",
+                    title: "Portfolio Investment Scheme (PIS) Compliant",
+                    desc: "Invest in Indian markets in full compliance with RBI's Portfolio Investment Scheme (PIS) regulations.",
                   },
                   {
                     src: publicPath("/assets/images/diy/signatureicon-1.png"),
-                    alt: "Add Your Signature",
-                    subheading: "Signature",
-                    label: "Sign on a White paper",
+                    title: "Repatriation Benefits",
+                    desc: "Conveniently transfer your profits and investments abroad with the NRE account (repatriation basis).",
                   },
                   {
                     src: publicPath("/assets/images/diy/cancelled-cheque.png"),
-                    alt: "Cancelled Cheque",
-                    subheading: "Cancelled cheque",
-                    label: "Only if bank verification fails",
+                    title: "Real-Time Market Access",
+                    desc: "Stay updated with real-time stock quotes, charts, and research insights to make informed decisions.",
                   },
                 ].map((card) => (
-                  <div key={card.subheading} className={styles.cardCls}>
+                  <div key={card.title} className={styles.cardCls}>
                     <div>
                       <Image
                         src={card.src}
-                        alt={card.alt}
+                        alt={card.title}
                         width={60}
                         height={60}
                         draggable={false}
                       />
                     </div>
                     <div>
-                      <h6 className={styles.cardSubheading}>
-                        {card.subheading}
-                      </h6>
-                      <p>{card.label}</p>
+                      <h6>{card.title}</h6>
+                      <p>{card.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -943,82 +1004,68 @@ export default function HomeComponent() {
         </div>
       </section>
 
-      {/* Videos Section */}
+      {/* NRI Account Info Tabs Section */}
       <section
-        aria-label="Educational Videos"
-        className={styles.benefitsSection}
-      >
-        <div className="container">
-          <div className={styles.trustCss}>
-            <h2 className="page-heading">Explore Our Trading Platforms</h2>
-            <Carousel
-              value={VIDEOS}
-              numVisible={2}
-              numScroll={1}
-              circular={false}
-              autoplayInterval={0}
-              responsiveOptions={RESPONSIVE_VIDEO_OPTIONS}
-              itemTemplate={videoTemplate}
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section
-        aria-label="Customer Testimonials"
-        className={styles.trustSection}
+        aria-label="NRI Account Information"
+        className={styles.infoTabsSection}
       >
         <div className="container">
           <div className="row">
-            <div className="col-lg-12 text-center">
-              <h2 className={styles.trustHeading}>Trust Aur Growth, Dono</h2>
-              <p className={styles.trustSubtitle}>
-                India&apos;s trusted investment partner of choice
-              </p>
+            <div className="col-lg-12">
+              <h2 className="page-heading text-center">Open Your NRI Demat Account</h2>
             </div>
             <div className="col-lg-12">
-              <Splide
-                options={{
-                  type: "loop",
-                  perPage: 3,
-                  perMove: 1,
-                  gap: "24px",
-                  pagination: false,
-                  arrows: true,
-                  breakpoints: {
-                    1024: { perPage: 2 },
-                    767: { perPage: 1 },
-                  },
-                }}
-                className={styles.testimonialSplide}
-                aria-label="Customer testimonials"
+              <div
+                className={styles.infoTabsNav}
+                role="tablist"
+                aria-label="NRI account information tabs"
               >
-                {TESTIMONIALS.map((item, idx) => (
-                  <SplideSlide key={idx}>
-                    <div className={styles.testimonialCard}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={publicPath("/assets/images/trust-section/quote-icon.svg")}
-                        alt=""
-                        className={styles.quoteIcon}
-                        draggable={false}
-                      />
-                      <p className={styles.testimonialText}>{item.message}</p>
-                      <span className={styles.testimonialAuthor}>
-                        -{item.author}
-                      </span>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={publicPath("/assets/images/trust-section/line-divider.svg")}
-                        alt=""
-                        className={styles.testimonialLine}
-                        draggable={false}
-                      />
-                    </div>
-                  </SplideSlide>
+                {NRI_INFO_TABS.map((tab, idx) => (
+                  <button
+                    key={tab.label}
+                    type="button"
+                    role="tab"
+                    id={`info-tab-${idx}`}
+                    aria-selected={activeInfoTab === idx}
+                    aria-controls={`info-panel-${idx}`}
+                    className={`${styles.infoTabBtn} ${
+                      activeInfoTab === idx ? styles.infoTabBtnActive : ""
+                    }`}
+                    onClick={() => setActiveInfoTab(idx)}
+                  >
+                    {tab.label}
+                  </button>
                 ))}
-              </Splide>
+              </div>
+              {NRI_INFO_TABS.map((tab, idx) => (
+                <div
+                  key={tab.label}
+                  role="tabpanel"
+                  id={`info-panel-${idx}`}
+                  aria-labelledby={`info-tab-${idx}`}
+                  hidden={activeInfoTab !== idx}
+                  className={styles.infoTabPanel}
+                >
+                  {tab.intro && (
+                    <p className={styles.infoTabIntro}>{tab.intro}</p>
+                  )}
+                  <ul className={styles.infoTabList}>
+                    {tab.points.map((point, i) => (
+                      <li key={i}>
+                        {point.strong && <strong>{point.strong}</strong>}
+                        {point.text}
+                        {point.sub && (
+                          <ul className={styles.infoTabSubList}>
+                            {point.sub.map((s, j) => (
+                              <li key={j}>{s}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -1032,7 +1079,7 @@ export default function HomeComponent() {
         <div className="container">
           <div className="row">
             <div className="col-lg-12">
-              <h2 className="page-heading">What is Demat Account?</h2>
+              <h2 className="page-heading text-center">What is Demat Account?</h2>
             </div>
             <div>
               <br />
@@ -1092,88 +1139,145 @@ export default function HomeComponent() {
         </div>
       )}
 
-      {/* FAQ Section */}
+      {/* Need Help Section */}
       <section
-        aria-label="Frequently Asked Questions"
-        className={styles.faqSection}
+        aria-label="Need Help"
+        className={styles.needHelpSection}
       >
         <div className="container">
-          <div className="col-md-12">
-            <h2 className="text-center pb-5 page-heading">FAQs</h2>
-            <div className="row justify-content-center">
-              <div className="col-lg-11">
-                <div className="accordion" id="accordionExample">
-                  {[
-                    {
-                      id: "One",
-                      question: "Why do I need a Demat account?",
-                      answer:
-                        "A Demat account is required to hold securities like stocks and bonds in electronic form. It is mandatory for trading in the Indian stock market and eliminates the need for physical certificates, making buying, selling, and transferring shares seamless.",
-                    },
-                    {
-                      id: "Two",
-                      question: "Who can open a Demat account?",
-                      answer:
-                        "Any Indian resident aged 18 years or older can open a Demat account. NRIs can also open one with specific documentation. You need a valid PAN card, Aadhaar card, a linked bank account, and a signature as primary requirements.",
-                    },
-                    {
-                      id: "Three",
-                      question: "How do I open a Demat account?",
-                      answer:
-                        "You can open a Demat account online through SBI Securities in a few easy steps: sign up with your name and mobile number, verify your bank account, select a brokerage plan, upload required documents (PAN, Aadhaar, signature), and complete e-signing. The entire process takes just minutes.",
-                    },
-                    {
-                      id: "Four",
-                      question:
-                        "What types of securities can I hold in a Demat account?",
-                      answer:
-                        "A Demat account can hold equities (stocks), bonds, mutual funds, ETFs, government securities, debentures, and other financial instruments. SBI Securities allows you to invest across multiple asset classes through a single account.",
-                    },
-                  ].map((faq) => (
-                    <div
-                      key={faq.id}
-                      className="accordion-item"
-                      itemScope
-                      itemProp="mainEntity"
-                      itemType="https://schema.org/Question"
-                    >
-                      <h3 className="accordion-header" id={`heading${faq.id}`}>
-                        <button
-                          className="accordion-button collapsed"
-                          type="button"
-                          data-bs-toggle="collapse"
-                          data-bs-target={`#collapse${faq.id}`}
-                          aria-expanded="false"
-                          aria-controls={`collapse${faq.id}`}
-                          itemProp="name"
-                          suppressHydrationWarning
-                        >
-                          {faq.question}
-                        </button>
-                      </h3>
-                      <div
-                        id={`collapse${faq.id}`}
-                        className="accordion-collapse collapse"
-                        aria-labelledby={`heading${faq.id}`}
-                        data-bs-parent="#accordionExample"
-                        itemScope
-                        itemProp="acceptedAnswer"
-                        itemType="https://schema.org/Answer"
-                      >
-                        <p className="accordion-body" itemProp="text">
-                          {faq.answer}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* <p className={styles.needHelpProceed}>
+            Once you have these documents ready, you can proceed with the
+            application process.
+          </p> */}
+
+          <h2 className={styles.needHelpHeading}>Need Help?</h2>
+          <p className={styles.needHelpText}>
+            Our dedicated NRI Services team is here to assist you at every step.
+            Whether you need help with documentation or have queries about the
+            account opening process, we’ve got you covered.
+          </p>
+
+          <p className={styles.needHelpTagline}>
+            Invest Smart. Invest Globally. Start Your Journey with SBI Securities
+            Today
+          </p>
+
+          <p className={styles.needHelpContact}>
+            <a href="mailto:NRIDESK.SSL@sbicapsec.com">
+              E-mail: NRIDESK.SSL@sbicapsec.com
+            </a>
+            {" | "}
+            <a href="tel:+912268567464">Call us: +91 2268567464</a>
+          </p>
+
+          <p className={styles.needHelpProducts}>
+            Product Offerings: Equity I 54 EC Bonds I IPO I Corporate FDs I
+            Insurance I IPO I{" "}
+            <a
+              href="https://app.sbisecurities.in/loans/car-loan"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Car Loan*
+            </a>
+            I{" "}
+            <a
+              href="https://app.sbisecurities.in/loans/home-loan"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Home Loan*
+            </a>
+          </p>
+
+          <p className={styles.needHelpDisclaimer}>
+            <span>Disclaimer:</span>The NRI Demat and Trading account is subject
+            to FEMA and RBI regulations. Please consult your financial advisor
+            for personalized advice.
+          </p>
         </div>
       </section>
 
-      <section>
+      {/* Footer */}
+      <footer className={styles.siteFooter}>
+        <div className="container">
+          <div className={styles.footerBrand}>
+            <h3>SBICAP Securities Limited</h3>
+            <p>AMFI Registered Mutual Fund Distributor</p>
+            <p>CIN: U65999MH2005PLC155485</p>
+          </div>
+
+          <div className={styles.footerDisclaimer}>
+            <p>
+              Equities: Trading through SBICAP Securities Limited I Website:
+              www.sbisecurities.in SEBI Registration No.: Stock Broker:
+              INZ000200032 | DP Registration No.: IN-DP-314-2017 | Research
+              Analyst : INH000000602 | IRDAI Corporate Agency Reg. No. CA0103;
+              AMFI Reg. No. ARN-0011 (Date of initial registration: 19th August
+              2005 and valid upto 18th February 2027); PFRDA Reg. No.
+              POP26092018. In case of any grievances please write to
+              complaints@sbicapsec.com DP related grievance can be sent to:
+              dp.grievance@sbicapsec.com | NPS related grievance can be sent to:
+              Npsgrievance@sbicapsec.com | Compliance officer - Mr.Srijith
+              Menon, email - compliance@sbicapsec.com; Tel No.- 022 - 69316510
+            </p>
+            <p>
+              SBICAP Securities Limited is authorized by the Insurance
+              Regulatory and Development Authority of India to act as a
+              Corporate Agent from 01- April- 2022 to 31-March 2025 for
+              procuring or soliciting insurance business of Life, General and
+              Health under license number CA0103, Category: Composite. SBICAP
+              Securities Ltd. does not underwrite the risk or act as an insurer.
+              The advertisement contains only an indication of the cover
+              offered. For more details on risk factors, terms, conditions and
+              exclusions, please read the sales brochure carefully before
+              concluding a sale. SBI Logo displayed belongs to State Bank of
+              India and used by SBICAP Securities Limited under license. Personal
+              information as submitted by you will be shared with SBICAP and
+              insurer in order to complete your application. By continuing, you
+              provide your consent for the above and authorize SBICAP Securities
+              representatives to contact you through call, SMS, WhatsApp or
+              E-mail for providing assistance towards the application process.
+            </p>
+            <p>
+              BEWARE OF SPURIOUS PHONE CALLS AND FICTITIOUS /FRAUDULENT OFFERS
+              IRDAI is not involved in activities like selling insurance
+              policies, announcing bonus or investment of premiums. Public
+              receiving such phone calls are requested to lodge a police
+              complaint. To read more, please click here -{" "}
+              <a
+                href="https://www.sbisecurities.in/fileserver/pdf/compliance/IRDAI%20Public%20notice.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                IRDAI Public Notice
+              </a>
+            </p>
+            <p>
+              Copyright © 2026. All rights Reserved. SBICAP Securities Limited.
+              Site is best viewed in edge browser, Firefox 38+, Chrome 50+ at
+              1366x768 pixel resolution. Windows 10 and above
+            </p>
+          </div>
+
+          <hr className={styles.footerDivider} />
+
+          <div className={styles.footerLinks}>
+            {FOOTER_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </div>
+      </footer>
+
+      <section className={styles.versionSection}>
         <div className="container">
           <div className="row">
             <div className="col-12 text-center">
@@ -1182,6 +1286,6 @@ export default function HomeComponent() {
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
