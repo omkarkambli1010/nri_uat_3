@@ -179,9 +179,7 @@ export default function ForeignAddress() {
       e.city = 'City is required.';
     }
 
-    if (!addrState.trim()) {
-      e.addrState = 'State/Province is required for the selected country.';
-    }
+    // State/Province is optional per BRD — not validated.
 
     if (!pincode.trim() || !POSTAL_RE.test(pincode.trim())) {
       e.pincode = 'Please enter a valid Postal/ZIP Code.';
@@ -400,7 +398,7 @@ export default function ForeignAddress() {
             {errFor('city') && <p className={styles.fieldError}>{errFor('city')}</p>}
           </div>
           <div className={styles.mobileRowField}>
-            <label className={styles.fieldLabel} htmlFor="mob-state">State</label>
+            <label className={styles.fieldLabel} htmlFor="mob-state">State (Optional)</label>
             <input
               id="mob-state"
               type="text"
@@ -611,11 +609,11 @@ export default function ForeignAddress() {
                 <input
                   type="text"
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
-                  placeholder="Enter state"
+                  placeholder="Enter state (optional)"
                   value={addrState}
                   onChange={(e) => setAddrState(e.target.value.toUpperCase())}
                   onBlur={() => markTouched('addrState')}
-                  aria-label="State"
+                  aria-label="State (Optional)"
                 />
               </div>
             </div>

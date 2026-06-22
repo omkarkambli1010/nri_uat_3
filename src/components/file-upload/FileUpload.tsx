@@ -65,6 +65,26 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
     return () => URL.revokeObjectURL(cropState.src);
   }, [cropState]);
 
+  // Clear the drag-over state whenever any drag operation ends anywhere on the
+  // page. HTML5 `dragleave` is unreliable: when a file is dragged across this
+  // dropzone but dropped on a *different* one, this instance receives a
+  // `dragenter` (counter → 1, isDragOver → true) without a matching `dragleave`
+  // or `drop`, leaving isDragOver stuck `true`. While stuck, the dropzone hides
+  // its file preview — so a sibling's drag would hide this dropzone's uploaded
+  // image. The global `drop`/`dragend` both bubble to window and reset us.
+  useEffect(() => {
+    const reset = () => {
+      dragCounterRef.current = 0;
+      setIsDragOver(false);
+    };
+    window.addEventListener("drop", reset);
+    window.addEventListener("dragend", reset);
+    return () => {
+      window.removeEventListener("drop", reset);
+      window.removeEventListener("dragend", reset);
+    };
+  }, []);
+
   // In single-file mode the dropzone transforms into the file preview
   const activeFile = !config.multiple ? files[0] : undefined;
 

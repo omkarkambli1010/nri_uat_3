@@ -464,6 +464,24 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
 }
 
+// ── Inline validation error ─────────────────────────────────────────────────
+.fieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: #d92d20;
+  line-height: 1.4;
+  margin: 6px 0 0;
+}
+
+.desktopFieldError {
+  font-size: 12px;
+  font-weight: 400;
+  color: #d92d20;
+  line-height: 1.4;
+  margin: -16px 0 0; // pull up toward the field (form column gap is 24px)
+  padding-left: 255px; // align under the input (label 231px + 24px gap)
+}
+
 // ── Pincode hint — desktop ──────────────────────────────────────────────────
 .desktopPincodeHint {
   display: flex;

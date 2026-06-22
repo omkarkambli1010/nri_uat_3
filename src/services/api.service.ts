@@ -314,13 +314,18 @@ class APIService {
     applicationId: string,
     data: {
       residencies: {
-        countryCode: string;
+        countryCode: string;            // ISO-2 of Country of TAX Residence
         tin: string;
-        tinProofDocumentId: string;
+        tinProofDocumentId: string;     // image slot 1
+        tinProofDocumentId2: string;    // image slot 2
+        tinProofDocumentId3: string;    // image slot 3
+        countryofTaxResidence: string;  // full country name
+        tinIssuingCountry: string;      // full country name
       }[];
       usCitizen: boolean;
       countryOfBirth: string;
       idempotencyKey: string;
+      citizenship: string;              // full country name
     },
     hideSpinner?: () => void,
   ): Promise<any> {

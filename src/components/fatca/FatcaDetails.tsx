@@ -6,8 +6,8 @@ import styles from './fatca.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 
 // FatcaDetails — FATCA form.
-// Top: Country of Birth + Citizenship + Country of Tax Residency (mandatory).
-// Repeatable TIN set (1–3): TIN Issuing Country + TIN.
+// Top: Country of Birth + Citizenship (mandatory).
+// Repeatable TIN set (1–3): Country of TAX Residence + TIN Issuing Country + TIN.
 // On Upload, completed TIN sets are persisted so /fatca/upload renders one
 // image-upload section each. Validation runs on Upload click with inline
 // per-field error messages. FATF-restricted countries are excluded everywhere.
@@ -30,6 +30,7 @@ const MAX_TINS = 3;
 const TIN_RE = /^[A-Za-z0-9]+$/;
 
 type TinEntry = {
+  taxResidence:      string;
   tinIssuingCountry: string;
   tinNumber:         string;
 };
@@ -37,11 +38,11 @@ type TinEntry = {
 type FatcaForm = {
   countryOfBirth: string;
   citizenship:    string;
-  taxResidence:   string;
   tins: TinEntry[];
 };
 
 type TinErrors = {
+  taxResidence?:      string;
   tinIssuingCountry?: string;
   tinNumber?:         string;
 };
@@ -49,16 +50,14 @@ type TinErrors = {
 type FormErrors = {
   countryOfBirth?: string;
   citizenship?:    string;
-  taxResidence?:   string;
   tins: TinErrors[];
 };
 
-const emptyTin = (): TinEntry => ({ tinIssuingCountry: '', tinNumber: '' });
+const emptyTin = (): TinEntry => ({ taxResidence: '', tinIssuingCountry: '', tinNumber: '' });
 
 const initForm = (): FatcaForm => ({
   countryOfBirth: '',
   citizenship:    '',
-  taxResidence:   '',
   tins: [emptyTin()],
 });
 
@@ -106,17 +105,28 @@ function SelectField({
 }
 
 function TinRow({
-  index, idPrefix, groupClass,
-  country, number, countryError, numberError,
-  onCountryChange, onNumberChange,
+  index, idPrefix, groupClass, fullGroupClass,
+  taxResidence, country, number,
+  taxResidenceError, countryError, numberError,
+  onTaxResidenceChange, onCountryChange, onNumberChange,
 }: {
-  index: number; idPrefix: string; groupClass: string;
-  country: string; number: string; countryError?: string; numberError?: string;
+  index: number; idPrefix: string; groupClass: string; fullGroupClass: string;
+  taxResidence: string; country: string; number: string;
+  taxResidenceError?: string; countryError?: string; numberError?: string;
+  onTaxResidenceChange: (v: string) => void;
   onCountryChange: (v: string) => void;
   onNumberChange:  (v: string) => void;
 }) {
   return (
     <div className={styles.tinRow}>
+      <SelectField
+        id={`${idPrefix}-taxResidence-${index}`}
+        label={`Country of TAX Residence ${index + 1}`}
+        value={taxResidence}
+        onChange={onTaxResidenceChange}
+        groupClass={fullGroupClass}
+        error={taxResidenceError}
+      />
       <SelectField
         id={`${idPrefix}-tinCountry-${index}`}
         label={`TIN Issuing Country ${index + 1}`}
@@ -150,7 +160,7 @@ export default function FatcaDetails() {
   const [form, setForm] = useState<FatcaForm>(initForm);
   const [errors, setErrors] = useState<FormErrors>({ tins: [{}] });
 
-  const updateField = (field: 'countryOfBirth' | 'citizenship' | 'taxResidence', value: string) => {
+  const updateField = (field: 'countryOfBirth' | 'citizenship', value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
@@ -185,11 +195,11 @@ export default function FatcaDetails() {
     if (!form.citizenship || FATF_RESTRICTED.has(form.citizenship)) {
       e.citizenship = 'Please select a valid Citizenship country.';
     }
-    if (!form.taxResidence || FATF_RESTRICTED.has(form.taxResidence)) {
-      e.taxResidence = 'Please select a valid Country of Tax Residency. Maximum 3 entries allowed.';
-    }
 
     form.tins.forEach((t, i) => {
+      if (!t.taxResidence || FATF_RESTRICTED.has(t.taxResidence)) {
+        e.tins[i].taxResidence = 'Please select a valid Country of TAX Residence.';
+      }
       if (!t.tinIssuingCountry || FATF_RESTRICTED.has(t.tinIssuingCountry)) {
         e.tins[i].tinIssuingCountry = 'Please select a valid TIN Issue Country.';
       }
@@ -204,8 +214,7 @@ export default function FatcaDetails() {
   const hasErrors = (e: FormErrors): boolean =>
     !!e.countryOfBirth ||
     !!e.citizenship ||
-    !!e.taxResidence ||
-    e.tins.some((t) => t.tinIssuingCountry || t.tinNumber);
+    e.tins.some((t) => t.taxResidence || t.tinIssuingCountry || t.tinNumber);
 
   const handleProceed = () => {
     const errs = validate();
@@ -220,7 +229,6 @@ export default function FatcaDetails() {
         JSON.stringify({
           countryOfBirth: form.countryOfBirth,
           citizenship:    form.citizenship,
-          taxResidence:   form.taxResidence,
         }),
       );
     }
@@ -237,8 +245,12 @@ export default function FatcaDetails() {
 
   // Renders the repeatable TIN list. `groupClass` styles each field for the
   // mobile (stacked) vs desktop (2-col grid via .tinRow) layouts.
-  const renderTinList = (idPrefix: 'mob' | 'desk', groupClass: string) => (
+  const renderTinList = (idPrefix: 'mob' | 'desk', groupClass: string, fullGroupClass: string) => (
     <>
+      <div className={styles.tinSectionHeader}>
+        <span className={styles.tinSectionTitle}>Tax Residency &amp; TIN Details</span>
+      </div>
+
       {form.tins.map((tin, i) => (
         <div key={i} className={styles.tinBlock}>
           {form.tins.length > 1 && (
@@ -259,10 +271,14 @@ export default function FatcaDetails() {
             index={i}
             idPrefix={idPrefix}
             groupClass={groupClass}
+            fullGroupClass={fullGroupClass}
+            taxResidence={tin.taxResidence}
             country={tin.tinIssuingCountry}
             number={tin.tinNumber}
+            taxResidenceError={errors.tins[i]?.taxResidence}
             countryError={errors.tins[i]?.tinIssuingCountry}
             numberError={errors.tins[i]?.tinNumber}
+            onTaxResidenceChange={(v) => updateTin(i, 'taxResidence', v)}
             onCountryChange={(v) => updateTin(i, 'tinIssuingCountry', v)}
             onNumberChange={(v)  => updateTin(i, 'tinNumber', v)}
           />
@@ -298,11 +314,10 @@ export default function FatcaDetails() {
 
         <div className={styles.mobileCard}>
           <div className={styles.section}>
-            <SelectField id="mob-countryOfBirth" label="Country of Birth"        value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.fieldGroup} error={errors.countryOfBirth} />
-            <SelectField id="mob-citizenship"    label="Citizenship"              value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.fieldGroup} error={errors.citizenship} />
-            <SelectField id="mob-taxResidence"   label="Country of TAX Residence" value={form.taxResidence}   onChange={(v) => updateField('taxResidence',   v)} groupClass={styles.fieldGroup} error={errors.taxResidence} />
+            <SelectField id="mob-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.fieldGroup} error={errors.countryOfBirth} />
+            <SelectField id="mob-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.fieldGroup} error={errors.citizenship} />
 
-            {renderTinList('mob', styles.fieldGroup)}
+            {renderTinList('mob', styles.fieldGroup, styles.fieldGroup)}
           </div>
         </div>
 
@@ -336,12 +351,11 @@ export default function FatcaDetails() {
             <div className={styles.desktopContentArea}>
               <div className={styles.section}>
                 <div className={styles.desktopFieldGrid}>
-                  <SelectField id="desk-countryOfBirth" label="Country of Birth"        value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.desktopFieldGroup} error={errors.countryOfBirth} />
-                  <SelectField id="desk-citizenship"    label="Citizenship"              value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.desktopFieldGroup} error={errors.citizenship} />
-                  <SelectField id="desk-taxResidence"   label="Country of TAX Residence" value={form.taxResidence}   onChange={(v) => updateField('taxResidence',   v)} groupClass={styles.desktopFieldGroupFull} error={errors.taxResidence} />
+                  <SelectField id="desk-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.desktopFieldGroup} error={errors.countryOfBirth} />
+                  <SelectField id="desk-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.desktopFieldGroup} error={errors.citizenship} />
                 </div>
 
-                {renderTinList('desk', styles.desktopFieldGroup)}
+                {renderTinList('desk', styles.desktopFieldGroup, styles.desktopFieldGroupFull)}
               </div>
             </div>
 

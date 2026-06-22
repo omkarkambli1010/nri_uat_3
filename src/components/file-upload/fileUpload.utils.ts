@@ -7,13 +7,34 @@ export function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-export function isImageFile(file: File): boolean {
- return /^image\/(jpeg|jpg|png|webp|gif|heic|heif)$/i.test(file.type);
+// Filename extension → MIME type. Used as a fallback when a file's reported
+// `type` is missing or non-standard (e.g. some sources report a .png as an
+// empty string or "image/x-png"), so a file is still accepted by its extension.
+const EXT_TO_MIME: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+};
+
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf('.');
+  return dot >= 0 ? name.slice(dot + 1).toLowerCase() : '';
 }
- 
+
+export function isImageFile(file: File): boolean {
+  if (/^image\/(jpeg|jpg|png|webp|gif|heic|heif)$/i.test(file.type)) return true;
+  // Fall back to the extension when the MIME type is missing/non-standard.
+  return /^(jpe?g|png|webp|gif|heic|heif)$/.test(fileExtension(file.name));
+}
+
 
 export function isPdfFile(file: File): boolean {
-  return file.type === 'application/pdf';
+  return file.type === 'application/pdf' || fileExtension(file.name) === 'pdf';
 }
 
 export function validateFile(
@@ -22,14 +43,22 @@ export function validateFile(
 ): string | null {
   // Normalise image/jpg → image/jpeg (browsers always report image/jpeg)
   const normalizedType = file.type === 'image/jpg' ? 'image/jpeg' : file.type;
+  // Extension-derived MIME — covers files whose reported `type` is empty or
+  // non-standard (a common cause of valid PNGs being wrongly rejected).
+  const extType = EXT_TO_MIME[fileExtension(file.name)];
 
-  if (config.accept.length > 0 && !config.accept.includes(normalizedType)) {
-    if (config.errorMessages?.type) return config.errorMessages.type;
-    const exts = config.accept
-      .map(t => t.split('/')[1]?.toUpperCase())
-      .filter(Boolean)
-      .join(', ');
-    return `Type not allowed. Accepted: ${exts}`;
+  if (config.accept.length > 0) {
+    const allowed =
+      (!!normalizedType && config.accept.includes(normalizedType)) ||
+      (!!extType && config.accept.includes(extType));
+    if (!allowed) {
+      if (config.errorMessages?.type) return config.errorMessages.type;
+      const exts = config.accept
+        .map(t => t.split('/')[1]?.toUpperCase())
+        .filter(Boolean)
+        .join(', ');
+      return `Type not allowed. Accepted: ${exts}`;
+    }
   }
 
   if (file.size > config.maxSizeMB * 1024 * 1024) {

@@ -32,6 +32,9 @@ const NAME_RE = /^[A-Za-z '\-]{3,100}$/;
 // Indian Passport: exactly 8 chars — 1 letter followed by 7 digits.
 const INDIAN_PASSPORT_RE = /^[A-Z][0-9]{7}$/;
 
+// Place of Issue: letters, spaces and common punctuation — min 2, max 60 chars.
+const PLACE_RE = /^[A-Za-z .,'\-]{2,60}$/;
+
 interface PassportDetails {
   fullName:       string;
   dob:            string;
@@ -40,6 +43,7 @@ interface PassportDetails {
   expiryDate:     string;
   nationality:    string;
   gender:         string;
+  placeOfIssue:   string;
 }
 
 type FieldErrors = Partial<Record<keyof PassportDetails, string>>;
@@ -128,6 +132,11 @@ function validateDetails(d: PassportDetails, isIndian: boolean): FieldErrors {
   // ── Gender ─────────────────────────────────────────────────────────────────
   if (!d.gender.trim()) {
     errs.gender = 'Please select your gender from the dropdown.';
+  }
+
+  // ── Place of Issue ───────────────────────────────────────────────────────────
+  if (!d.placeOfIssue.trim() || !PLACE_RE.test(d.placeOfIssue.trim())) {
+    errs.placeOfIssue = 'Please enter a valid Place of Issue (letters only, min 2 characters).';
   }
 
   return errs;
@@ -266,6 +275,7 @@ export default function PassportUploadAll() {
   const [expiryDate,     setExpiryDate]     = useState('');
   const [nationality,    setNationality]    = useState('');
   const [gender,         setGender]         = useState('');
+  const [placeOfIssue,   setPlaceOfIssue]   = useState('');
 
   const [errors,         setErrors]         = useState<FieldErrors>({});
   const [frontEditMode,  setFrontEditMode]  = useState(false);
@@ -291,6 +301,7 @@ export default function PassportUploadAll() {
     const exp  = pickField(d, 'expiryDate', 'dateOfExpiry');
     const nat  = pickField(d, 'nationality');
     const gen  = pickField(d, 'gender', 'sex');
+    const poi  = pickField(d, 'placeOfIssue', 'placeOfIssuance', 'issuePlace');
 
     if (name) setFullName(name);
     if (dobV) setDob(normalizeIso(dobV));
@@ -299,6 +310,7 @@ export default function PassportUploadAll() {
     if (exp)  setExpiryDate(normalizeIso(exp));
     if (nat)  setNationality(resolveCountryName(nat));
     if (gen)  setGender(gen);
+    if (poi)  setPlaceOfIssue(poi);
 
     // OCR-filled values are untouched by definition.
     setDetailsEdited(false);
@@ -351,6 +363,7 @@ export default function PassportUploadAll() {
     setExpiryDate(v => v || '2030-03-04');
     setNationality(v => v || 'India');
     setGender(v => v || 'Male');
+    setPlaceOfIssue(v => v || 'Mumbai');
     // Auto-filled mock data is untouched by definition.
     setDetailsEdited(false);
   };
@@ -364,7 +377,8 @@ export default function PassportUploadAll() {
   const isDisabled =
     !frontUploaded || !backUploaded ||
     !fullName.trim() || !dob || !passportNumber.trim() ||
-    !issueDate || !expiryDate || !nationality.trim() || !gender.trim();
+    !issueDate || !expiryDate || !nationality.trim() || !gender.trim() ||
+    !placeOfIssue.trim();
 
   const onFieldChange = (key: keyof PassportDetails) => {
     setDetailsEdited(true);
@@ -378,12 +392,20 @@ export default function PassportUploadAll() {
   // which is stored in uploadRoute. Falls back to '/esign' only if the
   // upload never returned a uiMetadata route.
   const handleProceed = () => {
+    // Block proceeding while the details are still being edited — the edits are
+    // only persisted to the backend on Save, so an open edit form means there
+    // are unsaved changes that would otherwise be lost.
+    if (frontEditMode) {
+      toast.error('Please save your edited details before proceeding.');
+      return;
+    }
+
     // Only validate when the user has actually edited the OCR-filled details.
     // Untouched OCR data is trusted and proceeds straight through — validation
     // errors are meant to surface only when the user changes a value.
     if (detailsEdited) {
       const current: PassportDetails = {
-        fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender,
+        fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender, placeOfIssue,
       };
       const errs = validateDetails(current, isIndian);
       setErrors(errs);
@@ -402,7 +424,7 @@ export default function PassportUploadAll() {
     }
 
     const current: PassportDetails = {
-      fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender,
+      fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender, placeOfIssue,
     };
     const errs = validateDetails(current, isIndian);
     setErrors(errs);
@@ -422,7 +444,7 @@ export default function PassportUploadAll() {
     try {
       const res = await apiService.updatePassport(applicationId, {
         holderName: fullName, dob, passportNumber,
-        issueDate, expiryDate, nationality, gender,
+        issueDate, expiryDate, nationality, gender, placeOfIssue,
       });
       // updatePassport may also carry a uiMetadata route — honour it.
       if (res?.uiMetadata) {
@@ -596,6 +618,24 @@ export default function PassportUploadAll() {
           <option value="Other">Other</option>
         </select>
       </FieldRow>
+
+      <FieldRow id={`${idPrefix}-placeOfIssue`} label="Place of Issue" error={errors.placeOfIssue}>
+        <input
+          id={`${idPrefix}-placeOfIssue`}
+          type="text"
+          value={placeOfIssue}
+          maxLength={60}
+          onChange={(e) => {
+            const v = e.target.value.replace(/[^A-Za-z .,'\-]/g, '');
+            setPlaceOfIssue(v);
+            onFieldChange('placeOfIssue');
+          }}
+          className={inputCls('placeOfIssue')}
+          aria-invalid={!!errors.placeOfIssue}
+          placeholder="Enter place of issue"
+          autoComplete="off"
+        />
+      </FieldRow>
     </>
   );
 
@@ -608,18 +648,15 @@ export default function PassportUploadAll() {
       <ReadOnlyRow label="Expiry Date"     value={formatDateForDisplay(expiryDate)} />
       <ReadOnlyRow label="Nationality"     value={nationality} />
       <ReadOnlyRow label="Gender"          value={gender} />
+      <ReadOnlyRow label="Place of Issue"  value={placeOfIssue} />
     </div>
   );
 
   const frontSection = (
     <div className={styles.section}>
-      <SectionHeader
-        title="Upload Passport Front"
-        editing={frontEditMode}
-        onToggle={handleFrontEditToggle}
-        disabled={!detailsFetched}
-        saving={savingDetails}
-      />
+      <div className={styles.sectionHeader}>
+        <p className={styles.sectionTitle}>Upload Passport Front</p>
+      </div>
       <FileUploadCard
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
@@ -629,6 +666,15 @@ export default function PassportUploadAll() {
         cropImages
         uploadFn={makeUploadFn('FrontFile')}
         onFilesChange={setFrontFiles}
+      />
+      {/* Edit / Save toggle sits directly beside the details so it's clear
+          which content is editable. */}
+      <SectionHeader
+        title="Verify Details"
+        editing={frontEditMode}
+        onToggle={handleFrontEditToggle}
+        disabled={!detailsFetched}
+        saving={savingDetails}
       />
       {frontEditMode ? renderEditFields('front') : readOnlyFields}
     </div>

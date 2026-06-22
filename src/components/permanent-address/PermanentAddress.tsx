@@ -19,6 +19,16 @@ const dateToStr = (d: Date | null | undefined): string => {
   return `${y}-${m}-${day}`;
 };
 
+// Earliest acceptable document expiry — today + 3 months (BRD: the document
+// must have more than 3 months of validity remaining). Anything before this is
+// rejected on the Upload button.
+const minExpiry = (): Date => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() + 3);
+  return d;
+};
+
 // PermanentAddress — Enter Permanent Address form
 // Mirrors the Foreign Address - Manual form (same fields & layout).
 // Route: /permanentAddress
@@ -98,6 +108,7 @@ export default function PermanentAddress() {
   const [docType, setDocType] = useState('');
   const [docNumber, setDocNumber] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
+  const [expiryError, setExpiryError] = useState('');
   const [selCountry, setSelCountry] = useState('');
   const [addrLine1, setAddrLine1] = useState('');
   const [addrLine2, setAddrLine2] = useState('');
@@ -123,6 +134,16 @@ export default function PermanentAddress() {
 
   const handleProceed = () => {
     if (isDisabled) return;
+
+    // BRD: document must have more than 3 months of validity remaining. This is
+    // validated here on the Upload button (not later on the upload screen's
+    // Proceed) so the user gets feedback before leaving the form.
+    if (new Date(expiryDate) < minExpiry()) {
+      setExpiryError('Please enter a valid expiry Date. Expired dates are not allowed');
+      return;
+    }
+    setExpiryError('');
+
     // Persist the whole form so the upload screen can submit it alongside the
     // proof files. Field names map to the API multipart parts (see
     // apiService.submitPermanentAddress). pa_documentType keeps the display label
@@ -211,13 +232,14 @@ export default function PermanentAddress() {
           <DateField
             inputId="mob-expiry"
             value={strToDate(expiryDate)}
-            onChange={(d) => setExpiryDate(dateToStr(d))}
+            onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
             dateFormat="dd/mm/yy"
             placeholder="DD/MM/YYYY"
             showIcon
             iconPos="right"
-            className="p-prime-cal"
+            className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
           />
+          {expiryError && <p className={styles.fieldError} role="alert">{expiryError}</p>}
         </div>
 
         {/* Select Country */}
@@ -407,15 +429,16 @@ export default function PermanentAddress() {
                 <DateField
                   inputId="desk-expiry"
                   value={strToDate(expiryDate)}
-                  onChange={(d) => setExpiryDate(dateToStr(d))}
+                  onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
                   dateFormat="dd/mm/yy"
                   placeholder="DD/MM/YYYY"
                   showIcon
                   iconPos="right"
-                  className="p-prime-cal"
+                  className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
                 />
               </div>
             </div>
+            {expiryError && <p className={styles.desktopFieldError} role="alert">{expiryError}</p>}
 
             {/* Select Country */}
             <div className={styles.desktopFieldRow}>

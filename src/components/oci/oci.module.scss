@@ -427,6 +427,14 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   line-height: normal;
 }
 
+.sectionSubtitle {
+  font-size: 12px;
+  font-weight: 400;
+  color: $text-body;
+  margin: -8px 0 0;
+  line-height: 1.4;
+}
+
 .desktopFieldRow {
   display: flex;
   gap: 24px;

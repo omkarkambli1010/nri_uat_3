@@ -195,6 +195,9 @@ export default function HomeComponent() {
   // Form state
   const [sendOtp, setSendOtp] = useState({ mobile: "" });
   const [mobileDigitReq, setMobileDigitReq] = useState(false);
+  const [mobileErrorMsg, setMobileErrorMsg] = useState(
+    "Invalid mobile number format. Please check and try again"
+  );
   const [isPhoneValid, setIsPhoneValid] = useState(false);
   const [isDisabledLoginBtn, setIsDisabledLoginBtn] = useState(true);
   const [accountType, setAccountType] = useState<
@@ -361,7 +364,10 @@ export default function HomeComponent() {
             ? savedMobile
             : `+91${savedMobile}`;
           iti.setNumber(e164);
-          const isValid = iti.isValidNumberPrecise() === true;
+          const prefillType = iti.getNumberType();
+          const isValid =
+            iti.isValidNumberPrecise() === true &&
+            (prefillType === "MOBILE" || prefillType === "FIXED_LINE_OR_MOBILE");
           setSendOtp((prev) => ({ ...prev, mobile: e164 }));
           setIsPhoneValid(isValid);
         }
@@ -382,9 +388,27 @@ export default function HomeComponent() {
 
           const fullNumber = iti.getNumber();
           const nationalInput = phoneInputRef.current?.value ?? "";
-          const isValid = iti.isValidNumberPrecise() === true;
+          const hasCountryCode = !!iti.getSelectedCountryData()?.iso2;
+          // Accept a number only when it is precisely valid AND a mobile type for
+          // the selected country. This catches numbers whose pattern doesn't
+          // match the country code — e.g. a UAE number starting with 6, which is
+          // a valid fixed-line but not a mobile, so it must be rejected.
+          const numberType = iti.getNumberType();
+          const isMobileType =
+            numberType === "MOBILE" || numberType === "FIXED_LINE_OR_MOBILE";
+          const isValid = iti.isValidNumberPrecise() === true && isMobileType;
+          const invalid = nationalInput.length > 0 && !isValid;
           setSendOtp((prev) => ({ ...prev, mobile: fullNumber }));
-          setMobileDigitReq(nationalInput.length > 0 && !isValid);
+          setMobileDigitReq(invalid);
+          // No country code selected yet → guide the user to pick one; otherwise
+          // the number doesn't match the selected country's mobile pattern.
+          setMobileErrorMsg(
+            invalid
+              ? hasCountryCode
+                ? "Invalid mobile number format. Please check and try again"
+                : "Please select the country code."
+              : ""
+          );
           setIsPhoneValid(isValid);
         };
 
@@ -723,9 +747,7 @@ export default function HomeComponent() {
                       suppressHydrationWarning
                     />
                     {mobileDigitReq && (
-                      <span className="red_warning">
-                        *Please enter a valid mobile number.
-                      </span>
+                      <span className="red_warning">*{mobileErrorMsg}</span>
                     )}
                   </div>
 

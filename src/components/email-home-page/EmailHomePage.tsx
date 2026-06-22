@@ -53,9 +53,17 @@ const checkAtSymbolCount = (s: string) => (s.match(/@/g) || []).length;
 
 const checkEmailSpecialchars = (v: string) => /[^a-z0-9_.@]/i.test(v);
 
+// BRD: SBI-group email domains are not allowed. Reject any address whose
+// domain has a label starting with "sbi" — e.g. sbi.co.in, sbicard.com,
+// sbisecurities.in, sbilife.co.in — not just @sbi.co.in.
+const isSbiDomain = (v: string): boolean => {
+  const domain = v.split("@")[1]?.toLowerCase() ?? "";
+  return /(^|\.)sbi/.test(domain);
+};
+
 const isEmailValid = (v: string): boolean => {
   const regex = /^[a-z](?!.*[_.]{2})[a-z0-9_.]*@[a-z0-9-]+(\.[a-z]{2,})+$/i;
-  return regex.test(v) && !v.endsWith("@sbi.co.in");
+  return regex.test(v) && !isSbiDomain(v);
 };
 
 export default function EmailHomePage() {

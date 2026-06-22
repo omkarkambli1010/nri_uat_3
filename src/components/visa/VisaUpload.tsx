@@ -52,6 +52,10 @@ function validateDetails(d: VisaDetails): FieldErrors {
 
   if (!d.expiryDate) errs.expiryDate = 'Expiry date is required';
   else if (Number.isNaN(new Date(d.expiryDate).getTime())) errs.expiryDate = 'Enter a valid date';
+  else if (new Date(d.expiryDate) < minVisaExpiry()) {
+    // BRD: a visa must have more than 3 months of validity remaining.
+    errs.expiryDate = 'Please enter a valid Visa expiry Date. Expired dates are not allowed';
+  }
   else if (d.issueDate && new Date(d.expiryDate) <= new Date(d.issueDate)) {
     errs.expiryDate = 'Expiry date must be after the issue date';
   }
@@ -79,6 +83,15 @@ function isExpired(iso: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return d < today;
+}
+
+// Earliest acceptable visa expiry — today + 3 months (BRD: a visa must have
+// more than 3 months of validity remaining). Anything before this is rejected.
+function minVisaExpiry(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() + 3);
+  return d;
 }
 
 // ── Icons ───────────────────────────────────────────────────────────────────
