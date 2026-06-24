@@ -4,6 +4,8 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
+import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
+import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
 import { fatcaStore } from './fatcaStore';
 import styles from './fatca.module.scss';
 
@@ -87,6 +89,10 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
   // Cropper layout switch — desktop renders a centred dialog, mobile a
   // bottom-sheet. Resolved client-side via matchMedia.
   const [isDesktop, setIsDesktop] = useState(false);
+  // Touch devices use the native <input capture> camera; laptop/desktop use the
+  // in-page getUserMedia camera (with file-upload fallback when none exists).
+  const [useNativeCamera, setUseNativeCamera] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   const [sheetState, setSheetState] = useState<SheetState>('choose');
   const [displayName, setDisplayName] = useState('');
@@ -122,6 +128,15 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
     const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Native camera on touch devices; in-page getUserMedia camera otherwise.
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setUseNativeCamera(mq.matches);
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
@@ -196,10 +211,16 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
     window.setTimeout(step, 80);
   };
 
-  const onFilePicked = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFilePicked = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = '';
-    if (f) startUpload(f);
+    if (!f) return;
+    // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
+    try {
+      startUpload(await convertHeicToPng(f));
+    } catch {
+      toast.error('Could not read this HEIC image. Please try a JPG or PNG.');
+    }
   };
 
   const onCropConfirm = (blob: Blob, _size: number, name: string) => {
@@ -268,7 +289,13 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
                   <button
                     type="button"
                     className={styles.sheetIconBox}
-                    onClick={() => cameraInputRef.current?.click()}
+                    onClick={() => {
+                      if (useNativeCamera) {
+                        cameraInputRef.current?.click();
+                      } else {
+                        setCameraOpen(true);
+                      }
+                    }}
                     aria-label="Take photo with camera"
                   >
                     <CameraIcon />
@@ -339,6 +366,15 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
         subtitle="Adjust the box around your document."
         onCancel={onCropCancel}
         onConfirm={onCropConfirm}
+      />
+
+      {/* Laptop/desktop camera capture (getUserMedia). */}
+      <CameraCaptureModal
+        open={cameraOpen}
+        fileName="document"
+        onCapture={(file) => startUpload(file)}
+        onClose={() => setCameraOpen(false)}
+        onUploadInstead={() => fileInputRef.current?.click()}
       />
     </>
   );

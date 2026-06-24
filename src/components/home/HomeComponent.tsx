@@ -206,6 +206,10 @@ export default function HomeComponent() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [rmAssisted, setRmAssisted] = useState(false);
   const [employeeId, setEmployeeId] = useState("");
+  const [rmCodeError, setRmCodeError] = useState("");
+
+  // RM code rule: alphanumeric, 1–15 characters.
+  const RM_CODE_REGEX = /^[a-zA-Z0-9]{1,15}$/;
 
   const phoneInputRef = useRef<HTMLInputElement>(null);
   const itiRef = useRef<Iti | null>(null);
@@ -238,10 +242,7 @@ export default function HomeComponent() {
     "Bulgaria",
     "Burkina Faso",
     "Myanmar",
-    "Algeria",
-    "Algeria",
     "Cameroon",
-    "Republic of the Congo",
     "Democratic Republic of the Congo",
     "Haiti",
     "Iran",
@@ -253,10 +254,10 @@ export default function HomeComponent() {
     "Namibia",
     "Nepal",
     "Nigeria",
-    "North Korea",
     "Sao Tome and Principe",
     "South Africa",
-    "South Sudan",
+    "Syria",
+    "Venezuela",
     "Vietnam",
     "Yemen",
   ];
@@ -324,6 +325,10 @@ export default function HomeComponent() {
           initialCountry: "",
           separateDialCode: true,
           countrySearch: true,
+          // Always use the inline dropdown (anchored below the input) instead of
+          // the mobile fullscreen popup, which on iOS/Android zoomed the UI and
+          // scrolled the page horizontally.
+          useFullscreenPopup: false,
           formatAsYouType: true,
           formatOnDisplay: true,
           excludeCountries: [
@@ -385,6 +390,16 @@ export default function HomeComponent() {
               iti.setNumber(cleaned ? `+91${cleaned}` : "");
             }
           }
+
+          // BRD: changing the country code or mobile number invalidates the
+          // downstream choices. Clear the account type, terms acceptance and RM
+          // selection so the user explicitly re-confirms them for the new number.
+          // (No-op when nothing was selected — React skips identical state.)
+          setAccountType("");
+          setTermsAccepted(false);
+          setRmAssisted(false);
+          setEmployeeId("");
+          setRmCodeError("");
 
           const fullNumber = iti.getNumber();
           const nationalInput = phoneInputRef.current?.value ?? "";
@@ -499,12 +514,14 @@ export default function HomeComponent() {
     };
   }, []);
 
-  // Reactive button enable/disable: phone + account type + terms
+  // Reactive button enable/disable: phone + account type + terms + (when
+  // RM-assisted) a valid RM code.
   useEffect(() => {
+    const rmCodeValid = !rmAssisted || RM_CODE_REGEX.test(employeeId);
     setIsDisabledLoginBtn(
-      !(isPhoneValid && accountType !== "" && termsAccepted),
+      !(isPhoneValid && accountType !== "" && termsAccepted && rmCodeValid),
     );
-  }, [isPhoneValid, accountType, termsAccepted]);
+  }, [isPhoneValid, accountType, termsAccepted, rmAssisted, employeeId]);
 
   // ===== Mobile OTP =====
   const startTimer = () => {
@@ -536,6 +553,12 @@ export default function HomeComponent() {
   };
 
   const handleGetStarted = async () => {
+    // Block proceeding with an RM-assisted journey unless the RM code is valid.
+    if (rmAssisted && !RM_CODE_REGEX.test(employeeId)) {
+      setRmCodeError("Please enter a valid RM code.");
+      return;
+    }
+
     const isSemiDigital = accountType === "semi-digital";
 
     // emailAddress and rmCode are optional: the backend rejects the literal "NA"
@@ -862,7 +885,10 @@ export default function HomeComponent() {
                         checked={rmAssisted}
                         onChange={(e) => {
                           setRmAssisted(e.target.checked);
-                          if (!e.target.checked) setEmployeeId("");
+                          if (!e.target.checked) {
+                            setEmployeeId("");
+                            setRmCodeError("");
+                          }
                         }}
                       />
                       <label htmlFor="rmCheck" className={styles.termsLabel}>
@@ -874,12 +900,32 @@ export default function HomeComponent() {
                         <input
                           type="text"
                           className="form-control otp_field"
-                          placeholder="Employee ID *"
-                          aria-label="Employee ID"
+                          placeholder="RM Code *"
+                          aria-label="RM Code"
+                          aria-required="true"
+                          inputMode="text"
+                          autoCapitalize="characters"
                           value={employeeId}
-                          onChange={(e) => setEmployeeId(e.target.value)}
-                          maxLength={20}
+                          onChange={(e) => {
+                            // Allow only alphanumeric, capped at 15 characters.
+                            const cleaned = e.target.value
+                              .replace(/[^a-zA-Z0-9]/g, "")
+                              .slice(0, 15);
+                            setEmployeeId(cleaned);
+                            if (RM_CODE_REGEX.test(cleaned)) setRmCodeError("");
+                          }}
+                          onBlur={() => {
+                            setRmCodeError(
+                              RM_CODE_REGEX.test(employeeId)
+                                ? ""
+                                : "Please enter a valid RM code.",
+                            );
+                          }}
+                          maxLength={15}
                         />
+                        {rmCodeError && (
+                          <span className="red_warning">*{rmCodeError}</span>
+                        )}
                       </div>
                     )}
 

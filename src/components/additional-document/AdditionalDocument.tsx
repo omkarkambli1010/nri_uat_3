@@ -2,6 +2,8 @@
 
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
+import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
+import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
 import { additionalDocumentStore } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
 
@@ -129,6 +131,10 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
   const [errorMsg, setErrorMsg] = useState('');
 
   const [isDesktop, setIsDesktop] = useState(false);
+  // Touch devices use the native <input capture> camera; laptop/desktop use the
+  // in-page getUserMedia camera (with file-upload fallback when none exists).
+  const [useNativeCamera, setUseNativeCamera] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   // Transient cropper state. While `croppingObjectUrl` is set the upload card
   // hides and the cropper modal is the only thing visible to the user.
@@ -153,6 +159,15 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
     const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  // Native camera on touch devices; in-page getUserMedia camera otherwise.
+  useEffect(() => {
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setUseNativeCamera(mq.matches);
     update();
     mq.addEventListener('change', update);
     return () => mq.removeEventListener('change', update);
@@ -247,10 +262,18 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
     window.setTimeout(step, 80);
   };
 
-  const onFilePicked = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFilePicked = async (e: ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     e.target.value = '';
-    if (f) startUpload(f);
+    if (!f) return;
+    // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
+    try {
+      startUpload(await convertHeicToPng(f));
+    } catch {
+      setDisplayName(f.name);
+      setErrorMsg('Could not read this HEIC image. Please try a JPG or PNG.');
+      setDocState('error');
+    }
   };
 
   const onCropConfirm = (blob: Blob, _size: number, name: string) => {
@@ -335,7 +358,13 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
                   <button
                     type="button"
                     className={styles.iconBox}
-                    onClick={() => cameraInputRef.current?.click()}
+                    onClick={() => {
+                      if (useNativeCamera) {
+                        cameraInputRef.current?.click();
+                      } else {
+                        setCameraOpen(true);
+                      }
+                    }}
                     aria-label="Take photo with camera"
                   >
                     <IconCamera />
@@ -472,6 +501,15 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
         subtitle="Adjust the box around your document."
         onCancel={onCropCancel}
         onConfirm={onCropConfirm}
+      />
+
+      {/* Laptop/desktop camera capture (getUserMedia). */}
+      <CameraCaptureModal
+        open={cameraOpen}
+        fileName="document"
+        onCapture={(file) => startUpload(file)}
+        onClose={() => setCameraOpen(false)}
+        onUploadInstead={() => fileInputRef.current?.click()}
       />
     </>
   );

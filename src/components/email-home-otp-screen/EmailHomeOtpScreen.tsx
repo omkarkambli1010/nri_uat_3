@@ -54,24 +54,25 @@ const EditSvg = () => (
   </svg>
 );
 
-// Figma node 0:19259 — exclamation circle for wrong OTP state
-const ExclamationCircleSvg = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="#ff2e00"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-);
+// Figma node 0:19259 — exclamation circle for wrong OTP state. Unused now that
+// the inline "Incorrect OTP." message is removed (backend toasts the message).
+// const ExclamationCircleSvg = () => (
+//   <svg
+//     xmlns="http://www.w3.org/2000/svg"
+//     width="20"
+//     height="20"
+//     viewBox="0 0 24 24"
+//     fill="none"
+//     stroke="#ff2e00"
+//     strokeWidth="2"
+//     strokeLinecap="round"
+//     strokeLinejoin="round"
+//   >
+//     <circle cx="12" cy="12" r="10" />
+//     <line x1="12" y1="8" x2="12" y2="12" />
+//     <line x1="12" y1="16" x2="12.01" y2="16" />
+//   </svg>
+// );
 
 // Figma node 0:18971 — success check circle
 const SuccessCheckSvg = () => (
@@ -335,38 +336,45 @@ export default function EmailHomeOtpScreen() {
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
-        {/* Figma 0:19259 — inline error below OTP boxes */}
+        {/* Inline OTP error message removed per BRD: the backend already toasts
+            "Incorrect OTP. Please try again." via apiService.handleError, so this
+            hardcoded message caused two messages to show for one failure.
         {isWrongOTP && (
           <div className={styles.otpError}>
             <ExclamationCircleSvg />
             <span>Incorrect OTP.</span>
           </div>
         )}
+        */}
       </div>
 
       {/* Resend row */}
       <div className={styles.resendRow}>
-        <span className={styles.resendText}>Didn&apos;t receive the OTP?</span>
         {maxResendReached ? (
-          <button
-            type="button"
-            className={styles.resendBtn}
-            onClick={() => router.push("/")}
-          >
-            Home
-          </button>
-        ) : timeroff1 ? (
+          // BRD: on hitting the resend limit, show only this message — no Home
+          // (or any) button. Resend is locked for 15 minutes.
           <span className={styles.resendTimer}>
-            Resend OTP ({displayEmail} sec)
+            Maximum resend attempts reached. Please try again after 15 mins.
           </span>
         ) : (
-          <button
-            type="button"
-            className={styles.resendBtn}
-            onClick={() => getEmailOtp(true)}
-          >
-            Resend OTP
-          </button>
+          <>
+            <span className={styles.resendText}>
+              Didn&apos;t receive the OTP?
+            </span>
+            {timeroff1 ? (
+              <span className={styles.resendTimer}>
+                Resend OTP ({displayEmail} sec)
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.resendBtn}
+                onClick={() => getEmailOtp(true)}
+              >
+                Resend OTP
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

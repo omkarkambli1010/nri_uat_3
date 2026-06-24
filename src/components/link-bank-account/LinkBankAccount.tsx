@@ -117,6 +117,13 @@ export default function LinkBankAccount() {
 
   const rejectStatus = useSessionValue('RejectStatus');
 
+  // BRD: the "Non PIS NRE" account option is only valid for the semi-digital
+  // journey. For the (fully) digital journey, show NRO only.
+  const isSemiDigital = useSessionValue('accountType') === 'semi-digital';
+  const accountTypes = isSemiDigital
+    ? ACCOUNT_TYPES
+    : ACCOUNT_TYPES.filter(({ id }) => id !== 'nre');
+
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
   }, []);
@@ -189,7 +196,7 @@ export default function LinkBankAccount() {
 
   const checkboxGroup = (
     <div className={styles.checkboxGroup}>
-      {ACCOUNT_TYPES.map(({ id, label }) => (
+      {accountTypes.map(({ id, label }) => (
         <CheckboxOption
           key={id}
           label={label}

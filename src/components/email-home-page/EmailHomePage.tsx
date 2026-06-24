@@ -145,7 +145,7 @@ export default function EmailHomePage() {
   const errorMessage = (
     <div className={styles.emailErrorRow}>
       <ExclamationCircleSvg />
-      <span>Enter valid Email ID</span>
+      <span>Please enter a valid email address</span>
     </div>
   );
 

@@ -268,7 +268,7 @@ export default function PermanentAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 1"
             value={addrLine1}
-            onChange={(e) => setAddrLine1(e.target.value)}
+            onChange={(e) => setAddrLine1(e.target.value.slice(0, 50))}
           />
         </div>
 
@@ -281,7 +281,7 @@ export default function PermanentAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 2"
             value={addrLine2}
-            onChange={(e) => setAddrLine2(e.target.value)}
+            onChange={(e) => setAddrLine2(e.target.value.slice(0, 50))}
           />
         </div>
 
@@ -294,7 +294,7 @@ export default function PermanentAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 3"
             value={addrLine3}
-            onChange={(e) => setAddrLine3(e.target.value)}
+            onChange={(e) => setAddrLine3(e.target.value.slice(0, 50))}
           />
         </div>
 
@@ -466,7 +466,7 @@ export default function PermanentAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter address line 1"
                   value={addrLine1}
-                  onChange={(e) => setAddrLine1(e.target.value)}
+                  onChange={(e) => setAddrLine1(e.target.value.slice(0, 50))}
                   aria-label="Address Line 1"
                 />
                 <input
@@ -474,7 +474,7 @@ export default function PermanentAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter address line 2"
                   value={addrLine2}
-                  onChange={(e) => setAddrLine2(e.target.value)}
+                  onChange={(e) => setAddrLine2(e.target.value.slice(0, 50))}
                   aria-label="Address Line 2"
                 />
               </div>
@@ -487,7 +487,7 @@ export default function PermanentAddress() {
                 className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                 placeholder="Address line 3"
                 value={addrLine3}
-                onChange={(e) => setAddrLine3(e.target.value)}
+                onChange={(e) => setAddrLine3(e.target.value.slice(0, 50))}
                 aria-label="Address Line 3"
               />
             </div>

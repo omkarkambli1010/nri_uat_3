@@ -7,7 +7,9 @@ import { toast } from "@/services/toast.service";
 import { useSpinner } from "@/components/spinner/Spinner";
 import apiService from "@/services/api.service";
 import styles from "./mobile-home-otp-screen.module.scss";
-import { publicPath } from "@/utils/publicPath";
+// publicPath no longer needed — the inline wrong-OTP message (which used the
+// invalid_otp.png asset) was removed; the backend toasts the OTP error instead.
+// import { publicPath } from "@/utils/publicPath";
 import LoadingButton from "@/components/ui/LoadingButton";
 
 const BackArrowSvg = () => (
@@ -254,6 +256,9 @@ export default function MobileHomeOtpScreen() {
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
+        {/* Inline OTP error message removed per BRD: the backend already toasts
+            "Incorrect OTP. Please try again." via apiService.handleError, so this
+            hardcoded message caused two messages to show for one failure.
         {isWrongOTP && (
           <div className={styles.otpError}>
             <img
@@ -266,31 +271,36 @@ export default function MobileHomeOtpScreen() {
             </span>
           </div>
         )}
+        */}
       </div>
 
       {/* Resend row */}
       <div className={styles.resendRow}>
-        <span className={styles.resendText}>Didn&apos;t receive the OTP?</span>
         {maxResendReached ? (
-          <button
-            type="button"
-            className={styles.resendBtn}
-            onClick={() => router.push("/")}
-          >
-            Home
-          </button>
-        ) : timeroff ? (
+          // BRD: on hitting the resend limit, show only this message — no Home
+          // (or any) button. Resend is locked for 15 minutes.
           <span className={styles.resendTimer}>
-            Resend OTP : {displayMobile} sec
+            Maximum resend attempts reached. Please try again after 15 mins.
           </span>
         ) : (
-          <button
-            type="button"
-            className={styles.resendBtn}
-            onClick={() => getMobileOtp(true)}
-          >
-            Resend OTP
-          </button>
+          <>
+            <span className={styles.resendText}>
+              Didn&apos;t receive the OTP?
+            </span>
+            {timeroff ? (
+              <span className={styles.resendTimer}>
+                Resend OTP : {displayMobile} sec
+              </span>
+            ) : (
+              <button
+                type="button"
+                className={styles.resendBtn}
+                onClick={() => getMobileOtp(true)}
+              >
+                Resend OTP
+              </button>
+            )}
+          </>
         )}
       </div>
     </div>

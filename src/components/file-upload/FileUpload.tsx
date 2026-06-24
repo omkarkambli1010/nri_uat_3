@@ -15,11 +15,18 @@ import { FileUploadItem } from "./FileUploadItem";
 import {
   deriveAcceptLabel,
   isImageFile,
+  isHeicFile,
+  convertHeicToPng,
 } from "./fileUpload.utils";
 import { SignatureCropperModal } from "../upload-signature/SignatureCropperModal";
+import { CameraCaptureModal } from "../camera-capture/CameraCaptureModal";
 import styles from "./file-upload.module.scss";
 
 const DESKTOP_MQ = "(min-width: 992px)";
+// Touch devices (phones/tablets) use the native <input capture> camera, which
+// is ignored by desktop/laptop browsers — those get the in-page getUserMedia
+// camera instead (with a file-upload fallback when no camera exists).
+const TOUCH_MQ = "(pointer: coarse)";
 
 interface FileUploadProps {
   title?: string;
@@ -34,6 +41,8 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const dragCounterRef = useRef(0);
+  const [useNativeCamera, setUseNativeCamera] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
 
   // ── Image cropper (opt-in via config.cropImages) ──────────────────────────
   // Picked images are routed through the same cropper used by the Upload
@@ -58,6 +67,17 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
     mq.addEventListener("change", update);
     return () => mq.removeEventListener("change", update);
   }, [config.cropImages]);
+
+  // Decide which camera path to use: native capture for touch devices,
+  // in-page getUserMedia for pointer-fine (laptop/desktop) browsers.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mq = window.matchMedia(TOUCH_MQ);
+    const update = () => setUseNativeCamera(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // Revoke the cropper's object URL when it is replaced or on unmount.
   useEffect(() => {
@@ -112,23 +132,10 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
       return;
     }
     const toProcess = config.multiple ? incoming : incoming.slice(0, 1);
+    // Convert HEIC/HEIF → PNG so the canvas/cropper can render it. Detection
+    // also covers .heic files that browsers report with an empty MIME type.
     const normalized = await Promise.all(
-      toProcess.map(async (f) => {
-        if (/heic|heif/i.test(f.type)) {
-          // Convert HEIC → PNG so canvas can render it
-          const heic2any = (await import("heic2any")).default;
-          const converted = (await heic2any({
-            blob: f,
-            toType: "image/png",
-          })) as Blob;
-          return new File(
-            [converted],
-            f.name.replace(/\.(heic|heif)$/i, ".png"),
-            { type: "image/png" },
-          );
-        }
-        return f;
-      }),
+      toProcess.map((f) => (isHeicFile(f) ? convertHeicToPng(f) : Promise.resolve(f))),
     );
     const images = normalized.filter(isImageFile);
     const others = normalized.filter((f) => !isImageFile(f));
@@ -245,8 +252,24 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onCameraClick={() => {
-          if (!config.disabled) cameraInputRef.current?.click();
+          if (config.disabled) return;
+          // Touch devices: native camera. Laptop/desktop: in-page camera
+          // (falls back to file upload when no camera is present).
+          if (useNativeCamera) {
+            cameraInputRef.current?.click();
+          } else {
+            setCameraOpen(true);
+          }
         }}
+      />
+
+      {/* Laptop/desktop camera capture (getUserMedia). */}
+      <CameraCaptureModal
+        open={cameraOpen}
+        fileName="document"
+        onCapture={(file) => intake([file])}
+        onClose={() => setCameraOpen(false)}
+        onUploadInstead={() => inputRef.current?.click()}
       />
 
       {/* Metadata row — mirrors Figma "Files supported / Maximum size" */}

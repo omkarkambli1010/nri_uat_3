@@ -171,6 +171,76 @@ const DESKTOP_MQ = "(min-width: 992px)";
 const SIGN_TRIM_PADDING = 12;
 const SIGN_MAX_EXPORT_RATIO = 2;
 
+// Backend signature pixel-dimension limit ("Maximum: 2000 x 1000"). Uploaded
+// photos (esp. from phone cameras) routinely exceed this, so every image blob
+// is downscaled to fit before upload.
+const SIGN_MAX_UPLOAD_WIDTH = 2000;
+const SIGN_MAX_UPLOAD_HEIGHT = 1000;
+
+// Downscale an image blob so neither dimension exceeds the backend limit,
+// preserving aspect ratio (and the alpha channel, for drawn PNGs). Non-image
+// blobs (e.g. PDF) and already-small images are returned unchanged.
+const fitImageToSignatureLimit = (blob: Blob): Promise<Blob> =>
+  new Promise((resolve) => {
+    if (!blob.type.startsWith("image/")) {
+      resolve(blob);
+      return;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+
+    img.onload = () => {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      const scale = Math.min(
+        1,
+        SIGN_MAX_UPLOAD_WIDTH / w,
+        SIGN_MAX_UPLOAD_HEIGHT / h,
+      );
+
+      // Already within limits (or dimensions unreadable) — send as-is.
+      if (!Number.isFinite(scale) || scale >= 1) {
+        URL.revokeObjectURL(url);
+        resolve(blob);
+        return;
+      }
+
+      const outW = Math.max(1, Math.floor(w * scale));
+      const outH = Math.max(1, Math.floor(h * scale));
+      const out = document.createElement("canvas");
+      out.width = outW;
+      out.height = outH;
+
+      const ctx = out.getContext("2d");
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        resolve(blob);
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, outW, outH);
+      // Keep JPEG as JPEG (white-background photos); everything else as PNG so
+      // a drawn signature's transparency survives.
+      const type = blob.type === "image/jpeg" ? "image/jpeg" : "image/png";
+      out.toBlob(
+        (b) => {
+          URL.revokeObjectURL(url);
+          resolve(b ?? blob);
+        },
+        type,
+        type === "image/jpeg" ? 0.92 : undefined,
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(blob);
+    };
+
+    img.src = url;
+  });
+
 export default function UploadSignature() {
   const router = useRouter();
   const pathname = usePathname();
@@ -443,13 +513,14 @@ export default function UploadSignature() {
   const getSignatureBlob = async (): Promise<Blob | null> => {
     if (verifyFile) {
       if (verifyFile.blob && verifyFile.blob.size > 0) {
-        return verifyFile.blob;
+        return fitImageToSignatureLimit(verifyFile.blob);
       }
 
       return null;
     }
 
-    return getDrawnSignatureBlob();
+    const drawn = await getDrawnSignatureBlob();
+    return drawn ? fitImageToSignatureLimit(drawn) : null;
   };
 
   const proceed = async () => {

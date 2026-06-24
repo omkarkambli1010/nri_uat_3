@@ -545,9 +545,10 @@ function BankSection({
 }: BankSectionProps) {
   return (
     <div className={styles.bankSection}>
-      <p className={styles.sectionTitle}>{title}</p>
-
       {uploadSlot}
+
+      {/* Title sits below the statement preview and above the form fields. */}
+      <p className={styles.sectionTitle}>{title}</p>
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Enter your Account No.</label>

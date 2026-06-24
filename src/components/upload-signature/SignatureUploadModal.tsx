@@ -3,6 +3,8 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from './SignatureCropperModal';
+import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
+import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
 import styles from './signature-upload-modal.module.scss';
 
 // SignatureUploadModal — desktop modal / mobile bottom-sheet for picking a
@@ -126,6 +128,19 @@ export function SignatureUploadModal({
 }: SignatureUploadModalProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
+  // Touch devices use the native <input capture> camera; laptop/desktop use the
+  // in-page getUserMedia camera (with file-upload fallback when none exists).
+  const [useNativeCamera, setUseNativeCamera] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(pointer: coarse)');
+    const update = () => setUseNativeCamera(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   // Final (post-crop or PDF) blob the user is about to send to the parent.
   const [picked, setPicked] = useState<PickedFile | null>(null);
@@ -250,12 +265,17 @@ export function SignatureUploadModal({
     window.setTimeout(step, 80);
   };
 
-  const onFilePicked = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFilePicked = async (e: ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     const f = e.target.files?.[0];
     e.target.value = '';
     if (!f) return;
-    startUpload(f);
+    // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
+    try {
+      startUpload(await convertHeicToPng(f));
+    } catch {
+      toast.error('Could not read this HEIC image. Please try a JPG or PNG.');
+    }
   };
 
   const onOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -404,7 +424,13 @@ export function SignatureUploadModal({
               <button
                 type="button"
                 className={styles.uploadTileWrap}
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={() => {
+                  if (useNativeCamera) {
+                    cameraInputRef.current?.click();
+                  } else {
+                    setCameraOpen(true);
+                  }
+                }}
                 aria-label="Take a photo"
               >
                 <span className={styles.uploadTile}>
@@ -467,6 +493,15 @@ export function SignatureUploadModal({
         fileName={croppingName}
         onCancel={onCropCancel}
         onConfirm={onCropConfirm}
+      />
+
+      {/* Laptop/desktop camera capture (getUserMedia). */}
+      <CameraCaptureModal
+        open={cameraOpen}
+        fileName="signature"
+        onCapture={(file) => startUpload(file)}
+        onClose={() => setCameraOpen(false)}
+        onUploadInstead={() => fileInputRef.current?.click()}
       />
     </>
   );

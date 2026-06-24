@@ -743,7 +743,10 @@ $d-text-emargin:   #290172;
 }
 
 .dSelectedBadge {
-  display: flex;
+  // Sits on its own line above the title row (right-aligned) so a long plan
+  // name can never overlap it.
+  align-self: flex-end;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 4px;

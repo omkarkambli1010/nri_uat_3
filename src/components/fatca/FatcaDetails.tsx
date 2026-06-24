@@ -317,6 +317,10 @@ export default function FatcaDetails() {
             <SelectField id="mob-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.fieldGroup} error={errors.countryOfBirth} />
             <SelectField id="mob-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.fieldGroup} error={errors.citizenship} />
 
+            <p className={styles.cobNote}>
+              Note: Country of Birth should be as mentioned on the Passport.
+            </p>
+
             {renderTinList('mob', styles.fieldGroup, styles.fieldGroup)}
           </div>
         </div>
@@ -354,6 +358,10 @@ export default function FatcaDetails() {
                   <SelectField id="desk-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.desktopFieldGroup} error={errors.countryOfBirth} />
                   <SelectField id="desk-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.desktopFieldGroup} error={errors.citizenship} />
                 </div>
+
+                <p className={styles.cobNote}>
+                  Note: Country of Birth should be as mentioned on the Passport.
+                </p>
 
                 {renderTinList('desk', styles.desktopFieldGroup, styles.desktopFieldGroupFull)}
               </div>

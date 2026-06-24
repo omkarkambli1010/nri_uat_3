@@ -130,6 +130,14 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-direction: column;
   gap: 8px;
   width: 100%;
+
+  // Desktop: label and date sit side by side in a row, centered.
+  @media (min-width: 768px) {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
 }
 
 // Figma: 14px Regular #666, line-height 20px ("Select Visa Expiry")
@@ -139,6 +147,12 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   color: $text-body;
   line-height: 20px;
   margin: 0;
+
+  // Keep the label on one line beside the date field on desktop.
+  @media (min-width: 768px) {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
 }
 
 // Container that holds the Calendar + inline error message
@@ -147,6 +161,12 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-direction: column;
   gap: 8px;
   width: 100%;
+
+  // Desktop: a compact date field instead of full width.
+  @media (min-width: 768px) {
+    width: 250px;
+    flex-shrink: 0;
+  }
 }
 
 // Expired-state inline error row — icon + red text (Figma 0:119766)

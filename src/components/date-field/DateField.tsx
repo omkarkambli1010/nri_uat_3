@@ -72,6 +72,12 @@ export default function DateField({ value, onChange, ...rest }: DateFieldProps) 
     const el = inputRef.current;
     if (!el) return;
 
+    // PrimeReact's Calendar defaults inputMode to "none", which suppresses the
+    // mobile soft keyboard so the date can't be typed. (The prop isn't in this
+    // version's TS types, so set the attribute on the input directly.) Force a
+    // numeric keyboard so manual entry works on Android/iOS.
+    el.setAttribute("inputmode", "numeric");
+
     const onKeyDownCapture = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return; // allow shortcuts
       if (e.key.length !== 1) return; // allow Backspace, Tab, arrows, Enter…

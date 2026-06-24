@@ -68,7 +68,14 @@ function validateDetails(d: PassportDetails, isIndian: boolean): FieldErrors {
     } else if (dob >= today) {
       errs.dob = 'Invalid Date of Birth. Must be a valid past date and age must be at least 18 years.';
     } else {
-      const age = (today.getTime() - dob.getTime()) / (365.25 * 24 * 3600 * 1000);
+      // Calendar-based age so that turning exactly 18 today counts as 18+.
+      // (The previous /365.25 approximation rejected people on their 18th
+      // birthday because leap years make 18 years slightly under 365.25*18 days.)
+      let age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+        age--;
+      }
       if (age < 18) {
         errs.dob = 'Invalid Date of Birth. Must be a valid past date and age must be at least 18 years.';
       }

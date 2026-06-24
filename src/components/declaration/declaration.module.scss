@@ -791,6 +791,7 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 }
 
 .fscSheet {
+  position: relative;
   background: $bg-white;
   border-radius: 20px 20px 0 0;
   padding: 24px;
@@ -813,6 +814,28 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
     align-items: center;
     box-shadow: none;
     animation: decl-fsc-scale-in 0.2s ease;
+  }
+}
+
+// Close (X) button — top-right of every sheet modal
+.fscClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: #2b2b2b;
+  cursor: pointer;
+  border-radius: 50%;
+  z-index: 1;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.06);
   }
 }
 

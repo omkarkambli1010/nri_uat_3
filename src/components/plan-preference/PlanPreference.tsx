@@ -146,14 +146,15 @@ const BackArrow = () => (
   </svg>
 );
 
-const PdfIcon = () => (
-  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <rect x="2" y="1" width="9" height="12" rx="1" stroke="#280071" strokeWidth="1.2" />
-    <path d="M9 1v4h4" stroke="#280071" strokeWidth="1.2" strokeLinejoin="round" />
-    <path d="M9 1l4 4"  stroke="#280071" strokeWidth="1.2" strokeLinecap="round" />
-    <path d="M5 7.5h6M5 9.5h4" stroke="#280071" strokeWidth="1.1" strokeLinecap="round" />
-  </svg>
-);
+// PdfIcon removed along with the DP Tariff button (removed per product).
+// const PdfIcon = () => (
+//   <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+//     <rect x="2" y="1" width="9" height="12" rx="1" stroke="#280071" strokeWidth="1.2" />
+//     <path d="M9 1v4h4" stroke="#280071" strokeWidth="1.2" strokeLinejoin="round" />
+//     <path d="M9 1l4 4"  stroke="#280071" strokeWidth="1.2" strokeLinecap="round" />
+//     <path d="M5 7.5h6M5 9.5h4" stroke="#280071" strokeWidth="1.1" strokeLinecap="round" />
+//   </svg>
+// );
 
 const ModalDoneIcon = ({ size = 20 }: { size?: number }) => (
   <svg
@@ -464,31 +465,33 @@ export default function PlanPreference() {
         <div className={styles.dCardInner} style={{ gap: s.innerGap }}>
           <div className={styles.dCardTop}>
             <div className={styles.dPlanHeader}>
+              {/* "Selected" tag sits above the title row so a long plan name
+                  can't overlap it. */}
+              {isSelected && (
+                <span className={styles.dSelectedBadge}>
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-hidden="true"
+                    style={{ flexShrink: 0 }}
+                  >
+                    <circle cx="8" cy="8" r="7.5" fill="#280071" stroke="#280071" />
+                    <path
+                      d="M4.5 8.5L6.5 10.5L11.5 5.5"
+                      stroke="white"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Selected
+                </span>
+              )}
               <div className={styles.dTitleRow}>
                 <img src={s.icon} alt="" width={31} height={31} className={styles.dPlanIcon} />
                 <span className={styles.dPlanName}>{plan.name}</span>
-                {isSelected && (
-                  <span className={styles.dSelectedBadge}>
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 16 16"
-                      fill="none"
-                      aria-hidden="true"
-                      style={{ flexShrink: 0 }}
-                    >
-                      <circle cx="8" cy="8" r="7.5" fill="#280071" stroke="#280071" />
-                      <path
-                        d="M4.5 8.5L6.5 10.5L11.5 5.5"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Selected
-                  </span>
-                )}
               </div>
               {/* Raw feeInPaise — no conversion */}
               <div className={styles.dPriceSection}>
@@ -575,10 +578,7 @@ export default function PlanPreference() {
           <div className={styles.mobileHeaderInfo}>
             <div className={styles.mobileHeaderTop}>
               <p className={styles.mobileTitle}>Plan Selection</p>
-              <button className={styles.dpTariffBtn} type="button">
-                <PdfIcon />
-                DP Tariff
-              </button>
+              {/* DP Tariff button removed per product. */}
             </div>
             <p className={styles.mobileSubtitle}>
               Select a plan that works best for your investment and trading needs
@@ -835,10 +835,7 @@ export default function PlanPreference() {
                 </p>
               </div>
             </div>
-            <button className={styles.dpTariffBtn} type="button">
-              <PdfIcon />
-              DP Tariff
-            </button>
+            {/* DP Tariff button removed per product. */}
           </div>
 
           <div className={styles.desktopCardBody}>

@@ -115,10 +115,12 @@ export default function FatcaUpload() {
     if (!next.some((f) => f.status === 'success')) setSlotDoc(entry, slot, '');
   };
 
+  // Only Image 1 (the first slot) of each TIN section is mandatory; Images 2 & 3
+  // are optional. Proceed enables once every section has its first image uploaded.
   const allUploaded =
     tins.length > 0 &&
     docIds.length === tins.length &&
-    docIds.every((row) => row.length === SLOTS && row.every(Boolean));
+    docIds.every((row) => Boolean(row[0]));
 
   const handleBack = () => router.push('/fatca');
 
@@ -175,7 +177,7 @@ export default function FatcaUpload() {
           {Array.from({ length: SLOTS }, (_, slot) => (
             <FileUploadCard
               key={slot}
-              title={`Image ${slot + 1}`}
+              title={slot === 0 ? "Image 1" : `Image ${slot + 1} (Optional)`}
               acceptedTypes={ACCEPTED_TYPES}
               maxSize={MAX_SIZE}
               acceptedLabel={ACCEPTED_LABEL}

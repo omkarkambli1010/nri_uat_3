@@ -37,6 +37,25 @@ export function isPdfFile(file: File): boolean {
   return file.type === 'application/pdf' || fileExtension(file.name) === 'pdf';
 }
 
+// HEIC/HEIF detection — checks the MIME type AND the extension, because many
+// browsers report an EMPTY type for .heic files picked from disk.
+export function isHeicFile(file: File): boolean {
+  return /heic|heif/i.test(file.type) || /^(heic|heif)$/.test(fileExtension(file.name));
+}
+
+// Browsers (other than Safari) cannot decode HEIC/HEIF in <img>/<canvas>, so
+// every upload path converts them to PNG first — otherwise the cropper/preview
+// shows a broken image and the upload fails. No-op for non-HEIC files.
+export async function convertHeicToPng(file: File): Promise<File> {
+  if (!isHeicFile(file)) return file;
+  const heic2any = (await import('heic2any')).default;
+  const result = await heic2any({ blob: file, toType: 'image/png' });
+  // heic2any may return a single Blob or an array (multi-image HEIC).
+  const blob = Array.isArray(result) ? result[0] : result;
+  const pngName = file.name.replace(/\.(heic|heif)$/i, '.png') || 'photo.png';
+  return new File([blob], pngName, { type: 'image/png' });
+}
+
 export function validateFile(
   file: File,
   config: Pick<FileUploadConfig, 'accept' | 'maxSizeMB' | 'errorMessages'>

@@ -250,6 +250,19 @@ function IconInfo() {
   );
 }
 
+function IconClose() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 6L18 18M18 6L6 18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 function IconChevronDown() {
   return (
     <svg
@@ -870,6 +883,9 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
+                // preventDefault: this link sits inside the row's <label>, so a
+                // plain click would also toggle (uncheck) the checkbox.
+                e.preventDefault();
                 e.stopPropagation();
                 setShowTradingPrefModal(true);
               }}
@@ -944,6 +960,9 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
+                // preventDefault: this link sits inside the row's <label>, so a
+                // plain click would also toggle (uncheck) the checkbox.
+                e.preventDefault();
                 e.stopPropagation();
                 setShowTermsModal(true);
               }}
@@ -1032,6 +1051,9 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
+                // preventDefault: this link sits inside the row's <label>, so a
+                // plain click would also toggle (uncheck) the checkbox.
+                e.preventDefault();
                 e.stopPropagation();
                 setShowTradingPrefModal(true);
               }}
@@ -1106,6 +1128,9 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
+                // preventDefault: this link sits inside the row's <label>, so a
+                // plain click would also toggle (uncheck) the checkbox.
+                e.preventDefault();
                 e.stopPropagation();
                 setShowTermsModal(true);
               }}
@@ -1273,6 +1298,14 @@ export default function Declaration() {
           onClick={() => setShowTermsModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.fscClose}
+              onClick={() => setShowTermsModal(false)}
+              aria-label="Close"
+            >
+              <IconClose />
+            </button>
             <div className={styles.fscDash} aria-hidden="true" />
 
             <div className={styles.fscContent}>
@@ -1357,6 +1390,14 @@ export default function Declaration() {
           onClick={() => setShowPoliticalModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.fscClose}
+              onClick={() => setShowPoliticalModal(false)}
+              aria-label="Close"
+            >
+              <IconClose />
+            </button>
             <div className={styles.fscDash} aria-hidden="true" />
 
             <div className={styles.fscContent}>
@@ -1402,6 +1443,14 @@ export default function Declaration() {
           aria-labelledby="tradePrefModalTitle"
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.fscClose}
+              onClick={() => setShowTradingPrefModal(false)}
+              aria-label="Close"
+            >
+              <IconClose />
+            </button>
             <div className={styles.fscDash} aria-hidden="true" />
 
             <div className={styles.fscContent}>
@@ -1541,6 +1590,14 @@ export default function Declaration() {
           onClick={() => setShowFundCycleModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.fscClose}
+              onClick={() => setShowFundCycleModal(false)}
+              aria-label="Close"
+            >
+              <IconClose />
+            </button>
             <div className={styles.fscDash} aria-hidden="true" />
 
             <div className={styles.fscContent}>

@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
-import aesService from '@/services/aes.service';
 import moengagesdkService from '@/services/moengagesdk.service';
 import styles from './digilocker-screen.module.scss';
 import { publicPath } from "@/utils/publicPath";
@@ -32,26 +31,25 @@ export default function DigilockerScreen() {
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const [nameSubmitted, setNameSubmitted] = useState('');
 
-  const clientid =
-    typeof window !== 'undefined' ? sessionStorage.getItem('clientid') ?? '' : '';
-
   useEffect(() => {
     document.title = 'Digilocker Screen - Onboarding-DIY-PWA';
     getDigilockerName();
   }, []);
 
+  // Name shown beside the "Enter Aadhaar number or VID for '<NAME>'" prompt is
+  // the ITD name captured at the PAN stage. Fetch it from the stage-wise
+  // workflow data (stagename: "PAN").
   const getDigilockerName = async () => {
+    const applicationId =
+      typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+    if (!applicationId) return;
     try {
-      const response = await apiService.postRequest('api/v1/masters/get', {
-        flag: 'Getnameasperpan',
-        FormNumber: sessionStorage.getItem('ApplicationId'),
-      });
-      if (response?.status === true) {
-        const decrypted = JSON.parse(aesService.decrypt(response.data, clientid, clientid));
-        setNameSubmitted(decrypted?.data?.[0]?.nameasperpan ?? '');
+      const response = await apiService.getPanWorkflow(applicationId);
+      if (response?.status === true && response?.data) {
+        setNameSubmitted(response.data.itdName ?? '');
       }
     } catch {
-      // silently fail
+      // silently fail — the prompt simply omits the name
     }
   };
 
@@ -82,7 +80,8 @@ export default function DigilockerScreen() {
     }
   };
 
-  const handleBack = () => router.back();
+  // BRD: the back button returns to the Permanent Address Details page.
+  const handleBack = () => router.push('/permanent-address-details');
 
   return (
     <>

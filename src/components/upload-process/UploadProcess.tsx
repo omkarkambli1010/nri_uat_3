@@ -557,9 +557,10 @@ export default function UploadProcess() {
               <div className={styles.desktopFieldsArea}>
                 {/* ── PAN No. field ── */}
                 {/* Figma: label "PAN No." 16px Regular #666; input w-250 h-40 border #d9d9d9 rounded-8 */}
-                <div
-                  className={`${styles.desktopFormRow} ${styles.desktopFormRowCenter}`}
-                >
+                {/* Top-aligned (not center): the input group also holds the
+                    "View sample PAN" accordion, so center alignment shifted the
+                    LHS label whenever the sample images expanded/collapsed. */}
+                <div className={styles.desktopFormRow}>
                   <label htmlFor="desk-pan" className={styles.desktopLabel}>
                     PAN No.
                   </label>
