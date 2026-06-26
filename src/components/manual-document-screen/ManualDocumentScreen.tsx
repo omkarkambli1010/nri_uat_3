@@ -31,7 +31,7 @@ function IconBackArrow() {
 export default function ManualDocumentScreen() {
   const router = useRouter();
 
-  const handleBack = () => router.back();
+  const handleBack = () => router.push('/uploadSignature');
 
   // Enter the document-upload sequence at the passport details step.
   const handleStartUploading = () => router.push('/passportUpload/details');

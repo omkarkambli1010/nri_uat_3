@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
-import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
+import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
 import { fatcaStore } from './fatcaStore';
 import styles from './fatca.module.scss';
 
@@ -217,7 +217,7 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
     if (!f) return;
     // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
     try {
-      startUpload(await convertHeicToPng(f));
+      startUpload(await convertHeicToJpeg(f));
     } catch {
       toast.error('Could not read this HEIC image. Please try a JPG or PNG.');
     }

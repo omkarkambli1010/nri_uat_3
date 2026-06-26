@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
@@ -9,6 +9,7 @@ import { toast } from '@/services/toast.service';
 import { DOCUMENT_TYPES } from '@/constants/document-types';
 import styles from '@/components/oci/oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import { useCountries } from '@/components/country-select/useCountries';
 
 // FatcaUpload — /fatca/upload
 // One upload section per TIN entry captured on /fatca. Each section has three
@@ -27,13 +28,6 @@ const SLOTS = 3;
 
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
-
-// FATCA country dropdown name → ISO-2 code (sent as residency.countryCode).
-const COUNTRY_ISO2: Record<string, string> = {
-  'India': 'IN', 'United States': 'US', 'United Kingdom': 'GB', 'Canada': 'CA',
-  'Australia': 'AU', 'Singapore': 'SG', 'UAE': 'AE', 'Germany': 'DE',
-  'France': 'FR', 'Japan': 'JP',
-};
 
 // uiMetadata JSON string → next route (e.g. '{"route":"addNominee"}' → '/addNominee').
 const routeFromUiMetadata = (uiMetadata: unknown): string | null => {
@@ -59,6 +53,15 @@ function IconBackArrow() {
 
 export default function FatcaUpload() {
   const router = useRouter();
+
+  // Country Master (API) — used to resolve a dropdown country name back to its
+  // ISO-2 code for residency.countryCode.
+  const { countries } = useCountries();
+  const nameToIso2 = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of countries) map[c.name] = c.iso2.toUpperCase();
+    return map;
+  }, [countries]);
 
   const [tins, setTins] = useState<TinEntry[]>([]);
   // docIds[entryIndex][slotIndex] — the uploaded documentId for each image slot.
@@ -139,7 +142,7 @@ export default function FatcaUpload() {
     try { meta = JSON.parse(sessionStorage.getItem('fatca_meta') ?? '{}'); } catch { meta = {}; }
 
     const residencies = tins.map((t, i) => ({
-      countryCode: COUNTRY_ISO2[t.taxResidence] ?? t.taxResidence,
+      countryCode: nameToIso2[t.taxResidence] ?? t.taxResidence,
       tin: t.tinNumber,
       tinProofDocumentId:  docIds[i][0],
       tinProofDocumentId2: docIds[i][1],

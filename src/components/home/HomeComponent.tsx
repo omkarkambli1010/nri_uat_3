@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
 import { Toast } from "primereact/toast";
-import type { Iti } from "intl-tel-input";
 import { useSpinner } from "@/components/spinner/Spinner";
+import { useCountries } from "@/components/country-select/useCountries";
+import { dialDigits } from "@/components/country-select/countries";
+import CountryCodeSelect from "@/components/country-select/CountryCodeSelect";
 import apiService from "@/services/api.service";
 import moengagesdkService from "@/services/moengagesdk.service";
 import styles from "./home.module.scss";
@@ -192,8 +194,16 @@ export default function HomeComponent() {
   const searchParams = useSearchParams();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
+  // Country code list — sourced entirely from the Country Master API
+  // (status = 'Y'), no flag sprites. `allCountries` keeps the full list so the
+  // FATF modal can show the restricted (status = 'N') countries.
+  const { countries: allCountries, selectable: countries } = useCountries();
+
   // Form state
   const [sendOtp, setSendOtp] = useState({ mobile: "" });
+  // Selected country (ISO-2) and the national-format mobile digits.
+  const [selectedIso2, setSelectedIso2] = useState("");
+  const [mobileNational, setMobileNational] = useState("");
   const [mobileDigitReq, setMobileDigitReq] = useState(false);
   const [mobileErrorMsg, setMobileErrorMsg] = useState(
     "Invalid mobile number format. Please check and try again"
@@ -211,8 +221,8 @@ export default function HomeComponent() {
   // RM code rule: alphanumeric, 1–15 characters.
   const RM_CODE_REGEX = /^[a-zA-Z0-9]{1,15}$/;
 
-  const phoneInputRef = useRef<HTMLInputElement>(null);
-  const itiRef = useRef<Iti | null>(null);
+  // Guards the one-time session prefill once the country list has loaded.
+  const prefilledRef = useRef(false);
   const toastRef = useRef<Toast>(null);
   const homeRef = useRef<HTMLDivElement>(null);
 
@@ -232,7 +242,8 @@ export default function HomeComponent() {
   // NRI info tabs (Eligibility / How to Get Started / KYC / Important Points)
   const [activeInfoTab, setActiveInfoTab] = useState(0);
 
-  const FATF_COUNTRIES = [
+  // Fallback FATF list, used only if the master returns no restricted countries.
+  const FATF_FALLBACK_COUNTRIES = [
     "South Sudan",
     "Netherlands",
     "Algeria",
@@ -261,6 +272,15 @@ export default function HomeComponent() {
     "Vietnam",
     "Yemen",
   ];
+
+  // FATF (restricted) countries shown in the modal — the Country Master rows
+  // flagged status = 'N'. Falls back to the static list if none are returned.
+  const restrictedCountries = allCountries
+    .filter((c) => c.status === 'N')
+    .map((c) => c.name);
+  const fatfCountries = restrictedCountries.length
+    ? restrictedCountries
+    : FATF_FALLBACK_COUNTRIES;
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const clientid =
@@ -311,169 +331,6 @@ export default function HomeComponent() {
     document.title =
       "Open Demat Account - Free Demat & Trading Account Opening Online | SBI Securities";
 
-    let mounted = true;
-    const cleanupRef = { fn: undefined as (() => void) | undefined };
-
-    // Dynamically import intl-tel-input so it never runs during SSR
-    import("intl-tel-input/intlTelInputWithUtils").then(
-      ({ default: intlTelInput }) => {
-        if (!mounted || !phoneInputRef.current) return;
-
-        const iti = intlTelInput(phoneInputRef.current, {
-          // No default country: the selector shows a "Code" placeholder
-          // (see home.module.scss) until the user picks a country.
-          initialCountry: "",
-          separateDialCode: true,
-          countrySearch: true,
-          // Always use the inline dropdown (anchored below the input) instead of
-          // the mobile fullscreen popup, which on iOS/Android zoomed the UI and
-          // scrolled the page horizontally.
-          useFullscreenPopup: false,
-          formatAsYouType: true,
-          formatOnDisplay: true,
-          excludeCountries: [
-            "dz",
-            "ao",
-            "bo",
-            "vg",
-            "bg",
-            "bf",
-            "mm",
-            "cm",
-            "cg",
-            "cd",
-            "ht",
-            "ir",
-            "ke",
-            "la",
-            "lb",
-            "mc",
-            "mz",
-            "na",
-            "np",
-            "ng",
-            "kp",
-            "st",
-            "za",
-            "ss",
-            "vn",
-            "ye",
-          ],
-        });
-        itiRef.current = iti;
-
-        // Pre-fill from session
-        const savedMobile = sessionStorage.getItem("mobile");
-        if (savedMobile) {
-          const e164 = savedMobile.startsWith("+")
-            ? savedMobile
-            : `+91${savedMobile}`;
-          iti.setNumber(e164);
-          const prefillType = iti.getNumberType();
-          const isValid =
-            iti.isValidNumberPrecise() === true &&
-            (prefillType === "MOBILE" || prefillType === "FIXED_LINE_OR_MOBILE");
-          setSendOtp((prev) => ({ ...prev, mobile: e164 }));
-          setIsPhoneValid(isValid);
-        }
-
-        const handlePhoneChange = () => {
-          // India: mobile numbers must start with 6-9. Strip any leading 0-5
-          // (e.g. introduced via paste) before reading the value.
-          if (
-            iti.getSelectedCountryData()?.iso2 === "in" &&
-            phoneInputRef.current
-          ) {
-            const digits = phoneInputRef.current.value.replace(/\D/g, "");
-            const cleaned = digits.replace(/^[0-5]+/, "");
-            if (cleaned !== digits) {
-              iti.setNumber(cleaned ? `+91${cleaned}` : "");
-            }
-          }
-
-          // BRD: changing the country code or mobile number invalidates the
-          // downstream choices. Clear the account type, terms acceptance and RM
-          // selection so the user explicitly re-confirms them for the new number.
-          // (No-op when nothing was selected — React skips identical state.)
-          setAccountType("");
-          setTermsAccepted(false);
-          setRmAssisted(false);
-          setEmployeeId("");
-          setRmCodeError("");
-
-          const fullNumber = iti.getNumber();
-          const nationalInput = phoneInputRef.current?.value ?? "";
-          const hasCountryCode = !!iti.getSelectedCountryData()?.iso2;
-          // Accept a number only when it is precisely valid AND a mobile type for
-          // the selected country. This catches numbers whose pattern doesn't
-          // match the country code — e.g. a UAE number starting with 6, which is
-          // a valid fixed-line but not a mobile, so it must be rejected.
-          const numberType = iti.getNumberType();
-          const isMobileType =
-            numberType === "MOBILE" || numberType === "FIXED_LINE_OR_MOBILE";
-          const isValid = iti.isValidNumberPrecise() === true && isMobileType;
-          const invalid = nationalInput.length > 0 && !isValid;
-          setSendOtp((prev) => ({ ...prev, mobile: fullNumber }));
-          setMobileDigitReq(invalid);
-          // No country code selected yet → guide the user to pick one; otherwise
-          // the number doesn't match the selected country's mobile pattern.
-          setMobileErrorMsg(
-            invalid
-              ? hasCountryCode
-                ? "Invalid mobile number format. Please check and try again"
-                : "Please select the country code."
-              : ""
-          );
-          setIsPhoneValid(isValid);
-        };
-
-        // Block typing 0-5 as the first digit of an Indian mobile number.
-        const handleKeyDown = (e: KeyboardEvent) => {
-          if (e.key < "0" || e.key > "9") return; // only guard digit keys
-          if (iti.getSelectedCountryData()?.iso2 !== "in") return;
-          const caret = phoneInputRef.current?.selectionStart ?? 0;
-          const digitsBeforeCaret = (phoneInputRef.current?.value ?? "")
-            .slice(0, caret)
-            .replace(/\D/g, "");
-          if (digitsBeforeCaret.length === 0 && e.key >= "0" && e.key <= "5") {
-            e.preventDefault();
-          }
-        };
-
-        const inputEl = phoneInputRef.current;
-        inputEl.addEventListener("input", handlePhoneChange);
-        inputEl.addEventListener("countrychange", handlePhoneChange);
-        inputEl.addEventListener("keydown", handleKeyDown);
-
-        // Prevent page scroll when wheeling inside the country dropdown list
-        const countryListEl = inputEl
-          .closest(".iti")
-          ?.querySelector(".iti__country-list") as HTMLElement | null;
-        const stopPageScroll = (e: WheelEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          (e.currentTarget as HTMLElement).scrollTop += e.deltaY;
-        };
-        countryListEl?.addEventListener(
-          "wheel",
-          stopPageScroll as EventListener,
-          { passive: false },
-        );
-
-        cleanupRef.fn = () => {
-          inputEl.removeEventListener("input", handlePhoneChange);
-          inputEl.removeEventListener("countrychange", handlePhoneChange);
-          inputEl.removeEventListener("keydown", handleKeyDown);
-          countryListEl?.removeEventListener(
-            "wheel",
-            stopPageScroll as EventListener,
-          );
-          iti.destroy();
-          if (intervalRef.current) clearInterval(intervalRef.current);
-        };
-      },
-    );
-
     // Handle status query params
     const status = searchParams?.get("status");
     if (status === "exhausted") {
@@ -509,10 +366,120 @@ export default function HomeComponent() {
     }
 
     return () => {
-      mounted = false;
-      cleanupRef.fn?.();
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, []);
+
+  // ===== Mobile country code + number (API-driven, no third-party widget) =====
+  // The country list (names + dialling codes) comes entirely from the Country
+  // Master API via `countries`. Validation here is intentionally lightweight:
+  // a country must be picked and the national number must be plausible digits,
+  // with India's 6-9 first-digit / 10-digit rule enforced explicitly.
+
+  // Compute the E.164 number + validity for a given country / national input,
+  // then push it all into form state. Centralises what the old intl-tel-input
+  // "input"/"countrychange" handlers used to do.
+  const applyPhone = (iso2: string, national: string) => {
+    const country = countries.find((c) => c.iso2 === iso2);
+    const code = country ? dialDigits(country.dialCode) : "";
+    const digits = national.replace(/\D/g, "");
+    const fullNumber = code && digits ? `+${code}${digits}` : digits ? digits : "";
+
+    let isValid: boolean;
+    if (iso2 === "in") {
+      isValid = /^[6-9]\d{9}$/.test(digits);
+    } else {
+      isValid = !!iso2 && digits.length >= 6 && digits.length <= 15;
+    }
+
+    const invalid = digits.length > 0 && !isValid;
+    setSendOtp((prev) => ({ ...prev, mobile: fullNumber }));
+    setMobileDigitReq(invalid);
+    setMobileErrorMsg(
+      invalid
+        ? iso2
+          ? "Invalid mobile number format. Please check and try again"
+          : "Please select the country code."
+        : "",
+    );
+    setIsPhoneValid(isValid);
+  };
+
+  // BRD: changing the country code or number invalidates downstream choices, so
+  // clear them and require the user to re-confirm. (No-op when already empty.)
+  const resetDownstreamChoices = () => {
+    setAccountType("");
+    setTermsAccepted(false);
+    setRmAssisted(false);
+    setEmployeeId("");
+    setRmCodeError("");
+  };
+
+  const handleCountryChange = (iso2: string) => {
+    setSelectedIso2(iso2);
+    resetDownstreamChoices();
+    applyPhone(iso2, mobileNational);
+  };
+
+  const handleMobileChange = (raw: string) => {
+    let digits = raw.replace(/\D/g, "");
+    // India: numbers must start 6-9 — strip any leading 0-5 (e.g. from paste).
+    if (selectedIso2 === "in") digits = digits.replace(/^[0-5]+/, "");
+    setMobileNational(digits);
+    resetDownstreamChoices();
+    applyPhone(selectedIso2, digits);
+  };
+
+  // Block typing 0-5 as the first digit of an Indian mobile number.
+  const handleMobileKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key < "0" || e.key > "9") return; // only guard digit keys
+    if (selectedIso2 !== "in") return;
+    const caret = e.currentTarget.selectionStart ?? 0;
+    const digitsBeforeCaret = e.currentTarget.value
+      .slice(0, caret)
+      .replace(/\D/g, "");
+    if (digitsBeforeCaret.length === 0 && e.key >= "0" && e.key <= "5") {
+      e.preventDefault();
+    }
+  };
+
+  // One-time prefill from session once the country list has loaded. Parses a
+  // stored "+<code><number>" or a bare national number (assumed India).
+  useEffect(() => {
+    if (prefilledRef.current || countries.length === 0) return;
+    const saved =
+      typeof window !== "undefined" ? sessionStorage.getItem("mobile") : null;
+    if (!saved) return;
+    prefilledRef.current = true;
+
+    let iso2 = "in";
+    let national = saved.replace(/\D/g, "");
+    if (saved.startsWith("+")) {
+      const digits = saved.slice(1).replace(/\D/g, "");
+      // Longest matching dialling-code prefix wins (e.g. +1 vs +1-684).
+      let best: typeof countries[number] | undefined;
+      let bestLen = 0;
+      for (const c of countries) {
+        const code = dialDigits(c.dialCode);
+        if (code && digits.startsWith(code) && code.length > bestLen) {
+          best = c;
+          bestLen = code.length;
+        }
+      }
+      if (best) {
+        iso2 = best.iso2;
+        national = digits.slice(bestLen);
+      } else {
+        iso2 = "";
+        national = digits;
+      }
+    }
+
+    setSelectedIso2(iso2);
+    setMobileNational(national);
+    applyPhone(iso2, national);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countries]);
 
   // Reactive button enable/disable: phone + account type + terms + (when
   // RM-assisted) a valid RM code.
@@ -566,8 +533,7 @@ export default function HomeComponent() {
     // screen (which re-registers), and rmCode is null unless RM-assisted.
     const payload: Record<string, string | null> = {
       mobileNumber: sendOtp.mobile,
-      countryCode:
-        itiRef.current?.getSelectedCountryData()?.iso2?.toUpperCase() ?? "",
+      countryCode: selectedIso2.toUpperCase(),
       journeyType: isSemiDigital ? "NriSemiDigital" : "NroDigital",
       loginProvider: "Mobile",
       rmCode: rmAssisted && employeeId ? employeeId : null,
@@ -756,19 +722,29 @@ export default function HomeComponent() {
                 <form aria-label="Open NRI Account Registration Form">
                   <h1>Open Your NRI Account Now!</h1>
 
-                  {/* Mobile with country code */}
+                  {/* Mobile with country code — list sourced from the Country
+                      Master API (no flag icons). */}
                   <div>
-                    <input
-                      ref={phoneInputRef}
-                      type="tel"
-                      className="form-control otp_field"
-                      placeholder="Mobile Number *"
-                      aria-label="Mobile Number"
-                      aria-required="true"
-                      name="MobileNo"
-                      inputMode="numeric"
-                      suppressHydrationWarning
-                    />
+                    <div className={styles.phoneRow}>
+                      <CountryCodeSelect
+                        countries={countries}
+                        value={selectedIso2}
+                        onChange={handleCountryChange}
+                      />
+                      <input
+                        type="tel"
+                        className="form-control otp_field"
+                        placeholder="Mobile Number *"
+                        aria-label="Mobile Number"
+                        aria-required="true"
+                        name="MobileNo"
+                        inputMode="numeric"
+                        value={mobileNational}
+                        onChange={(e) => handleMobileChange(e.target.value)}
+                        onKeyDown={handleMobileKeyDown}
+                        suppressHydrationWarning
+                      />
+                    </div>
                     {mobileDigitReq && (
                       <span className="red_warning">*{mobileErrorMsg}</span>
                     )}
@@ -1198,7 +1174,7 @@ export default function HomeComponent() {
             </div>
             <div className={styles.modalBody}>
               <ol className={styles.countriesList}>
-                {FATF_COUNTRIES.map((country, index) => (
+                {fatfCountries.map((country, index) => (
                   <li key={index}>{country}</li>
                 ))}
               </ol>

@@ -59,10 +59,52 @@ export default function MaritalStatus() {
     navigationService.setRouter(router, hideSpinner);
   }, []);
 
+  // Prefill the saved marital status from the PERSONAL workflow stage, mirroring
+  // how the other personal-details pages (TradingExp, AnnualIncome, …) bind.
+  const getMaritalStatusData = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    if (!applicationId) return;
+
+    showSpinner();
+    try {
+      const response = await apiService.getPersonalDetailsWorkflow(
+        applicationId,
+        hideSpinner,
+      );
+      console.log("Marital Status Workflow Response:", response);
+
+      // Note: the PERSONAL workflow returns the field as lowercase
+      // "maritalstatus" (the save endpoint uses camelCase "maritalStatus").
+      const saved = String(
+        response?.data?.maritalstatus ??
+          response?.data?.maritalStatus ??
+          response?.maritalstatus ??
+          "",
+      );
+      const match = MARITAL_OPTIONS.find(
+        (o) => o.toLowerCase() === saved.trim().toLowerCase(),
+      );
+      if (match) setSelected(match);
+    } catch (error: any) {
+      console.log("Marital Status Workflow Error:", error?.response?.data);
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  useEffect(() => {
+    getMaritalStatusData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const goBack = () => {
     showSpinner();
     setTimeout(() => {
-      router.back();
+      // Semi-digital users come from the manual document-upload journey
+      // (/aadhar/upload); full-digital users come from DigiLocker.
+      const isSemiDigital =
+        sessionStorage.getItem("accountType") === "semi-digital";
+      router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
       hideSpinner();
     }, 200);
   };

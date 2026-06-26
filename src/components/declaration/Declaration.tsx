@@ -396,7 +396,46 @@ export default function Declaration() {
     // getTradingPreferenceAcceptance();
     // getPlanProcess();
     selectAllCheckboxes(true, false);
+    getDeclarationWorkflowData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Prefill the saved declaration acceptances from the DECLARATION workflow
+  // stage (POST …/get/workflow/stagewisedate { stagename: "DECLARATION" }).
+  // Field → checkbox mapping mirrors the save payload (handleProceed):
+  //   pepAccepted → ispep, preferenceAccepted → istradingPref,
+  //   termsAccepted → istermsandcond, mitcAccepted → issettledfunds.
+  const getDeclarationWorkflowData = async () => {
+    const applicationId =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("ApplicationId") ?? ""
+        : "";
+    if (!applicationId) return;
+
+    showSpinner();
+    try {
+      const response = await apiService.getDeclarationWorkflow(
+        applicationId,
+        hideSpinner,
+      );
+      const d = response?.data;
+      if (d) {
+        const pep = !!d.pepAccepted;
+        const pref = !!d.preferenceAccepted;
+        const terms = !!d.termsAccepted;
+        const mitc = !!d.mitcAccepted;
+        setIspep(pep);
+        setIstradingPref(pref);
+        setIstermsandcond(terms);
+        setIssettledfunds(mitc);
+        checkAllCheckboxesSelected(pep, pref, mitc, terms, isyono);
+      }
+    } catch {
+      // Non-fatal — defaults from selectAllCheckboxes(true) remain.
+    } finally {
+      hideSpinner();
+    }
+  };
 
   const getPlanProcess = async () => {
     showSpinner();

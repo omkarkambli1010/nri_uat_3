@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from './SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
-import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
+import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
 import styles from './signature-upload-modal.module.scss';
 
 // SignatureUploadModal — desktop modal / mobile bottom-sheet for picking a
@@ -272,7 +272,7 @@ export function SignatureUploadModal({
     if (!f) return;
     // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
     try {
-      startUpload(await convertHeicToPng(f));
+      startUpload(await convertHeicToJpeg(f));
     } catch {
       toast.error('Could not read this HEIC image. Please try a JPG or PNG.');
     }
@@ -317,7 +317,7 @@ export function SignatureUploadModal({
       name,
       blob,
       objectUrl: url,
-      type: 'image/png',
+      type: blob.type || 'image/jpeg',
       size,
     });
   };
@@ -491,6 +491,10 @@ export function SignatureUploadModal({
         isDesktop={isDesktop}
         src={croppingObjectUrl}
         fileName={croppingName}
+        // Export the crop as JPEG (not the default lossless PNG) so the result
+        // stays well under the 5 MB limit — a PNG crop of a photo can exceed it.
+        outputType="image/jpeg"
+        outputQuality={0.9}
         onCancel={onCropCancel}
         onConfirm={onCropConfirm}
       />

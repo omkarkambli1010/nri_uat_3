@@ -4,8 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './permanent-address.module.scss';
+import uploadStyles from '@/components/oci/oci.module.scss';
 import { FOREIGN_UPLOAD_TYPES, PERMANENT_UPLOAD_TYPES } from '@/constants/foreignUpload-type';
 import LoadingButton from '@/components/ui/LoadingButton';
+import { useCountryNames } from '@/components/country-select/useCountries';
+import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
+import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import apiService from '@/services/api.service';
+import { toast } from '@/services/toast.service';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -41,12 +47,36 @@ const DOCUMENT_TYPE_ENTRIES = Object.entries(PERMANENT_UPLOAD_TYPES) as [string,
 const proofTypeLabel = (key: string): string =>
   (PERMANENT_UPLOAD_TYPES as Record<string, string>)[key] ?? key;
 
-const COUNTRIES = [
-  'United States', 'United Kingdom', 'Canada', 'Australia',
-  'Singapore', 'United Arab Emirates', 'Germany', 'France',
-  'Japan', 'New Zealand', 'Switzerland', 'Netherlands',
-  'Bahrain', 'Kuwait', 'Qatar', 'Saudi Arabia',
-];
+// Document types that carry an expiry date. The "Document Expiry Date" field is
+// shown & required ONLY for these; documents without an expiry (Voter ID,
+// Aadhaar Card, Utility Bill, Bank Statement) hide it.
+const EXPIRY_DOCUMENT_TYPES = new Set<string>(['DrivingLicense', 'PassportAddress']);
+const hasExpiry = (key: string): boolean => EXPIRY_DOCUMENT_TYPES.has(key);
+
+// Country list comes from the Country Master API (status = 'Y' only) via the
+// useCountryNames hook.
+
+// ── Upload constraints (front + back proof) ──────────────────────────────────
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+const MAX_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_LABEL = 'PDF, JPG, JPEG, HEIC & PNG';
+const SIZE_ERR = 'File size exceeds 5MB. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+
+// uiMetadata JSON → next route (e.g. '{"route":"esign"}' → '/esign').
+const routeFromUiMetadata = (res: unknown): string | null => {
+  const meta = (res ?? {}) as Record<string, unknown>;
+  try {
+    const ui = typeof meta.uiMetadata === 'string' ? JSON.parse(meta.uiMetadata) : meta.uiMetadata;
+    const route = (ui as Record<string, unknown> | null)?.route;
+    return route ? `/${String(route).replace(/^\//, '')}` : null;
+  } catch {
+    return null;
+  }
+};
 
 function CaretDown() {
   return (
@@ -104,6 +134,7 @@ function BackArrow() {
 
 export default function PermanentAddress() {
   const router = useRouter();
+  const { names: countryNames } = useCountryNames();
 
   const [docType, setDocType] = useState('');
   const [docNumber, setDocNumber] = useState('');
@@ -117,39 +148,76 @@ export default function PermanentAddress() {
   const [addrState, setAddrState] = useState('');
   const [pincode, setPincode] = useState('');
 
-  // Button label reflects selected document type (display label, not the enum key).
-  const btnLabel = `Upload '${docType ? proofTypeLabel(docType) : 'Select'}' Front`;
+  // Proof files (front + back), selected on this same page and submitted with
+  // the address fields in one multipart request on Proceed.
+  const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
+  const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  const getFrontFile = (): File | null =>
+    frontFiles.find((f) => f.file instanceof File)?.file ?? null;
+  const getBackFile = (): File | null =>
+    backFiles.find((f) => f.file instanceof File)?.file ?? null;
+  const filesReady = getFrontFile() !== null && getBackFile() !== null;
+
+  // Display label for the selected document type, used in the upload section
+  // titles ("Upload <Document> Front/Back").
+  const docLabel = docType ? proofTypeLabel(docType) : 'Document';
+
+  // Expiry only applies to documents that have one (Driving License, Passport).
+  const showExpiry = hasExpiry(docType);
+
+  // Changing to a document without an expiry clears any stale expiry value so
+  // it isn't submitted / validated for a non-expiring document.
+  const handleDocTypeChange = (value: string) => {
+    setDocType(value);
+    if (!hasExpiry(value)) {
+      setExpiryDate('');
+      setExpiryError('');
+    }
+  };
 
   // Enabled only once every required field is filled. Address line 2 & 3 are
-  // optional (line 3 has no "Enter…" placeholder in Figma).
+  // optional (line 3 has no "Enter…" placeholder in Figma). Expiry is only
+  // required for documents that carry one.
   const isDisabled =
     !docType ||
     !docNumber.trim() ||
-    !expiryDate ||
+    (showExpiry && !expiryDate) ||
     !selCountry ||
     !addrLine1.trim() ||
     !city.trim() ||
     !addrState.trim() ||
     !pincode.trim();
 
-  const handleProceed = () => {
+  // Proceed is enabled once all fields are filled AND both proof files are
+  // selected. It submits everything (fields + files) in one multipart request.
+  const canSubmit = !isDisabled && filesReady && !submitting;
+
+  const handleProceed = async () => {
     if (isDisabled) return;
 
-    // BRD: document must have more than 3 months of validity remaining. This is
-    // validated here on the Upload button (not later on the upload screen's
-    // Proceed) so the user gets feedback before leaving the form.
-    if (new Date(expiryDate) < minExpiry()) {
+    // BRD: documents that carry an expiry must have more than 3 months of
+    // validity remaining. Skipped for documents without an expiry date.
+    if (showExpiry && new Date(expiryDate) < minExpiry()) {
       setExpiryError('Please enter a valid expiry Date. Expired dates are not allowed');
       return;
     }
     setExpiryError('');
 
-    // Persist the whole form so the upload screen can submit it alongside the
-    // proof files. Field names map to the API multipart parts (see
-    // apiService.submitPermanentAddress). pa_documentType keeps the display label
-    // for the upload-screen section titles.
-    if (typeof window !== 'undefined') {
-      const address = {
+    const frontFile = getFrontFile();
+    const backFile = getBackFile();
+    if (!frontFile || !backFile) return; // both proofs required
+
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      toast.error('Your session has expired, please start again.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await apiService.submitPermanentAddress(applicationId, {
         line1: addrLine1.trim(),
         line2: addrLine2.trim(),
         line3: addrLine3.trim(),
@@ -160,12 +228,51 @@ export default function PermanentAddress() {
         proofType: docType,            // enum key, e.g. "ResidentPermitOrVisa"
         proofNumber: docNumber.trim(),
         expiryDate,                    // YYYY-MM-DD
-      };
-      sessionStorage.setItem('pa_address', JSON.stringify(address));
-      sessionStorage.setItem('pa_documentType', proofTypeLabel(docType));
+        idempotencyKey: '',
+        frontFile,
+        backFile,
+      });
+
+      // Navigate per uiMetadata route from the response, fall back to /esign.
+      router.push(routeFromUiMetadata(res) ?? '/esign');
+    } catch {
+      // apiService.handleError already surfaced the backend message.
+    } finally {
+      setSubmitting(false);
     }
-    router.push('/permanentAddress/upload');
   };
+
+  // ── Upload sections (front + back) — rendered below the fields ──────────────
+  // No uploadFn: files are collected locally and submitted together on Proceed.
+  const frontSection = (
+    <div className={uploadStyles.section}>
+      <p className={uploadStyles.sectionTitle}>Upload {docLabel} Front</p>
+      <FileUploadCard
+        acceptedTypes={ACCEPTED_TYPES}
+        maxSize={MAX_SIZE}
+        acceptedLabel={ACCEPTED_LABEL}
+        sizeErrorMessage={SIZE_ERR}
+        typeErrorMessage={TYPE_ERR}
+        cropImages
+        onFilesChange={setFrontFiles}
+      />
+    </div>
+  );
+
+  const backSection = (
+    <div className={uploadStyles.section}>
+      <p className={uploadStyles.sectionTitle}>Upload {docLabel} Back</p>
+      <FileUploadCard
+        acceptedTypes={ACCEPTED_TYPES}
+        maxSize={MAX_SIZE}
+        acceptedLabel={ACCEPTED_LABEL}
+        sizeErrorMessage={SIZE_ERR}
+        typeErrorMessage={TYPE_ERR}
+        cropImages
+        onFilesChange={setBackFiles}
+      />
+    </div>
+  );
 
   // ── MOBILE ────────────────────────────────────────────────────────────────
   const mobileLayout = (
@@ -204,7 +311,7 @@ export default function PermanentAddress() {
               id="mob-doc-type"
               className={styles.fieldSelect}
               value={docType}
-              onChange={(e) => setDocType(e.target.value)}
+              onChange={(e) => handleDocTypeChange(e.target.value)}
             >
               <option value="" disabled>Select</option>
               {DOCUMENT_TYPE_ENTRIES.map(([key, label]) => <option key={key} value={key}>{label}</option>)}
@@ -226,21 +333,23 @@ export default function PermanentAddress() {
           />
         </div>
 
-        {/* Document Expiry Date */}
-        <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-expiry">Document Expiry Date</label>
-          <DateField
-            inputId="mob-expiry"
-            value={strToDate(expiryDate)}
-            onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
-            dateFormat="dd/mm/yy"
-            placeholder="DD/MM/YYYY"
-            showIcon
-            iconPos="right"
-            className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
-          />
-          {expiryError && <p className={styles.fieldError} role="alert">{expiryError}</p>}
-        </div>
+        {/* Document Expiry Date — only for documents that carry an expiry */}
+        {showExpiry && (
+          <div className={styles.fieldGroup}>
+            <label className={styles.fieldLabel} htmlFor="mob-expiry">Document Expiry Date</label>
+            <DateField
+              inputId="mob-expiry"
+              value={strToDate(expiryDate)}
+              onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
+              dateFormat="dd/mm/yy"
+              placeholder="DD/MM/YYYY"
+              showIcon
+              iconPos="right"
+              className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
+            />
+            {expiryError && <p className={styles.fieldError} role="alert">{expiryError}</p>}
+          </div>
+        )}
 
         {/* Select Country */}
         <div className={styles.fieldGroup}>
@@ -253,7 +362,7 @@ export default function PermanentAddress() {
               onChange={(e) => setSelCountry(e.target.value)}
             >
               <option value="" disabled>Select</option>
-              {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {countryNames.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <span className={styles.fieldSelectCaret}><CaretDown /></span>
           </div>
@@ -345,18 +454,24 @@ export default function PermanentAddress() {
           </div>
         </div>
 
+        {/* Document upload (front + back) */}
+        <div className={styles.uploadGroup}>
+          {frontSection}
+          {backSection}
+        </div>
+
       </div>
 
-      {/* Fixed bottom — always enabled */}
+      {/* Fixed bottom — disabled until every field is filled and both files added */}
       <div className={styles.mobileProceedArea}>
         <LoadingButton
           type="button"
-          className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
+          className={`${styles.mobileProceedBtn}${!canSubmit ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
           onClick={handleProceed}
-          disabled={isDisabled}
-          aria-disabled={isDisabled}
+          disabled={!canSubmit}
+          aria-disabled={!canSubmit}
         >
-          {btnLabel}
+          {submitting ? 'Submitting…' : 'Proceed'}
         </LoadingButton>
       </div>
     </div>
@@ -399,7 +514,7 @@ export default function PermanentAddress() {
                 <select
                   className={styles.deskSelect}
                   value={docType}
-                  onChange={(e) => setDocType(e.target.value)}
+                  onChange={(e) => handleDocTypeChange(e.target.value)}
                   aria-label="Document Type"
                 >
                   <option value="" disabled>Select</option>
@@ -422,23 +537,27 @@ export default function PermanentAddress() {
               />
             </div>
 
-            {/* Document Expiry Date */}
-            <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>Document Expiry Date</p>
-              <div className={styles.deskCalendarWrap}>
-                <DateField
-                  inputId="desk-expiry"
-                  value={strToDate(expiryDate)}
-                  onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
-                  dateFormat="dd/mm/yy"
-                  placeholder="DD/MM/YYYY"
-                  showIcon
-                  iconPos="right"
-                  className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
-                />
-              </div>
-            </div>
-            {expiryError && <p className={styles.desktopFieldError} role="alert">{expiryError}</p>}
+            {/* Document Expiry Date — only for documents that carry an expiry */}
+            {showExpiry && (
+              <>
+                <div className={styles.desktopFieldRow}>
+                  <p className={styles.desktopLabel}>Document Expiry Date</p>
+                  <div className={styles.deskCalendarWrap}>
+                    <DateField
+                      inputId="desk-expiry"
+                      value={strToDate(expiryDate)}
+                      onChange={(d) => { setExpiryDate(dateToStr(d)); setExpiryError(''); }}
+                      dateFormat="dd/mm/yy"
+                      placeholder="DD/MM/YYYY"
+                      showIcon
+                      iconPos="right"
+                      className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
+                    />
+                  </div>
+                </div>
+                {expiryError && <p className={styles.desktopFieldError} role="alert">{expiryError}</p>}
+              </>
+            )}
 
             {/* Select Country */}
             <div className={styles.desktopFieldRow}>
@@ -451,7 +570,7 @@ export default function PermanentAddress() {
                   aria-label="Select Country"
                 >
                   <option value="" disabled>Select</option>
-                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {countryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <span className={styles.deskSelectCaret}><CaretDown /></span>
               </div>
@@ -538,18 +657,24 @@ export default function PermanentAddress() {
               </div>
             </div>
 
+            {/* Document upload (front + back) */}
+            <div className={styles.uploadGroup}>
+              {frontSection}
+              {backSection}
+            </div>
+
           </div>
 
-          {/* Proceed — always enabled */}
+          {/* Proceed — disabled until every field is filled and both files added */}
           <div className={styles.desktopProceedWrapper}>
             <LoadingButton
               type="button"
-              className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
+              className={`${styles.desktopProceedBtn}${!canSubmit ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
               onClick={handleProceed}
-              disabled={isDisabled}
-              aria-disabled={isDisabled}
+              disabled={!canSubmit}
+              aria-disabled={!canSubmit}
             >
-              {btnLabel}
+              {submitting ? 'Submitting…' : 'Proceed'}
             </LoadingButton>
           </div>
         </div>

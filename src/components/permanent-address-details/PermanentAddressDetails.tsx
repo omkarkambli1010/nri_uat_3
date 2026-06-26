@@ -43,7 +43,7 @@ export default function PermanentAddressDetails() {
       if (aadhaarLinked === 'yes') {
         router.push('/digilocker-screen');
       } else {
-        router.push('/permanentAddress');
+        router.push('/manual-document-screen');
       }
       hideSpinner();
     }, 200);

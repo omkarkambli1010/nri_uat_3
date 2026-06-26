@@ -87,6 +87,20 @@ const maskAadhaar = (v: string): string => {
   return `XXXXXXXX${digits.slice(-4)}`;
 };
 
+// From the workflow response's root `documents[]`, pick the pre-signed URL of
+// the "AadhaarPhoto" document — used as the profile photo on the Aadhaar card.
+// (Note: `documents` sits on the response root, not inside `data`, and the URL
+// field is `presignedUrl`.)
+const aadhaarPhotoUrl = (res: Record<string, unknown>): string => {
+  const docs = Array.isArray(res.documents)
+    ? (res.documents as Record<string, unknown>[])
+    : [];
+  const photo = docs.find(
+    (doc) => String(doc?.documentType ?? '').toLowerCase() === 'aadhaarphoto',
+  );
+  return pickField(photo, 'presignedUrl', 'preSignedUrl', 'preSignUrl', 'url');
+};
+
 // Build a single-line address from the DigiLocker workflow data response.
 // Response fields: line1, line2, line3, city, state, pincode, country.
 const buildAddress = (d: Record<string, unknown>): string => {
@@ -111,6 +125,7 @@ export default function AdhaarCopy() {
   const [address, setAddress] = useState('');
   const [name, setName] = useState('');
   const [maskedNumber, setMaskedNumber] = useState('');
+  const [photoUrl, setPhotoUrl] = useState('');
 
   const rejectStatus = useSessionValue('RejectStatus');
 
@@ -207,6 +222,10 @@ export default function AdhaarCopy() {
             pickField(d, 'proofNumber', 'MaskedAadhaar', 'MaskedAadhaarNumber', 'AadhaarNumber'),
           ),
         );
+
+        // Profile photo — pre-signed URL of the "AadhaarPhoto" document
+        // (documents[] is on the response root, not inside data).
+        setPhotoUrl(aadhaarPhotoUrl(res));
       }
     } catch {
       // Non-fatal — screen shows dashes for missing fields.
@@ -287,8 +306,16 @@ export default function AdhaarCopy() {
         aria-hidden="true"
       />
       <div className={styles.aadhaarCardRow}>
-        <div className={styles.aadhaarPhoto} aria-hidden="true">
-          <PersonIcon />
+        <div className={styles.aadhaarPhoto}>
+          {photoUrl ? (
+            <img
+              className={styles.aadhaarPhotoImg}
+              src={photoUrl}
+              alt="Aadhaar photo"
+            />
+          ) : (
+            <PersonIcon />
+          )}
         </div>
         <div className={styles.aadhaarInfo}>
           <p className={styles.aadhaarName}>{name || '—'}</p>

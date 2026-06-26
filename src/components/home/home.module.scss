@@ -287,22 +287,31 @@ $dark-grey: #231f20;
     margin-bottom: 16px;
   }
 
-  :global(.iti),
-  :global(.iti) div {
+}
+
+// Country-code selector + mobile number, side by side. The country list is
+// API-driven (no flag sprites); the code box auto-sizes, the number fills the
+// rest.
+.phoneRow {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+
+  // The country-code dropdown root is a <div>, so the broad `.mobileForm div`
+  // rule gives it a 16px bottom margin — under align-items: stretch that makes
+  // the trigger render shorter than the input and sit high. Zero it so the
+  // trigger and the mobile input are exactly the same height and aligned.
+  div {
     margin-bottom: 0;
   }
 
-  // Default (no country selected) state: hide the globe icon and show a
-  // "Code" placeholder instead of a flag + dial code. Once the user picks a
-  // country, the globe class is removed and the dial code is populated, so
-  // these rules stop applying automatically.
-  :global(.iti__selected-country .iti__flag.iti__globe) {
-    display: none;
-  }
-
-  :global(.iti__selected-dial-code:empty)::after {
-    content: "Code";
-    color: #6c757d;
+  :global(.otp_field) {
+    flex: 1 1 auto;
+    // Drop the default 8px bottom margin so the input matches the height of the
+    // country-code trigger (align-items: stretch); spacing below the row is
+    // handled by the wrapping <div>.
+    margin-bottom: 0;
   }
 }
 

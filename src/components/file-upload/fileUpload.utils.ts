@@ -44,16 +44,20 @@ export function isHeicFile(file: File): boolean {
 }
 
 // Browsers (other than Safari) cannot decode HEIC/HEIF in <img>/<canvas>, so
-// every upload path converts them to PNG first — otherwise the cropper/preview
-// shows a broken image and the upload fails. No-op for non-HEIC files.
-export async function convertHeicToPng(file: File): Promise<File> {
+// every upload path converts them first — otherwise the cropper/preview shows a
+// broken image and the upload fails. No-op for non-HEIC files.
+//
+// We convert to JPEG (not PNG): PNG is lossless and balloons a compact HEIC
+// photo many times over (e.g. a 2.4 MB HEIC → 10+ MB PNG), which then trips the
+// 4–5 MB size limits. JPEG keeps the converted size close to the original.
+export async function convertHeicToJpeg(file: File): Promise<File> {
   if (!isHeicFile(file)) return file;
   const heic2any = (await import('heic2any')).default;
-  const result = await heic2any({ blob: file, toType: 'image/png' });
+  const result = await heic2any({ blob: file, toType: 'image/jpeg', quality: 0.9 });
   // heic2any may return a single Blob or an array (multi-image HEIC).
   const blob = Array.isArray(result) ? result[0] : result;
-  const pngName = file.name.replace(/\.(heic|heif)$/i, '.png') || 'photo.png';
-  return new File([blob], pngName, { type: 'image/png' });
+  const jpegName = file.name.replace(/\.(heic|heif)$/i, '.jpg') || 'photo.jpg';
+  return new File([blob], jpegName, { type: 'image/jpeg' });
 }
 
 export function validateFile(

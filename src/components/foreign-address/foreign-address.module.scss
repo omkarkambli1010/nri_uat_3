@@ -105,6 +105,24 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   width: 100%;
 }
 
+// BRD note (red) shown above the fields — English translation required for
+// non-English documents.
+.translationNote {
+  color: #d92d20;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0 0 4px;
+}
+
+// Wraps the front + back document-upload sections rendered below the fields.
+.uploadGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  margin-top: 8px;
+}
+
 // Figma: 14px Regular #666 (mobile labels)
 .fieldLabel {
   font-size: 14px;
@@ -583,5 +601,16 @@ $error: #d92d20;
   color: $error;
   line-height: 1.4;
   margin: -16px 0 0; // pull up toward the field (form column gap is 24px)
+  padding-left: 255px;
+}
+
+// Pincode error sits inside .fieldGroup (gap 8px), not the 24px form column, so
+// it must NOT use the -16px pull-up — that overlaps the input and the hint below.
+.desktopPincodeError {
+  font-size: 12px;
+  font-weight: 400;
+  color: $error;
+  line-height: 1.4;
+  margin: 0;
   padding-left: 255px;
 }

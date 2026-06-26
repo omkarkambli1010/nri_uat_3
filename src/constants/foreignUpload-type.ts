@@ -4,23 +4,23 @@ export const FOREIGN_UPLOAD_TYPES = {
   Oci: 'OCI',
   DrivingLicense: 'Driving License',
   PermanentResidentCard: 'Permanent Resident Card',
-  ForeignGovtIssuedIdentityCard: 'Foreign Issued IdentityCard',
+  ForeignGovtIssuedIdentityCard: 'Foreign Issued Identity Card',
   BankStatement: 'Bank Statement',
-  UtilityBillWaterGasElectricity: 'UtilityBill WaterGas Electricity',
-  IqamaOrNationalAddressCertificate: 'Iqama Or NationalAddress Certificate',
-  CompanyAccommodationLetter: 'CompanyAccommodation Letter',
-  UniversityLetterOrStudentId: 'UniversityLetter Or StudentId',
-  ResidentPermitOrVisa: 'ResidentPermit Or Visa',
+  UtilityBillWaterGasElectricity: 'Utility Bill / Water / Gas / Electricity',
+  IqamaOrNationalAddressCertificate: 'Iqama / National Address Certificate',
+  CompanyAccommodationLetter: 'Company Accommodation Letter',
+  UniversityLetterOrStudentId: 'University Letter / Student ID',
+  ResidentPermitOrVisa: 'Resident Permit / Visa',
   LeaseAgreement: 'Lease Agreement',
 } as const;
 
 
+// BRD: Document Type is driven by the Document Master and offers exactly
+// Passport, Driving License and Aadhaar. The keys are the enum values sent to
+// the API as ProofType; the labels are shown to the user.
 export const PERMANENT_UPLOAD_TYPES = {
+  PassportAddress: 'Passport',
   DrivingLicense: 'Driving License',
-  VoterID: 'Voter ID',
-  PassportAddress: 'Passport Address',
-  AadhaarCard: 'Aadhaar Card',
-  UtilityBill: 'Utility Bill',
-  BankStatement: 'Bank Statement', 
+  AadhaarCard: 'Aadhaar',
 } as const;
  

@@ -8,7 +8,7 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import { buildFaqUrl } from "@/lib/faq-link";
-import { COUNTRIES as ALL_COUNTRIES } from "@/components/country-select/countries";
+import { useCountries } from "@/components/country-select/useCountries";
 import styles from "./add-nominee.module.scss";
 
 // AddNominee — multi-state nominee form
@@ -43,12 +43,8 @@ const DOCUMENT_TYPE_OPTIONS = [
   "PanCard",
 ];
 
-// FATF-restricted countries (Status = N) excluded from the nominee country
-// dropdown. Matched by ISO-2 so it's robust to display-name differences.
-const FATF_RESTRICTED_ISO2 = new Set(["kp", "ir", "mm", "sy", "ye"]);
-const COUNTRY_OPTIONS = ALL_COUNTRIES.filter(
-  (c) => !FATF_RESTRICTED_ISO2.has(c.iso2),
-);
+// Nominee country dropdown is sourced from the Country Master API; restricted
+// (status = 'N') countries are filtered out by useCountries().selectable.
 
 type PrintPref = "yes" | "no" | "";
 
@@ -376,6 +372,7 @@ export default function AddNominee() {
   const router = useRouter();
   const pathname = usePathname();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
+  const { selectable: COUNTRY_OPTIONS } = useCountries();
 
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   const [isRejectStatus, setIsRejectStatus] = useState(false);

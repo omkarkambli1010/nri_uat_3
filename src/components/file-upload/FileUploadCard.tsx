@@ -1,6 +1,6 @@
 'use client';
 
-import type { FileUploadConfig } from './fileUpload.types';
+import type { FileUploadConfig, UploadedFile } from './fileUpload.types';
 import { FileUpload } from './FileUpload';
 
 export interface FileUploadCardProps {
@@ -23,6 +23,8 @@ export interface FileUploadCardProps {
   /** Plug in your real upload API here. Receives the file and a progress callback. */
   uploadFn?: FileUploadConfig['uploadFn'];
   onFilesChange?: FileUploadConfig['onFilesChange'];
+  /** Pre-populate with already-uploaded files (renders in the dropzone preview). */
+  initialFiles?: UploadedFile[];
   className?: string;
 }
 
@@ -38,6 +40,7 @@ export function FileUploadCard({
   cropImages,
   uploadFn,
   onFilesChange,
+  initialFiles,
   className,
 }: FileUploadCardProps) {
   const config: FileUploadConfig = {
@@ -49,6 +52,7 @@ export function FileUploadCard({
     cropImages,
     uploadFn,
     onFilesChange,
+    initialFiles,
     errorMessages: {
       size: sizeErrorMessage,
       type: typeErrorMessage,

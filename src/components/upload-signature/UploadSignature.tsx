@@ -271,6 +271,32 @@ export default function UploadSignature() {
     navigationService.setRouter(router, hideSpinner);
   }, [router, hideSpinner]);
 
+  // Fetch the saved SIGNATURE stage data so the save uses the real documentId
+  // (POST …/get/workflow/stagewisedate { stagename: "SIGNATURE" }). Persist
+  // data.documentId so proceed() no longer falls back to a placeholder id.
+  useEffect(() => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    if (!applicationId) return;
+
+    let alive = true;
+    apiService
+      .getSignatureWorkflow(applicationId)
+      .then((res) => {
+        if (!alive) return;
+        const documentId = res?.data?.documentId;
+        if (documentId) {
+          sessionStorage.setItem("SignatureDocumentId", String(documentId));
+        }
+      })
+      .catch(() => {
+        // Non-fatal — proceed() still has its own documentId fallbacks.
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     const pad = padRef.current;

@@ -16,7 +16,7 @@ import {
   deriveAcceptLabel,
   isImageFile,
   isHeicFile,
-  convertHeicToPng,
+  convertHeicToJpeg,
 } from "./fileUpload.utils";
 import { SignatureCropperModal } from "../upload-signature/SignatureCropperModal";
 import { CameraCaptureModal } from "../camera-capture/CameraCaptureModal";
@@ -135,7 +135,7 @@ export function FileUpload({ title, config, className }: FileUploadProps) {
     // Convert HEIC/HEIF → PNG so the canvas/cropper can render it. Detection
     // also covers .heic files that browsers report with an empty MIME type.
     const normalized = await Promise.all(
-      toProcess.map((f) => (isHeicFile(f) ? convertHeicToPng(f) : Promise.resolve(f))),
+      toProcess.map((f) => (isHeicFile(f) ? convertHeicToJpeg(f) : Promise.resolve(f))),
     );
     const images = normalized.filter(isImageFile);
     const others = normalized.filter((f) => !isImageFile(f));

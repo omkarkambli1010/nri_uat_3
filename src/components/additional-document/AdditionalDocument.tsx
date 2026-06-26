@@ -3,7 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
-import { convertHeicToPng } from '@/components/file-upload/fileUpload.utils';
+import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
 import { additionalDocumentStore } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
 
@@ -268,7 +268,7 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
     if (!f) return;
     // HEIC/HEIF → PNG so the cropper can render it (no-op for other files).
     try {
-      startUpload(await convertHeicToPng(f));
+      startUpload(await convertHeicToJpeg(f));
     } catch {
       setDisplayName(f.name);
       setErrorMsg('Could not read this HEIC image. Please try a JPG or PNG.');

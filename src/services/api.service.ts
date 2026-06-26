@@ -18,6 +18,17 @@ export interface BankMasterIFSCResponse {
   address: string;
 }
 
+// Country Master row (POST …/masters/get { masterName: "COUNTRYMASTER" }).Ij
+// countryCode is "ISO2/ISO3" (e.g. "AF/AFG"), occasionally just "ISO2" ("IN").
+// status "Y" = selectable, "N" = restricted.
+export interface CountryMaster {
+  countryId: number;
+  countryName: string;
+  countryCode: string;
+  teleCode: string;
+  status: string;
+}
+
 // Reverse-penny-drop bank verification status (GET …/bank/rpd/status).
 // Optional extras are mapped only when the backend includes them.
 export interface BankRpdStatusResponse {
@@ -263,6 +274,21 @@ class APIService {
     return `reg-001-${uuid}`;
   }
 
+  // ─── Masters ──────────────────────────────────────────────────────────────
+  async getMaster(masterName: string): Promise<any[]> {
+    const url = `${this.nriapi}masters/get`;
+    const response = await axios.post(
+      url,
+      { masterName, idempotencyKey: "" },
+      { headers: { accept: "*/*", "Content-Type": "application/json" } },
+    );
+    return response.data?.data ?? [];
+  }
+
+  async getCountryMaster(): Promise<CountryMaster[]> {
+    return this.getMaster("COUNTRYMASTER");
+  }
+
   async getBankMasterByIfsc(
     ifscCode: string,
     extraHeaders?: Record<string, string>,
@@ -284,8 +310,6 @@ class APIService {
     }
   }
 
-  // Reverse-penny-drop bank verification status.
-  // GET …/applications/{applicationId}/bank/rpd/status?vendorSessionId=…
   async getBankRpdStatus(
     applicationId: string,
     vendorSessionId: string,
@@ -724,7 +748,6 @@ class APIService {
   // ─── Plans ────────────────────────────────────────────────────────────────
 
   // Fetch available plans for the application.
-  // Curl: GET /api/v1/applications/{id}/plans?journeyType=NriSemiDigital&depository=NSDL
   async getPlans(
     applicationId: string,
     journeyType: string,
@@ -752,7 +775,6 @@ class APIService {
       {
         planId: data.planId,
         depository: data.depository,
-        // idempotencyKey: data.idempotencyKey ?? this.generateIdempotencyKey(),
         idempotencyKey: data.idempotencyKey ?? '',
       },
       hideSpinner,
@@ -772,7 +794,6 @@ class APIService {
   }
 
   // ─── DigiLocker ───────────────────────────────────────────────────────────
-  // Kick off DigiLocker verification — empty-body POST.
   async initiateDigilocker(
     applicationId: string,
     hideSpinner?: () => void,
@@ -788,8 +809,6 @@ class APIService {
     }
   }
 
-  // DigiLocker callback — exchange the OAuth `code` returned on the redirect.
-  // URL fixed: nriapi already contains /api/v1/ so path is just digilocker/callback.
   async digilockerCallback(
     applicationId: string,
     code: string,
@@ -806,24 +825,32 @@ class APIService {
   }
 
   // ─── Workflow stage data (generic "Get Masters") ───────────────────────────
-  // Fetches previously-saved data for a given onboarding stage so the UI can
-  // pre-fill its form on revisit / back-navigation. Matches curl:
-  //   POST /api/v1/applications/{id}/get/workflow/stagewisedate
-  //   body: { stagename: "<STAGE>", idempotencyKey: "" }
   async getWorkflowStageData(
     applicationId: string,
     stagename: string,
     hideSpinner?: () => void,
   ): Promise<any> {
-    return this.postNri(
-      `applications/${applicationId}/get/workflow/stagewisedate`,
-      {
-        stagename,
-        idempotencyKey: '',
-      },
-      hideSpinner,
-      { accept: "*/*" },
-    );
+    const url = `${this.nriapi}applications/${applicationId}/get/workflow/stagewisedate`;
+    try {
+      const response = await axios.post(
+        url,
+        { stagename, idempotencyKey: "" },
+        { headers: { "Content-Type": "application/json", accept: "*/*" } },
+      );
+      return response.data;
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+      const msg = String(
+        data?.detail ?? data?.message ?? data?.title ?? "",
+      ).toLowerCase();
+      if (status === 404 || /no data|not found|no record/.test(msg)) {
+        hideSpinner?.();
+        return null;
+      }
+
+      return this.handleError(error, hideSpinner);
+    }
   }
 
   // DigiLocker workflow data — fetch stage-wise details after a successful
@@ -854,6 +881,34 @@ class APIService {
     hideSpinner?: () => void,
   ): Promise<any> {
     return this.getWorkflowStageData(applicationId, "BANK", hideSpinner);
+  }
+
+  async getSignatureWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "SIGNATURE", hideSpinner);
+  }
+
+  async getDeclarationWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "DECLARATION", hideSpinner);
+  }
+
+  async getPlanSelectionWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "PLANSELECTION", hideSpinner);
+  }
+
+  async getForeignAddressWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "FOREIGNADDRESS", hideSpinner);
   }
 
 }

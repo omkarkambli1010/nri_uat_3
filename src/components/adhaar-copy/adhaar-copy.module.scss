@@ -299,6 +299,14 @@ $info-border: #c3c7ed;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.aadhaarPhotoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .aadhaarInfo {

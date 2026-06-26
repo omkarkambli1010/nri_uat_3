@@ -5,12 +5,17 @@ import type { FileUploadConfig, UploadedFile } from './fileUpload.types';
 import { generateId, isDuplicateFile, isImageFile, isPdfPasswordProtected, unlockPdf, validateFile } from './fileUpload.utils';
 
 export function useFileUpload(config: FileUploadConfig) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
+  const [files, setFiles] = useState<UploadedFile[]>(() => config.initialFiles ?? []);
   const urlsRef = useRef<Set<string>>(new Set());
   const configRef = useRef(config);
   configRef.current = config;
 
   useEffect(() => {
+    // Track any object URLs supplied with initial files so they're revoked on
+    // unmount alongside the ones we create here.
+    configRef.current.initialFiles?.forEach((f) => {
+      if (f.previewUrl) urlsRef.current.add(f.previewUrl);
+    });
     const urls = urlsRef.current;
     return () => urls.forEach(u => URL.revokeObjectURL(u));
   }, []);

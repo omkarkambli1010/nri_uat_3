@@ -1,13 +1,13 @@
 'use client';
 
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { Country } from 'country-state-city';
+import { useCountries } from '@/components/country-select/useCountries';
 import styles from './visa.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 
@@ -204,12 +204,13 @@ export default function VisaUpload() {
   // submit as issuingCountry; the code is the select's value).
   const [countryCode, setCountryCode] = useState('');
 
-  const countryOptions = useMemo(() => Country.getAllCountries(), []);
+  // Country list sourced from the Country Master API (status = 'Y').
+  const { selectable: countryOptions } = useCountries();
 
   // Country change → record the selected name + code.
   const handleCountryChange = (iso: string) => {
     setCountryCode(iso);
-    setCountry(Country.getCountryByCode(iso)?.name ?? '');
+    setCountry(countryOptions.find((c) => c.iso2 === iso)?.name ?? '');
     onFieldChange('country');
   };
 
@@ -223,6 +224,16 @@ export default function VisaUpload() {
   const [submitting, setSubmitting] = useState(false);
 
   const expired = isExpired(expiryDate);
+
+  // Earliest selectable expiry — BRD: past dates and the next 3 months are
+  // invalid, so the picker floor is today + 3 months (or the issue date if it
+  // somehow falls later). Matches the validateDetails() rule.
+  const expiryMinDate = (() => {
+    const floor = minVisaExpiry();
+    const issue = isoToDate(issueDate);
+    return issue && issue > floor ? issue : floor;
+  })();
+
   const frontUploaded = frontFiles.some(f => f.status === 'success');
   const backUploaded = backFiles.some(f => f.status === 'success');
 
@@ -563,7 +574,7 @@ export default function VisaUpload() {
               iconPos="right"
               touchUI
               panelClassName="p-prime-cal-sm"
-              minDate={isoToDate(issueDate) ?? undefined}
+              minDate={expiryMinDate}
               className={`p-prime-cal${errors.expiryDate ? ' p-prime-cal-error' : ''}${expired ? ` ${styles.expiredCalendar}` : ''}`}
             />
             {expired && !errors.expiryDate && expiredWarning}
@@ -579,7 +590,7 @@ export default function VisaUpload() {
             >
               <option value="">Select country</option>
               {countryOptions.map((c) => (
-                <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                <option key={c.iso2} value={c.iso2}>{c.name}</option>
               ))}
             </select>
           </FieldRow>

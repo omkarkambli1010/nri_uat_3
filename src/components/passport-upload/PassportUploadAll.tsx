@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
-import { COUNTRIES } from '@/components/country-select/countries';
+import { getLoadedCountries } from '@/components/country-select/countries';
+import { useCountries } from '@/components/country-select/useCountries';
 import { apiService } from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from './passport-upload.module.scss';
@@ -207,9 +208,10 @@ const pickField = (o: Record<string, unknown> | undefined, ...keys: string[]): s
 const resolveCountryName = (raw: string): string => {
   const q = raw.trim().toLowerCase();
   if (!q) return '';
-  const exact = COUNTRIES.find((c) => c.name.toLowerCase() === q || c.iso2 === q);
+  const countries = getLoadedCountries();
+  const exact = countries.find((c) => c.name.toLowerCase() === q || c.iso2 === q);
   if (exact) return exact.name;
-  const fuzzy = COUNTRIES.find(
+  const fuzzy = countries.find(
     (c) => q.startsWith(c.name.toLowerCase()) || c.name.toLowerCase().startsWith(q),
   );
   return fuzzy ? fuzzy.name : raw;
@@ -268,9 +270,10 @@ export default function PassportUploadAll() {
   const passportType = searchParams.get('type') ?? 'Indian';
   const isIndian     = passportType === 'Indian';
 
+  const { countries } = useCountries();
   const nationalityOptions = isIndian
-    ? COUNTRIES
-    : COUNTRIES.filter((c) => c.name !== 'India');
+    ? countries
+    : countries.filter((c) => c.name !== 'India');
 
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
@@ -378,10 +381,15 @@ export default function PassportUploadAll() {
   const frontUploaded = frontFiles.some(f => f.status === 'success');
   const backUploaded  = backFiles.some(f => f.status === 'success');
 
+  // Details are filled only from the FRONT image (real OCR happens in
+  // makeUploadFn('FrontFile')). Do NOT fill on back upload — otherwise skipping
+  // the front and uploading the back would populate the fields unexpectedly.
   useEffect(() => { if (frontUploaded) fillMockDetails(); }, [frontUploaded]);
-  useEffect(() => { if (backUploaded)  fillMockDetails(); }, [backUploaded]);
 
   const isDisabled =
+    // Disabled while the details are being edited — re-enabled only on Save
+    // (which clears frontEditMode), so the user can't proceed with unsaved edits.
+    frontEditMode ||
     !frontUploaded || !backUploaded ||
     !fullName.trim() || !dob || !passportNumber.trim() ||
     !issueDate || !expiryDate || !nationality.trim() || !gender.trim() ||

@@ -182,7 +182,7 @@ export default function PersonalDetailsForm() {
   const goBack = () => {
     showSpinner();
     setTimeout(() => {
-      router.back();
+      router.push("/personalDetailsForm/0");
       hideSpinner();
     }, 200);
   };

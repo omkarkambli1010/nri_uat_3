@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './fatca.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import { useCountries } from '@/components/country-select/useCountries';
 
 // FatcaDetails — FATCA form.
 // Top: Country of Birth + Citizenship (mandatory).
@@ -11,18 +12,6 @@ import LoadingButton from '@/components/ui/LoadingButton';
 // On Upload, completed TIN sets are persisted so /fatca/upload renders one
 // image-upload section each. Validation runs on Upload click with inline
 // per-field error messages. FATF-restricted countries are excluded everywhere.
-
-const FATF_RESTRICTED = new Set<string>([
-  'North Korea', 'Iran', 'Myanmar', 'Syria', 'Yemen',
-]);
-
-const ALL_COUNTRIES = [
-  'India', 'United States', 'United Kingdom', 'Canada', 'Australia',
-  'Singapore', 'UAE', 'Germany', 'France', 'Japan',
-];
-
-// FATF-restricted countries are excluded from every dropdown.
-const COUNTRIES = ALL_COUNTRIES.filter((c) => !FATF_RESTRICTED.has(c));
 
 const MAX_TINS = 3;
 
@@ -83,6 +72,7 @@ function SelectField({
   id: string; label: string; value: string;
   onChange: (v: string) => void; groupClass: string; error?: string;
 }) {
+  const { selectable } = useCountries();
   return (
     <div className={groupClass}>
       <label className={styles.fieldLabel} htmlFor={id}>{label}</label>
@@ -95,7 +85,7 @@ function SelectField({
           aria-invalid={!!error}
         >
           <option value="" disabled>Select</option>
-          {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {selectable.map((c) => <option key={c.iso2} value={c.name}>{c.name}</option>)}
         </select>
         <span className={styles.fieldSelectCaret}><CaretDown /></span>
       </div>
@@ -189,18 +179,18 @@ export default function FatcaDetails() {
   const validate = (): FormErrors => {
     const e: FormErrors = { tins: form.tins.map(() => ({})) };
 
-    if (!form.countryOfBirth || FATF_RESTRICTED.has(form.countryOfBirth)) {
+    if (!form.countryOfBirth) {
       e.countryOfBirth = 'Please select a valid Country of Birth.';
     }
-    if (!form.citizenship || FATF_RESTRICTED.has(form.citizenship)) {
+    if (!form.citizenship) {
       e.citizenship = 'Please select a valid Citizenship country.';
     }
 
     form.tins.forEach((t, i) => {
-      if (!t.taxResidence || FATF_RESTRICTED.has(t.taxResidence)) {
+      if (!t.taxResidence) {
         e.tins[i].taxResidence = 'Please select a valid Country of TAX Residence.';
       }
-      if (!t.tinIssuingCountry || FATF_RESTRICTED.has(t.tinIssuingCountry)) {
+      if (!t.tinIssuingCountry) {
         e.tins[i].tinIssuingCountry = 'Please select a valid TIN Issue Country.';
       }
       if (!t.tinNumber.trim() || !TIN_RE.test(t.tinNumber.trim())) {

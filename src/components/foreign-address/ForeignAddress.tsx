@@ -1,11 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './foreign-address.module.scss';
+import uploadStyles from '@/components/oci/oci.module.scss';
 import { FOREIGN_UPLOAD_TYPES } from '@/constants/foreignUpload-type';
 import LoadingButton from '@/components/ui/LoadingButton';
+import { useCountryNames } from '@/components/country-select/useCountries';
+import { useSpinner } from '@/components/spinner/Spinner';
+import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
+import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import apiService from '@/services/api.service';
+import { toast } from '@/services/toast.service';
+import { environment } from '@/environments/environment';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -48,27 +56,35 @@ const OVD_DOCUMENT_TYPES = new Set<string>([
 
 const isOvd = (key: string): boolean => OVD_DOCUMENT_TYPES.has(key);
 
-// FATF-restricted countries (Country Master Status = N). Excluded from the
-// dropdown and rejected on validation. None of the allowed COUNTRIES below are
-// on this list today — the check is defensive for when the master grows.
-const FATF_RESTRICTED = new Set<string>([
-  'North Korea', 'Iran', 'Myanmar', 'Syria', 'Yemen',
-]);
-
-const ALL_COUNTRIES = [
-  'United States', 'United Kingdom', 'Canada', 'Australia',
-  'Singapore', 'United Arab Emirates', 'Germany', 'France',
-  'Japan', 'New Zealand', 'Switzerland', 'Netherlands',
-  'Bahrain', 'Kuwait', 'Qatar', 'Saudi Arabia',
-];
-
-// Country Master Status = Y (allowed) — FATF-restricted entries filtered out.
-const COUNTRIES = ALL_COUNTRIES.filter((c) => !FATF_RESTRICTED.has(c));
+// Country list comes from the Country Master API (status = 'Y' only) via the
+// useCountryNames hook; restricted countries are filtered out at the source.
 
 // Postal/ZIP — alphanumeric (letters, digits, space, hyphen), 3–12 chars.
 const POSTAL_RE = /^[A-Za-z0-9\s-]{3,12}$/;
 // Address proof number — alphanumeric (letters, digits, space, hyphen).
 const PROOF_NUMBER_RE = /^[A-Za-z0-9\s-]+$/;
+
+// ── Upload constraints (front + back proof) ──────────────────────────────────
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+const MAX_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_LABEL = 'PDF, JPG, JPEG, HEIC & PNG';
+const SIZE_ERR = 'File size exceeds 5MB. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+
+// uiMetadata JSON → next route (e.g. '{"route":"esign"}' → '/esign').
+const routeFromUiMetadata = (res: unknown): string | null => {
+  const meta = (res ?? {}) as Record<string, unknown>;
+  try {
+    const ui = typeof meta.uiMetadata === 'string' ? JSON.parse(meta.uiMetadata) : meta.uiMetadata;
+    const route = (ui as Record<string, unknown> | null)?.route;
+    return route ? `/${String(route).replace(/^\//, '')}` : null;
+  } catch {
+    return null;
+  }
+};
 
 function CaretDown() {
   return (
@@ -131,6 +147,13 @@ type FieldKey =
 
 export default function ForeignAddress() {
   const router = useRouter();
+  const { show: showSpinner, hide: hideSpinner } = useSpinner();
+  const { names: countryNames, loading: countryLoading } = useCountryNames();
+
+  // Keep the global loader up until the country list AND the saved-stage prefill
+  // (fields + document previews) have finished, so the form never flashes empty
+  // or half-bound. `prefillDone` flips true once the prefill settles.
+  const [prefillDone, setPrefillDone] = useState(false);
 
   const [docType, setDocType] = useState('');
   const [docNumber, setDocNumber] = useState('');
@@ -143,11 +166,148 @@ export default function ForeignAddress() {
   const [addrState, setAddrState] = useState('');
   const [pincode, setPincode] = useState('');
 
+  // Proof files (front + back), selected on this same page and submitted with
+  // the address fields in one multipart request on Proceed.
+  const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
+  const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Previously-uploaded proof documents (from the saved stage) seeded into the
+  // front/back upload cards so they render in the dropzone preview (and can be
+  // replaced). Keyed so the card remounts once the async fetch resolves.
+  const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
+  const [backInitial, setBackInitial] = useState<UploadedFile | null>(null);
+
+  const getFrontFile = (): File | null =>
+    frontFiles.find((f) => f.file instanceof File)?.file ?? null;
+  const getBackFile = (): File | null =>
+    backFiles.find((f) => f.file instanceof File)?.file ?? null;
+  const filesReady = getFrontFile() !== null && getBackFile() !== null;
+
   // Tracks which fields the user has interacted with (blur) or attempted to
   // submit — errors only render for touched fields.
   const [touched, setTouched] = useState<Partial<Record<FieldKey, boolean>>>({});
 
   const showExpiry = isOvd(docType);
+
+  // Prefill the form from the saved FOREIGNADDRESS stage (POST …/get/workflow/
+  // stagewisedate { stagename: "FOREIGNADDRESS" }) so a revisit shows the
+  // previously-entered address. Document uploads are not prefilled — the user
+  // re-selects the front/back proof files.
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      setPrefillDone(true);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getForeignAddressWorkflow(applicationId);
+        if (!alive) return;
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (!d) return;
+
+        const str = (v: unknown): string => (v == null ? '' : String(v));
+        if (str(d.line1)) setAddrLine1(str(d.line1));
+        if (str(d.line2)) setAddrLine2(str(d.line2));
+        if (str(d.line3)) setAddrLine3(str(d.line3));
+        if (str(d.city)) setCity(str(d.city));
+        if (str(d.state)) setAddrState(str(d.state));
+        if (str(d.pincode)) setPincode(str(d.pincode));
+        if (str(d.country)) setSelCountry(str(d.country));
+        if (str(d.proofNumber)) setDocNumber(str(d.proofNumber));
+
+        // Saved proof documents (documents[] is on the response root, each with
+        // a presignedUrl). Seed the first into the Front card and the second
+        // (if any) into the Back card so they show in the dropzone preview.
+        const docs = Array.isArray(res?.documents)
+          ? (res.documents as Record<string, unknown>[])
+          : [];
+
+        // Document Type — prefer the uploaded proof's documentType (the actual
+        // foreign-address proof, e.g. "BankStatement"); fall back to
+        // data.proofType. Match against both the enum keys AND the display
+        // labels, case-insensitively. The DigiLocker source type "AadhaarCard"
+        // isn't a foreign option, so it simply won't match.
+        const matchDocType = (value: string): string | undefined => {
+          const v = value.trim().toLowerCase();
+          if (!v) return undefined;
+          const hit = DOCUMENT_TYPE_ENTRIES.find(
+            ([key, label]) => key.toLowerCase() === v || label.toLowerCase() === v,
+          );
+          return hit?.[0];
+        };
+        const docTypeKey =
+          matchDocType(str(docs[0]?.documentType)) ?? matchDocType(str(d.proofType));
+        if (docTypeKey) setDocType(docTypeKey);
+
+        const urls = docs
+          .map((doc) => str(doc.presignedUrl ?? doc.preSignedUrl ?? doc.url))
+          .filter(Boolean);
+
+        // Await the document seeding so the loader stays up until the previews
+        // are ready too (not just the text fields).
+        const [front, back] = await Promise.all([
+          urls[0] ? buildInitialFile(urls[0]) : Promise.resolve(null),
+          urls[1] ? buildInitialFile(urls[1]) : Promise.resolve(null),
+        ]);
+        if (alive) {
+          if (front) setFrontInitial(front);
+          if (back) setBackInitial(back);
+        }
+      } catch {
+        // Non-fatal — the form just stays empty.
+      } finally {
+        if (alive) setPrefillDone(true);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Show the loader on mount; hide it only once both the country list and the
+  // prefill have finished, so the UI is fully bound before it's revealed.
+  useEffect(() => {
+    showSpinner();
+    return () => hideSpinner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (prefillDone && !countryLoading) hideSpinner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillDone, countryLoading]);
+
+  // Fetch a saved document URL into a real File + preview so it can be both
+  // shown in the dropzone and re-submitted unchanged. Returns null on failure
+  // (e.g. CORS) — the card then just stays empty.
+  const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
+    try {
+      // S3 presigned URLs aren't CORS-enabled, so fetch via the same-origin
+      // proxy route (basePath-aware so it works under /diynri in prod).
+      const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
+      const resp = await fetch(proxied);
+      if (!resp.ok) return null;
+      const blob = await resp.blob();
+      const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
+      const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
+      const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
+      const file = new File([blob], `proof-document.${ext}`, { type });
+      return {
+        id: `saved-${url.slice(-24)}`,
+        file,
+        status: 'success',
+        progress: 100,
+        previewUrl: URL.createObjectURL(file),
+      };
+    } catch {
+      return null;
+    }
+  };
 
   // ── Validation ──────────────────────────────────────────────────────────────
   // Returns a map of fieldKey → error message. Empty map = valid.
@@ -167,8 +327,8 @@ export default function ForeignAddress() {
       e.expiryDate = 'Please Select Expiry date';
     }
 
-    if (!selCountry || FATF_RESTRICTED.has(selCountry)) {
-      e.selCountry = 'Please select a valid country. FATF-restricted countries are not allowed.';
+    if (!selCountry) {
+      e.selCountry = 'Please select a valid country.';
     }
 
     if (!addrLine1.trim()) {
@@ -207,23 +367,52 @@ export default function ForeignAddress() {
     }
   };
 
-  // Button label reflects selected document type (display label, not the enum key).
-  const btnLabel = `Upload '${docType ? proofTypeLabel(docType) : 'Select'}' Front`;
+  // Display label for the selected document type, used in the upload section
+  // titles ("Upload <Document> Front/Back").
+  const docLabel = docType ? proofTypeLabel(docType) : 'Document';
 
-  const handleProceed = () => {
-    // Mark all fields touched so every error becomes visible on submit.
+  // Proceed is enabled once all fields are valid AND both proof files are
+  // selected. It submits everything (fields + files) in one multipart request.
+  const canSubmit = isValid && filesReady && !submitting;
+
+  const handleProceed = async () => {
+    if (submitting) return;
+
+    // Mark all fields touched so every inline error becomes visible on submit.
     setTouched({
       docType: true, docNumber: true, expiryDate: true, selCountry: true,
       addrLine1: true, city: true, addrState: true, pincode: true,
     });
-    if (!isValid) return;
+    if (!isValid) {
+      toast.error('Please fill all the required fields highlighted below.');
+      return;
+    }
 
-    // Persist the whole form so the upload screen can submit it alongside the
-    // proof files. Field names map to the API multipart parts (see
-    // apiService.submitForeignAddress). fa_documentType keeps the display label
-    // for the upload-screen section titles.
-    if (typeof window !== 'undefined') {
-      const address = {
+    const frontFile = getFrontFile();
+    const backFile = getBackFile();
+    // Files have no inline error slot, so call out which proof is missing.
+    if (!frontFile && !backFile) {
+      toast.error('Please upload the front and back of your document.');
+      return;
+    }
+    if (!frontFile) {
+      toast.error('Please upload the front of your document.');
+      return;
+    }
+    if (!backFile) {
+      toast.error('Please upload the back of your document.');
+      return;
+    }
+
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      toast.error('Your session has expired, please start again.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const res = await apiService.submitForeignAddress(applicationId, {
         line1: addrLine1.trim(),
         line2: addrLine2.trim(),
         line3: addrLine3.trim(),
@@ -234,12 +423,57 @@ export default function ForeignAddress() {
         proofType: docType,            // enum key, e.g. "ResidentPermitOrVisa"
         proofNumber: docNumber.trim(),
         expiryDate,                    // YYYY-MM-DD (empty for non-OVD docs)
-      };
-      sessionStorage.setItem('fa_address', JSON.stringify(address));
-      sessionStorage.setItem('fa_documentType', proofTypeLabel(docType));
+        frontFile,
+        backFile,
+      });
+
+      // Navigate per uiMetadata route from the response, fall back to /esign.
+      router.push(routeFromUiMetadata(res) ?? '/esign');
+    } catch {
+      // apiService.handleError already surfaced the backend message.
+    } finally {
+      setSubmitting(false);
     }
-    router.push('/foreignAddress/upload');
   };
+
+  // ── Upload sections (front + back) — rendered below the fields ──────────────
+  // No uploadFn: files are collected locally and submitted together on Proceed.
+  // A previously-saved document (frontInitial / backInitial) is seeded into the
+  // card so it shows in the dropzone preview, just like a freshly cropped image;
+  // the `key` forces a remount once the async fetch resolves.
+  const frontSection = (
+    <div className={uploadStyles.section}>
+      <p className={uploadStyles.sectionTitle}>Upload {docLabel} Front</p>
+      <FileUploadCard
+        key={frontInitial?.id ?? 'front-empty'}
+        initialFiles={frontInitial ? [frontInitial] : undefined}
+        acceptedTypes={ACCEPTED_TYPES}
+        maxSize={MAX_SIZE}
+        acceptedLabel={ACCEPTED_LABEL}
+        sizeErrorMessage={SIZE_ERR}
+        typeErrorMessage={TYPE_ERR}
+        cropImages
+        onFilesChange={setFrontFiles}
+      />
+    </div>
+  );
+
+  const backSection = (
+    <div className={uploadStyles.section}>
+      <p className={uploadStyles.sectionTitle}>Upload {docLabel} Back</p>
+      <FileUploadCard
+        key={backInitial?.id ?? 'back-empty'}
+        initialFiles={backInitial ? [backInitial] : undefined}
+        acceptedTypes={ACCEPTED_TYPES}
+        maxSize={MAX_SIZE}
+        acceptedLabel={ACCEPTED_LABEL}
+        sizeErrorMessage={SIZE_ERR}
+        typeErrorMessage={TYPE_ERR}
+        cropImages
+        onFilesChange={setBackFiles}
+      />
+    </div>
+  );
 
   // ── MOBILE ────────────────────────────────────────────────────────────────
   const mobileLayout = (
@@ -270,6 +504,11 @@ export default function ForeignAddress() {
       {/* White card form */}
       <div className={styles.mobileCard} data-lenis-prevent>
 
+        {/* BRD note — English translation required for non-English documents */}
+        <p className={styles.translationNote}>
+          Note: Requiring English translated copy for non-English documents.
+        </p>
+
         {/* Document Type */}
         <div className={styles.fieldGroup}>
           <label className={styles.fieldLabel} htmlFor="mob-doc-type">Document Type</label>
@@ -298,7 +537,7 @@ export default function ForeignAddress() {
             className={styles.fieldInput}
             placeholder="Enter number"
             value={docNumber}
-            onChange={(e) => setDocNumber(e.target.value.toUpperCase())}
+            onChange={(e) => setDocNumber(e.target.value)}
             onBlur={() => markTouched('docNumber')}
           />
           {errFor('docNumber') && <p className={styles.fieldError}>{errFor('docNumber')}</p>}
@@ -334,7 +573,7 @@ export default function ForeignAddress() {
               onBlur={() => markTouched('selCountry')}
             >
               <option value="" disabled>Select</option>
-              {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              {countryNames.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
             <span className={styles.fieldSelectCaret}><CaretDown /></span>
           </div>
@@ -350,7 +589,7 @@ export default function ForeignAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 1"
             value={addrLine1}
-            onChange={(e) => setAddrLine1(e.target.value.toUpperCase())}
+            onChange={(e) => setAddrLine1(e.target.value.slice(0, 50))}
             onBlur={() => markTouched('addrLine1')}
           />
           {errFor('addrLine1') && <p className={styles.fieldError}>{errFor('addrLine1')}</p>}
@@ -365,7 +604,7 @@ export default function ForeignAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 2"
             value={addrLine2}
-            onChange={(e) => setAddrLine2(e.target.value.toUpperCase())}
+            onChange={(e) => setAddrLine2(e.target.value.slice(0, 50))}
           />
         </div>
 
@@ -378,7 +617,7 @@ export default function ForeignAddress() {
             className={styles.fieldInput}
             placeholder="Enter address line 3"
             value={addrLine3}
-            onChange={(e) => setAddrLine3(e.target.value.toUpperCase())}
+            onChange={(e) => setAddrLine3(e.target.value.slice(0, 50))}
           />
         </div>
 
@@ -392,7 +631,7 @@ export default function ForeignAddress() {
               className={styles.fieldInput}
               placeholder="Enter City"
               value={city}
-              onChange={(e) => setCity(e.target.value.toUpperCase())}
+              onChange={(e) => setCity(e.target.value)}
               onBlur={() => markTouched('city')}
             />
             {errFor('city') && <p className={styles.fieldError}>{errFor('city')}</p>}
@@ -405,7 +644,7 @@ export default function ForeignAddress() {
               className={styles.fieldInput}
               placeholder="Enter State"
               value={addrState}
-              onChange={(e) => setAddrState(e.target.value.toUpperCase())}
+              onChange={(e) => setAddrState(e.target.value)}
               onBlur={() => markTouched('addrState')}
             />
             {errFor('addrState') && <p className={styles.fieldError}>{errFor('addrState')}</p>}
@@ -422,7 +661,7 @@ export default function ForeignAddress() {
             className={styles.fieldInput}
             placeholder="Enter pincode"
             value={pincode}
-            onChange={(e) => setPincode(e.target.value.toUpperCase())}
+            onChange={(e) => setPincode(e.target.value)}
             onBlur={() => markTouched('pincode')}
           />
           {errFor('pincode') && <p className={styles.fieldError}>{errFor('pincode')}</p>}
@@ -434,18 +673,24 @@ export default function ForeignAddress() {
           </div>
         </div>
 
+        {/* Document upload (front + back); saved doc preview sits inside front */}
+        <div className={styles.uploadGroup}>
+          {frontSection}
+          {backSection}
+        </div>
+
       </div>
 
-      {/* Fixed bottom — disabled until every field is valid */}
+      {/* Fixed bottom — disabled until every field is valid and both files added */}
       <div className={styles.mobileProceedArea}>
         <LoadingButton
           type="button"
-          className={`${styles.mobileProceedBtn}${!isValid ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
+          className={`${styles.mobileProceedBtn}${!canSubmit ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
           onClick={handleProceed}
-          disabled={!isValid}
-          aria-disabled={!isValid}
+          disabled={submitting}
+          aria-disabled={!canSubmit}
         >
-          {btnLabel}
+          {submitting ? 'Submitting…' : 'Proceed'}
         </LoadingButton>
       </div>
     </div>
@@ -480,6 +725,10 @@ export default function ForeignAddress() {
               (AppShell's Lenis smooth-scroll otherwise captures the wheel). */}
           <div className={styles.desktopFormArea} data-lenis-prevent>
 
+            {/* BRD note — English translation required for non-English documents */}
+            <p className={styles.translationNote}>
+              Note: Requiring English translated copy for non-English documents.
+            </p>
 
             {/* Document Type */}
             <div className={styles.desktopFieldRow}>
@@ -508,7 +757,7 @@ export default function ForeignAddress() {
                 className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                 placeholder="Enter number"
                 value={docNumber}
-                onChange={(e) => setDocNumber(e.target.value.toUpperCase())}
+                onChange={(e) => setDocNumber(e.target.value)}
                 onBlur={() => markTouched('docNumber')}
                 aria-label="Document Number"
               />
@@ -549,7 +798,7 @@ export default function ForeignAddress() {
                   aria-label="Select Country"
                 >
                   <option value="" disabled>Select</option>
-                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {countryNames.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <span className={styles.deskSelectCaret}><CaretDown /></span>
               </div>
@@ -565,7 +814,7 @@ export default function ForeignAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter address line 1"
                   value={addrLine1}
-                  onChange={(e) => setAddrLine1(e.target.value.toUpperCase())}
+                  onChange={(e) => setAddrLine1(e.target.value.slice(0, 50))}
                   onBlur={() => markTouched('addrLine1')}
                   aria-label="Address Line 1"
                 />
@@ -574,7 +823,7 @@ export default function ForeignAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter address line 2"
                   value={addrLine2}
-                  onChange={(e) => setAddrLine2(e.target.value.toUpperCase())}
+                  onChange={(e) => setAddrLine2(e.target.value.slice(0, 50))}
                   aria-label="Address Line 2"
                 />
               </div>
@@ -588,7 +837,7 @@ export default function ForeignAddress() {
                 className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                 placeholder="Address line 3"
                 value={addrLine3}
-                onChange={(e) => setAddrLine3(e.target.value.toUpperCase())}
+                onChange={(e) => setAddrLine3(e.target.value.slice(0, 50))}
                 aria-label="Address Line 3"
               />
             </div>
@@ -602,7 +851,7 @@ export default function ForeignAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter city"
                   value={city}
-                  onChange={(e) => setCity(e.target.value.toUpperCase())}
+                  onChange={(e) => setCity(e.target.value)}
                   onBlur={() => markTouched('city')}
                   aria-label="City"
                 />
@@ -611,7 +860,7 @@ export default function ForeignAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
                   placeholder="Enter state (optional)"
                   value={addrState}
-                  onChange={(e) => setAddrState(e.target.value.toUpperCase())}
+                  onChange={(e) => setAddrState(e.target.value)}
                   onBlur={() => markTouched('addrState')}
                   aria-label="State (Optional)"
                 />
@@ -631,12 +880,12 @@ export default function ForeignAddress() {
                   className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                   placeholder="Enter pincode"
                   value={pincode}
-                  onChange={(e) => setPincode(e.target.value.toUpperCase())}
+                  onChange={(e) => setPincode(e.target.value)}
                   onBlur={() => markTouched('pincode')}
                   aria-label="Pincode"
                 />
               </div>
-              {errFor('pincode') && <p className={styles.desktopFieldError}>{errFor('pincode')}</p>}
+              {errFor('pincode') && <p className={styles.desktopPincodeError}>{errFor('pincode')}</p>}
               <div className={styles.desktopPincodeHint}>
                 <InfoIcon color="#3b4c72" />
                 <p className={styles.desktopPincodeHintText}>
@@ -645,18 +894,24 @@ export default function ForeignAddress() {
               </div>
             </div>
 
+            {/* Document upload (front + back); saved doc preview sits inside front */}
+            <div className={styles.uploadGroup}>
+              {frontSection}
+              {backSection}
+            </div>
+
           </div>
 
-          {/* Proceed — disabled until every field is valid */}
+          {/* Proceed — disabled until every field is valid and both files added */}
           <div className={styles.desktopProceedWrapper}>
             <LoadingButton
               type="button"
-              className={`${styles.desktopProceedBtn}${!isValid ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
+              className={`${styles.desktopProceedBtn}${!canSubmit ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
               onClick={handleProceed}
-              disabled={!isValid}
-              aria-disabled={!isValid}
+              disabled={submitting}
+              aria-disabled={!canSubmit}
             >
-              {btnLabel}
+              {submitting ? 'Submitting…' : 'Proceed'}
             </LoadingButton>
           </div>
         </div>

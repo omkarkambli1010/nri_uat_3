@@ -302,9 +302,26 @@ export default function PlanPreference() {
       if (Array.isArray(plans) && plans.length > 0) {
         const sorted = [...plans].sort((a, b) => a.feeInPaise - b.feeInPaise);
         setApiPlans(sorted);
+
+        // Default to the stored index (or the first plan).
         const stored      = sessionStorage.getItem('selectedPlan');
         const restoredIdx = stored !== null ? parseInt(stored, 10) : 0;
-        setSelectedIndex(Math.min(restoredIdx, sorted.length - 1));
+        let selectedIdx   = Math.min(restoredIdx, sorted.length - 1);
+
+        // Pre-select the previously-saved plan from the PLANSELECTION stage by
+        // matching planId, when one exists.
+        try {
+          const saved       = await apiService.getPlanSelectionWorkflow(applicationId);
+          const savedPlanId = saved?.data?.planId;
+          if (savedPlanId) {
+            const matchIdx = sorted.findIndex((p) => p.id === savedPlanId);
+            if (matchIdx >= 0) selectedIdx = matchIdx;
+          }
+        } catch {
+          // Non-fatal — keep the stored/default selection.
+        }
+
+        setSelectedIndex(selectedIdx);
       } else {
         setPlansError('No plans available at the moment.');
       }

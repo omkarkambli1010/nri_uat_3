@@ -170,7 +170,7 @@ export default function OccupDetails() {
   const goBack = () => {
     showSpinner();
     setTimeout(() => {
-      router.back();
+      router.push("/personalDetailsForm/3");
       hideSpinner();
     }, 200);
   };

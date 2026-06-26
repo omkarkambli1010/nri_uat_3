@@ -51,10 +51,8 @@
 // 'visa'                             → src/app/visa/page.tsx
 // 'visa/upload'                      → src/app/visa/upload/page.tsx
 // 'permanent-address-details'        → src/app/permanent-address-details/page.tsx
-// 'foreignAddress'                   → src/app/foreignAddress/page.tsx
-// 'foreignAddress/upload'            → src/app/foreignAddress/upload/page.tsx
-// 'permanentAddress'                 → src/app/permanentAddress/page.tsx
-// 'permanentAddress/upload'          → src/app/permanentAddress/upload/page.tsx
+// 'foreignAddress'                   → src/app/foreignAddress/page.tsx (fields + upload, single page)
+// 'permanentAddress'                 → src/app/permanentAddress/page.tsx (fields + upload, single page)
 // 'page-not-found'                   → src/app/page-not-found/page.tsx
 // '**' (catch-all)                   → src/app/not-found.tsx
 

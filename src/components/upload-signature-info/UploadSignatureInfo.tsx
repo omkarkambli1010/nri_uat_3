@@ -109,7 +109,7 @@ export default function UploadSignatureInfo() {
   const goBack = () => {
     showSpinner();
     setTimeout(() => {
-      router.push('/CaptureSelfie/2');
+      router.push('/planprocess/2');
       hideSpinner();
     }, 200);
   };
