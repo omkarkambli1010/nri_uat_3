@@ -337,19 +337,23 @@ class APIService {
   async submitFatca(
     applicationId: string,
     data: {
+      // POST /fatca binds the array from "residencies" (the stagewise READ model
+      // exposes it as "taxResidencies", but the submit contract is "residencies").
       residencies: {
-        countryCode: string;            // ISO-2 of Country of TAX Residence
+        countryCode: string;                 // ISO-2 of Country of TAX Residence
         tin: string;
-        tinProofDocumentId: string;     // image slot 1
-        tinProofDocumentId2: string;    // image slot 2
-        tinProofDocumentId3: string;    // image slot 3
-        countryofTaxResidence: string;  // full country name
-        tinIssuingCountry: string;      // full country name
+        // GUID fields — send null (not "") for empty slots, else binding fails
+        // and the residency is dropped server-side.
+        tinProofDocumentId: string | null;   // image slot 1
+        tinProofDocumentId2: string | null;  // image slot 2
+        tinProofDocumentId3: string | null;  // image slot 3
+        countryofTaxResidence: string;       // full country name
+        tinIssuingCountry: string;           // full country name
       }[];
       usCitizen: boolean;
       countryOfBirth: string;
       idempotencyKey: string;
-      citizenship: string;              // full country name
+      Citizenship: string;              // full country name (capital C per contract)
     },
     hideSpinner?: () => void,
   ): Promise<any> {
@@ -909,6 +913,46 @@ class APIService {
     hideSpinner?: () => void,
   ): Promise<any> {
     return this.getWorkflowStageData(applicationId, "FOREIGNADDRESS", hideSpinner);
+  }
+
+  async getVisaWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "VISA", hideSpinner);
+  }
+
+  async getFatcaWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "FATCA", hideSpinner);
+  }
+
+  // OCI / PIO share the workflow endpoint; the stage is chosen by the selected
+  // card type (OCI → "OCI", PIO → "PIO").
+  async getOciPoiWorkflow(
+    applicationId: string,
+    cardType: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    const stage = String(cardType).toUpperCase() === "PIO" ? "PIO" : "OCI";
+    return this.getWorkflowStageData(applicationId, stage, hideSpinner);
+  }
+
+  async getPassportWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "PASSPORT", hideSpinner);
+  }
+
+  // Permanent (Indian) address — stage name is "INDIANADDRESS".
+  async getPermanentAddressWorkflow(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    return this.getWorkflowStageData(applicationId, "INDIANADDRESS", hideSpinner);
   }
 
 }

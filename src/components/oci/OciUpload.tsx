@@ -1,15 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import apiService from '@/services/api.service';
 
 // OciUpload — Screen 1: Document Type + Card No. form
 // Figma: Onboarding-Mob-OCI/PIO-Upload (0:38489 empty / 0:38815 filled)
 //        Figma: Onboarding-Web-OCI/PIO-Upload (0:38576 / 0:38902)
 
 type DocType = 'OCI' | 'PIO' | '';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
 const DOC_OPTIONS: { value: DocType; label: string }[] = [
   { value: 'OCI', label: 'OCI' },
@@ -38,12 +42,66 @@ export default function OciUpload() {
   const [docType, setDocType]   = useState<DocType>('');
   const [cardNo, setCardNo]     = useState('');
 
+  // Saved card number per type, prefilled from the OCI/PIO workflow stages so the
+  // dropdown + Card No. restore on revisit and the number swaps with the type.
+  const [savedByType, setSavedByType] = useState<Record<string, string>>({});
+
+  // Prefill from the saved OCI/PIO stage. The user could have saved either type,
+  // so fetch both and bind whichever has data (most recently updated wins).
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) return;
+
+    let alive = true;
+    (async () => {
+      const [oci, pio] = await Promise.all([
+        apiService.getOciPoiWorkflow(applicationId, 'OCI').catch(() => null),
+        apiService.getOciPoiWorkflow(applicationId, 'PIO').catch(() => null),
+      ]);
+      if (!alive) return;
+
+      const candidates: { type: 'OCI' | 'PIO'; cardNumber: string; updatedAt: string }[] = [];
+      const grab = (res: any, type: 'OCI' | 'PIO') => {
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (!d || (d.cardType == null && d.cardNumber == null)) return;
+        candidates.push({
+          type,
+          cardNumber: d.cardNumber == null ? '' : String(d.cardNumber),
+          updatedAt: d.updatedAt == null ? '' : String(d.updatedAt),
+        });
+      };
+      grab(oci, 'OCI');
+      grab(pio, 'PIO');
+
+      const map: Record<string, string> = {};
+      for (const c of candidates) map[c.type] = c.cardNumber;
+      setSavedByType(map);
+
+      // Bind whichever type was saved most recently.
+      const pick = candidates.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
+      if (pick) {
+        setDocType(pick.type);
+        setCardNo(pick.cardNumber);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Switching the type restores that type's saved Card No. (if any).
+  const handleDocTypeChange = (value: DocType) => {
+    setDocType(value);
+    if (value && savedByType[value] != null) setCardNo(savedByType[value]);
+  };
+
   const handleBack = () => router.back();
 
-  // Button label changes dynamically with selection (Figma: "Upload 'OCI' Front")
+  // Button label changes dynamically with selection (Figma: "Upload OCI Front")
   const buttonLabel = docType
-    ? `Upload '${docType}' Front`
-    : "Upload 'Select' Front";
+    ? `Upload ${docType} Front`
+    : 'Upload Select Front';
 
   const isDisabled = docType === '' || cardNo.trim() === '';
 
@@ -91,7 +149,7 @@ export default function OciUpload() {
                 id="mob-doc-type"
                 className={`${styles.fieldSelect}${docType === '' ? ` ${styles.placeholder}` : ''}`}
                 value={docType}
-                onChange={(e) => setDocType(e.target.value as DocType)}
+                onChange={(e) => handleDocTypeChange(e.target.value as DocType)}
               >
                 <option value="" disabled hidden>Select</option>
                 {DOC_OPTIONS.map((o) => (
@@ -162,7 +220,7 @@ export default function OciUpload() {
                       id="desk-doc-type"
                       className={`${styles.fieldSelect}${docType === '' ? ` ${styles.placeholder}` : ''}`}
                       value={docType}
-                      onChange={(e) => setDocType(e.target.value as DocType)}
+                      onChange={(e) => handleDocTypeChange(e.target.value as DocType)}
                     >
                       <option value="" disabled hidden>Select</option>
                       {DOC_OPTIONS.map((o) => (

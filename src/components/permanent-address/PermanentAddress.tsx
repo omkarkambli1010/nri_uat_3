@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './permanent-address.module.scss';
@@ -8,10 +8,44 @@ import uploadStyles from '@/components/oci/oci.module.scss';
 import { FOREIGN_UPLOAD_TYPES, PERMANENT_UPLOAD_TYPES } from '@/constants/foreignUpload-type';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useCountryNames } from '@/components/country-select/useCountries';
+import { useSpinner } from '@/components/spinner/Spinner';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
+import { environment } from '@/environments/environment';
+
+// Fetch a saved document URL into a real File + preview so it renders in the
+// dropzone AND can be re-submitted on Proceed. S3 presigned URLs aren't
+// CORS-enabled, so fetch via the same-origin proxy route. Returns null on failure.
+const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
+  if (!url) return null;
+  try {
+    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
+    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
+    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
+    const file = new File([blob], `proof-document.${ext}`, { type });
+    return {
+      id: `saved-${url.slice(-24)}`,
+      file,
+      status: 'success',
+      progress: 100,
+      previewUrl: URL.createObjectURL(file),
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Pull a presigned URL out of a documents[] entry across key casings.
+const pickUrl = (doc: Record<string, unknown>): string => {
+  const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
+  return v == null ? '' : String(v);
+};
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -154,6 +188,90 @@ export default function PermanentAddress() {
   const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
+  // Previously-uploaded proof documents seeded into the front/back cards on revisit.
+  const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
+  const [backInitial, setBackInitial] = useState<UploadedFile | null>(null);
+
+  // Gate the form on the prefill (fields + document previews) so it never flashes
+  // empty or half-bound; the global loader stays up until it settles.
+  const { show: showSpinner, hide: hideSpinner } = useSpinner();
+  const [prefillDone, setPrefillDone] = useState(false);
+
+  // Prefill from the saved INDIANADDRESS stage (POST …/get/workflow/stagewisedate
+  // { stagename: "INDIANADDRESS" }) so a revisit shows the previously-entered
+  // address and proof document previews.
+  useEffect(() => {
+    showSpinner();
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      setPrefillDone(true);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getPermanentAddressWorkflow(applicationId);
+        if (!alive) return;
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (!d) return;
+
+        const str = (v: unknown): string => (v == null ? '' : String(v));
+        if (str(d.line1)) setAddrLine1(str(d.line1));
+        if (str(d.line2)) setAddrLine2(str(d.line2));
+        if (str(d.line3)) setAddrLine3(str(d.line3));
+        if (str(d.city)) setCity(str(d.city));
+        if (str(d.state)) setAddrState(str(d.state));
+        if (str(d.pincode)) setPincode(str(d.pincode));
+        if (str(d.country)) setSelCountry(str(d.country));
+        if (str(d.proofNumber)) setDocNumber(str(d.proofNumber));
+        if (str(d.expiryDate)) setExpiryDate(str(d.expiryDate));
+
+        const docs = Array.isArray(res?.documents)
+          ? (res.documents as Record<string, unknown>[])
+          : [];
+
+        // Document Type — prefer the saved proof's documentType, fall back to
+        // data.proofType. Match against the enum keys AND display labels.
+        const matchDocType = (value: string): string | undefined => {
+          const v = value.trim().toLowerCase();
+          if (!v) return undefined;
+          const hit = DOCUMENT_TYPE_ENTRIES.find(
+            ([key, label]) => key.toLowerCase() === v || label.toLowerCase() === v,
+          );
+          return hit?.[0];
+        };
+        const docTypeKey =
+          matchDocType(str(docs[0]?.documentType)) ?? matchDocType(str(d.proofType));
+        if (docTypeKey) setDocType(docTypeKey);
+
+        const urls = docs.map((doc) => pickUrl(doc)).filter(Boolean);
+        const [front, back] = await Promise.all([
+          urls[0] ? buildInitialFile(urls[0]) : Promise.resolve(null),
+          urls[1] ? buildInitialFile(urls[1]) : Promise.resolve(null),
+        ]);
+        if (!alive) return;
+        if (front) setFrontInitial(front);
+        if (back) setBackInitial(back);
+      } catch {
+        // Non-fatal — the form just stays empty.
+      } finally {
+        if (alive) setPrefillDone(true);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (prefillDone) hideSpinner();
+    return () => hideSpinner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillDone]);
+
   const getFrontFile = (): File | null =>
     frontFiles.find((f) => f.file instanceof File)?.file ?? null;
   const getBackFile = (): File | null =>
@@ -177,9 +295,8 @@ export default function PermanentAddress() {
     }
   };
 
-  // Enabled only once every required field is filled. Address line 2 & 3 are
-  // optional (line 3 has no "Enter…" placeholder in Figma). Expiry is only
-  // required for documents that carry one.
+  // Enabled only once every required field is filled. Address line 2 & 3 and
+  // State are optional. Expiry is only required for documents that carry one.
   const isDisabled =
     !docType ||
     !docNumber.trim() ||
@@ -187,7 +304,6 @@ export default function PermanentAddress() {
     !selCountry ||
     !addrLine1.trim() ||
     !city.trim() ||
-    !addrState.trim() ||
     !pincode.trim();
 
   // Proceed is enabled once all fields are filled AND both proof files are
@@ -248,6 +364,8 @@ export default function PermanentAddress() {
     <div className={uploadStyles.section}>
       <p className={uploadStyles.sectionTitle}>Upload {docLabel} Front</p>
       <FileUploadCard
+        key={frontInitial?.id ?? 'front-empty'}
+        initialFiles={frontInitial ? [frontInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -263,6 +381,8 @@ export default function PermanentAddress() {
     <div className={uploadStyles.section}>
       <p className={uploadStyles.sectionTitle}>Upload {docLabel} Back</p>
       <FileUploadCard
+        key={backInitial?.id ?? 'back-empty'}
+        initialFiles={backInitial ? [backInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -421,7 +541,7 @@ export default function PermanentAddress() {
             />
           </div>
           <div className={styles.mobileRowField}>
-            <label className={styles.fieldLabel} htmlFor="mob-state">State</label>
+            <label className={styles.fieldLabel} htmlFor="mob-state">State (Optional)</label>
             <input
               id="mob-state"
               type="text"
@@ -471,7 +591,7 @@ export default function PermanentAddress() {
           disabled={!canSubmit}
           aria-disabled={!canSubmit}
         >
-          {submitting ? 'Submitting…' : 'Proceed'}
+          {submitting ? 'Submitting' : 'Proceed'}
         </LoadingButton>
       </div>
     </div>
@@ -626,7 +746,7 @@ export default function PermanentAddress() {
                 <input
                   type="text"
                   className={`${styles.deskInput} ${styles.desktopInputHalf}`}
-                  placeholder="Enter state"
+                  placeholder="Enter state (optional)"
                   value={addrState}
                   onChange={(e) => setAddrState(e.target.value)}
                   aria-label="State"
@@ -674,7 +794,7 @@ export default function PermanentAddress() {
               disabled={!canSubmit}
               aria-disabled={!canSubmit}
             >
-              {submitting ? 'Submitting…' : 'Proceed'}
+              {submitting ? 'Submitting' : 'Proceed'}
             </LoadingButton>
           </div>
         </div>

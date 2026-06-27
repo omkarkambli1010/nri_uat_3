@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './visa.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import apiService from '@/services/api.service';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
 // VisaEntry — /visa entry screen (Figma node 0:119049 mobile, 0:119133 desktop).
 // One field — Select Visa Expiry — and a single "Upload" button that routes
@@ -51,6 +55,36 @@ function IconExclamationCircle() {
 export default function VisaEntry() {
   const router = useRouter();
   const [expiryDate, setExpiryDate] = useState('');
+
+  // Prefill the expiry from the saved VISA stage (POST …/get/workflow/
+  // stagewisedate { stagename: "VISA" }) so a revisit shows the previously
+  // entered visa expiry date.
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getVisaWorkflow(applicationId);
+        if (!alive) return;
+        const d = res?.data as Record<string, unknown> | undefined;
+        const saved = d?.expiryDate == null ? '' : String(d.expiryDate);
+        if (saved) {
+          setExpiryDate(saved);
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('visaExpiryDate', saved);
+          }
+        }
+      } catch {
+        // Non-fatal — the field just stays empty.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const expired = isExpired(expiryDate);
   // Mirrors original /visa behaviour: button greys out only when empty; an

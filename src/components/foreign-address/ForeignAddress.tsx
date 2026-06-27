@@ -690,7 +690,7 @@ export default function ForeignAddress() {
           disabled={submitting}
           aria-disabled={!canSubmit}
         >
-          {submitting ? 'Submitting…' : 'Proceed'}
+          {submitting ? 'Submitting' : 'Proceed'}
         </LoadingButton>
       </div>
     </div>
@@ -911,7 +911,7 @@ export default function ForeignAddress() {
               disabled={submitting}
               aria-disabled={!canSubmit}
             >
-              {submitting ? 'Submitting…' : 'Proceed'}
+              {submitting ? 'Submitting' : 'Proceed'}
             </LoadingButton>
           </div>
         </div>

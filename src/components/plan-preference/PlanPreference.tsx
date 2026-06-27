@@ -449,7 +449,7 @@ export default function PlanPreference() {
             disabled={isProceeding}
             onClick={(e) => { e.stopPropagation(); setSelectedIndex(i); proceedWithPlan(i); }}
           >
-            {isThisProceeding ? 'Processing…' : 'Proceed'}
+            {isThisProceeding ? 'Processing' : 'Proceed'}
           </LoadingButton>
           <button
             type="button"
@@ -559,7 +559,7 @@ export default function PlanPreference() {
                 proceedWithPlan(i);
               }}
             >
-              {isThisProceeding ? 'Processing…' : 'Proceed'}
+              {isThisProceeding ? 'Processing' : 'Proceed'}
             </LoadingButton>
             <button
               type="button"
@@ -669,7 +669,7 @@ export default function PlanPreference() {
                   disabled={isProceeding}
                   onClick={() => proceedWithPlan(0)}
                 >
-                  {isThisProceeding ? 'Processing…' : 'Proceed'}
+                  {isThisProceeding ? 'Processing' : 'Proceed'}
                 </LoadingButton>
 
                 {proceedError && (
@@ -760,7 +760,7 @@ export default function PlanPreference() {
                         disabled={isProceeding}
                         onClick={() => isSelected ? proceedWithPlan(i) : setSelectedIndex(i)}
                       >
-                        {isThisProceeding ? 'Processing…' : isSelected ? 'Selected' : 'Select'}
+                        {isThisProceeding ? 'Processing' : isSelected ? 'Selected' : 'Select'}
                       </button>
                     </div>
                   );

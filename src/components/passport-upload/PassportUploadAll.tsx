@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
@@ -9,8 +9,45 @@ import { getLoadedCountries } from '@/components/country-select/countries';
 import { useCountries } from '@/components/country-select/useCountries';
 import { apiService } from '@/services/api.service';
 import { toast } from '@/services/toast.service';
+import { environment } from '@/environments/environment';
+import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './passport-upload.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+
+// Fetch a saved document URL into a real File + preview so it renders in the
+// dropzone. S3 presigned URLs aren't CORS-enabled, so fetch via the same-origin
+// proxy route (basePath-aware). Returns null on failure / empty url.
+const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
+  if (!url) return null;
+  try {
+    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
+    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
+    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
+    const file = new File([blob], `passport-document.${ext}`, { type });
+    return {
+      id: `saved-${url.slice(-24)}`,
+      file,
+      status: 'success',
+      progress: 100,
+      previewUrl: URL.createObjectURL(file),
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Pull a presigned URL out of a documents[] entry across key casings.
+const pickUrl = (doc: Record<string, unknown>): string => {
+  const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
+  return v == null ? '' : String(v);
+};
 
 // PassportUploadAll — all-in-one Passport screen.
 // Two sections:
@@ -267,16 +304,31 @@ export default function PassportUploadAll() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
-  const passportType = searchParams.get('type') ?? 'Indian';
+  // Seeded from the ?type= query param, then overridden by the saved PASSPORT
+  // stage (data.passportType) once the prefill applies.
+  const [passportType, setPassportType] = useState(searchParams.get('type') ?? 'Indian');
   const isIndian     = passportType === 'Indian';
 
-  const { countries } = useCountries();
+  const { countries, loading: countriesLoading } = useCountries();
   const nationalityOptions = isIndian
     ? countries
     : countries.filter((c) => c.name !== 'India');
 
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
+
+  // Previously-uploaded passport images seeded into the cards on revisit.
+  const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
+  const [backInitial,  setBackInitial]  = useState<UploadedFile | null>(null);
+
+  // Saved PASSPORT stage payload, fetched once; the details are applied once the
+  // country list has loaded (so nationality resolves to a dropdown option).
+  const [savedData, setSavedData] = useState<Record<string, unknown> | null>(null);
+  const prefilledRef = useRef(false);
+
+  // Gate the upload cards on the prefill so they mount once already-bound.
+  const { show: showSpinner, hide: hideSpinner } = useSpinner();
+  const [prefillDone, setPrefillDone] = useState(false);
 
   const [fullName,       setFullName]       = useState('');
   const [dob,            setDob]            = useState('');
@@ -384,7 +436,94 @@ export default function PassportUploadAll() {
   // Details are filled only from the FRONT image (real OCR happens in
   // makeUploadFn('FrontFile')). Do NOT fill on back upload — otherwise skipping
   // the front and uploading the back would populate the fields unexpectedly.
-  useEffect(() => { if (frontUploaded) fillMockDetails(); }, [frontUploaded]);
+  // Skip when we have saved-stage data — the prefill below provides the real values.
+  useEffect(() => { if (frontUploaded && !savedData) fillMockDetails(); }, [frontUploaded, savedData]);
+
+  // Prefill from the saved PASSPORT stage (POST …/get/workflow/stagewisedate
+  // { stagename: "PASSPORT" }) — fetch the payload + seed the front/back previews.
+  useEffect(() => {
+    showSpinner();
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      setPrefillDone(true);
+      return;
+    }
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getPassportWorkflow(applicationId);
+        if (!alive) return;
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (d) setSavedData(d);
+
+        const docs = Array.isArray(res?.documents)
+          ? (res.documents as Record<string, unknown>[])
+          : [];
+        const urlFor = (type: string): string => {
+          const hit = docs.find(
+            (doc) => String(doc.documentType ?? '').toLowerCase() === type,
+          );
+          return hit ? pickUrl(hit) : '';
+        };
+        const [front, back] = await Promise.all([
+          buildInitialFile(urlFor('passportfront')),
+          buildInitialFile(urlFor('passportback')),
+        ]);
+        if (!alive) return;
+        if (front) setFrontInitial(front);
+        if (back) setBackInitial(back);
+      } catch {
+        // Non-fatal — the cards just stay empty.
+      } finally {
+        if (alive) setPrefillDone(true);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply the fetched details once the country list has loaded (so nationality
+  // resolves to a dropdown option). Guarded so it applies once and the previews
+  // enable the Edit pencil + Proceed gate.
+  useEffect(() => {
+    if (!savedData || countriesLoading || prefilledRef.current) return;
+    prefilledRef.current = true;
+
+    const d = savedData;
+    const str = (v: unknown): string => (v == null ? '' : String(v));
+    // passportNumber arrives as { value, type } on this stage.
+    const pnoRaw = d.passportNumber;
+    const pno =
+      pnoRaw && typeof pnoRaw === 'object'
+        ? str((pnoRaw as Record<string, unknown>).value)
+        : str(pnoRaw);
+
+    if (str(d.passportType)) setPassportType(str(d.passportType));
+    if (str(d.holderName)) setFullName(str(d.holderName));
+    if (str(d.holderDob)) setDob(normalizeIso(str(d.holderDob)));
+    if (pno) setPassportNumber(pno);
+    if (str(d.issueDate)) setIssueDate(normalizeIso(str(d.issueDate)));
+    if (str(d.expiryDate)) setExpiryDate(normalizeIso(str(d.expiryDate)));
+    if (str(d.nationality)) setNationality(resolveCountryName(str(d.nationality)));
+    if (str(d.gender)) setGender(str(d.gender));
+    if (str(d.issuingCountry)) setPlaceOfIssue(str(d.issuingCountry));
+
+    // Stage data is trusted (not user-edited) and unlocks the Edit pencil.
+    setDetailsFetched(true);
+    setDetailsEdited(false);
+    setErrors({});
+  }, [savedData, countriesLoading]);
+
+  // Hide the loader once the prefill (fetch + previews) has settled.
+  useEffect(() => {
+    if (prefillDone) hideSpinner();
+    return () => hideSpinner();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefillDone]);
 
   const isDisabled =
     // Disabled while the details are being edited — re-enabled only on Save
@@ -499,7 +638,7 @@ export default function PassportUploadAll() {
           aria-pressed={editing}
           title={disabled ? 'Upload your passport front to edit' : editing ? 'Save' : 'Edit'}
         >
-          {editing ? (saving ? 'Saving…' : 'Save') : <IconEdit />}
+          {editing ? (saving ? 'Saving' : 'Save') : <IconEdit />}
         </button>
       </div>
     );
@@ -673,6 +812,8 @@ export default function PassportUploadAll() {
         <p className={styles.sectionTitle}>Upload Passport Front</p>
       </div>
       <FileUploadCard
+        key={frontInitial?.id ?? 'front-empty'}
+        initialFiles={frontInitial ? [frontInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -701,6 +842,8 @@ export default function PassportUploadAll() {
         <p className={styles.sectionTitle}>Upload Passport Back</p>
       </div>
       <FileUploadCard
+        key={backInitial?.id ?? 'back-empty'}
+        initialFiles={backInitial ? [backInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}

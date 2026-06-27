@@ -11,13 +11,33 @@ export function useFileUpload(config: FileUploadConfig) {
   configRef.current = config;
 
   useEffect(() => {
-    // Track any object URLs supplied with initial files so they're revoked on
-    // unmount alongside the ones we create here.
-    configRef.current.initialFiles?.forEach((f) => {
-      if (f.previewUrl) urlsRef.current.add(f.previewUrl);
+    // (Re)create object URLs for seeded image files on mount. A blob URL passed
+    // in via initialFiles (e.g. from a saved-document preview) is unsafe: React
+    // strict mode runs effects mount→unmount→mount, and the cleanup below would
+    // revoke that URL on the simulated unmount, leaving the <img> pointing at a
+    // dead URL (blank preview). Generating a fresh URL we own here — replacing
+    // any passed-in one — survives the remount and is revoked only on real unmount.
+    setFiles((prev) => {
+      let changed = false;
+      const next = prev.map((f) => {
+        if (f.file && !f.isValidationError && isImageFile(f.file)) {
+          if (f.previewUrl) {
+            try { URL.revokeObjectURL(f.previewUrl); } catch { /* ignore */ }
+          }
+          const url = URL.createObjectURL(f.file);
+          urlsRef.current.add(url);
+          changed = true;
+          return { ...f, previewUrl: url };
+        }
+        return f;
+      });
+      return changed ? next : prev;
     });
     const urls = urlsRef.current;
-    return () => urls.forEach(u => URL.revokeObjectURL(u));
+    return () => {
+      urls.forEach((u) => URL.revokeObjectURL(u));
+      urls.clear();
+    };
   }, []);
 
   const runUpload = useCallback((id: string, file: File) => {

@@ -8,6 +8,7 @@ import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import { useCountries } from '@/components/country-select/useCountries';
+import { environment } from '@/environments/environment';
 import styles from './visa.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 
@@ -176,6 +177,37 @@ const pickDocId = (r: unknown): string => {
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
+// Fetch a saved document URL into a real File + preview so it can be shown in
+// the dropzone. S3 presigned URLs aren't CORS-enabled, so fetch via the
+// same-origin proxy route (basePath-aware). Returns null on failure.
+const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
+  try {
+    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
+    const resp = await fetch(proxied);
+    if (!resp.ok) return null;
+    const blob = await resp.blob();
+    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
+    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
+    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
+    const file = new File([blob], `visa-document.${ext}`, { type });
+    return {
+      id: `saved-${url.slice(-24)}`,
+      file,
+      status: 'success',
+      progress: 100,
+      previewUrl: URL.createObjectURL(file),
+    };
+  } catch {
+    return null;
+  }
+};
+
+// Pick a document's presigned URL out of a documents[] entry across key casings.
+const pickUrl = (doc: Record<string, unknown>): string => {
+  const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
+  return v == null ? '' : String(v);
+};
+
 export default function VisaUpload() {
   const router = useRouter();
   // /visa entry stores the picked expiry in sessionStorage before routing here;
@@ -185,6 +217,13 @@ export default function VisaUpload() {
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
   const [additionalFiles, setAdditionalFiles] = useState<UploadedFile[]>([]);
+
+  // Previously-uploaded visa documents (from the saved VISA stage) seeded into
+  // the Front/Back/Additional upload cards so they render in the dropzone
+  // preview. Keyed so each card remounts once the async fetch resolves.
+  const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
+  const [backInitial, setBackInitial] = useState<UploadedFile | null>(null);
+  const [additionalInitial, setAdditionalInitial] = useState<UploadedFile | null>(null);
 
   // Document ids returned by each successful upload (200) — sent in the final
   // POST /visa. Mirrored into sessionStorage per requirement.
@@ -247,6 +286,84 @@ export default function VisaUpload() {
     if (initial) setExpiryDate(v => v || initial);
   }, [searchParams]);
 
+  // Prefill from the saved VISA stage (POST …/get/workflow/stagewisedate
+  // { stagename: "VISA" }) so a revisit shows the previously-entered details,
+  // the captured document ids, and the uploaded document previews.
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getVisaWorkflow(applicationId);
+        if (!alive) return;
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (!d) return;
+
+        const str = (v: unknown): string => (v == null ? '' : String(v));
+
+        if (str(d.visaType)) setDocumentType(str(d.visaType));
+        if (str(d.visaNumber)) setDocumentNumber(str(d.visaNumber));
+        if (str(d.issueDate)) setIssueDate(str(d.issueDate));
+        if (str(d.expiryDate)) setExpiryDate(str(d.expiryDate));
+        // Country name from the response; the iso2 code backing the dropdown is
+        // resolved in the effect below once the country list has loaded.
+        if (str(d.issuingCountry)) setCountry(str(d.issuingCountry));
+
+        // Captured document ids — also persisted so buildVisaPayload() picks
+        // them up even before state settles.
+        const front = str(d.frontDocumentId);
+        const back = str(d.backDocumentId);
+        const translation = str(d.translationDocumentId);
+        if (front) { setFrontDocumentId(front); sessionStorage.setItem('frontDocumentId', front); }
+        if (back) { setBackDocumentId(back); sessionStorage.setItem('backDocumentId', back); }
+        if (translation) {
+          setTranslationDocumentId(translation);
+          sessionStorage.setItem('translationDocumentId', translation);
+        }
+
+        // Saved document previews from documents[] (keyed by documentType).
+        const docs = Array.isArray(res?.documents)
+          ? (res.documents as Record<string, unknown>[])
+          : [];
+        const urlFor = (type: string): string => {
+          const hit = docs.find((doc) => str(doc.documentType).toLowerCase() === type.toLowerCase());
+          return hit ? pickUrl(hit) : '';
+        };
+        const frontUrl = urlFor('VisaFront');
+        const backUrl = urlFor('VisaBack');
+        const translationUrl = urlFor('VisaTranslation');
+
+        const [frontFile, backFile, translationFile] = await Promise.all([
+          frontUrl ? buildInitialFile(frontUrl) : Promise.resolve(null),
+          backUrl ? buildInitialFile(backUrl) : Promise.resolve(null),
+          translationUrl ? buildInitialFile(translationUrl) : Promise.resolve(null),
+        ]);
+        if (!alive) return;
+        if (frontFile) setFrontInitial(frontFile);
+        if (backFile) setBackInitial(backFile);
+        if (translationFile) setAdditionalInitial(translationFile);
+      } catch {
+        // Non-fatal — the form just stays empty.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Resolve the Country dropdown's iso2 code from the prefilled country name once
+  // the country list has loaded (the response carries the name, not the code).
+  useEffect(() => {
+    if (!country || countryCode || countryOptions.length === 0) return;
+    const hit = countryOptions.find(
+      (c) => c.name.toLowerCase() === country.toLowerCase(),
+    );
+    if (hit) setCountryCode(hit.iso2);
+  }, [country, countryCode, countryOptions]);
+
   // Real upload — POST the cropped file to documents/upload and capture the
   // returned documentId (also persisted to sessionStorage). Rejecting marks the
   // FileUploadCard as failed so the success state only reflects a real 200.
@@ -298,8 +415,11 @@ export default function VisaUpload() {
   }, [additionalFiles]);
 
   // Proceed gate — both files uploaded AND every visa field filled. The
-  // additional document stays optional, so it never blocks Proceed.
+  // additional document stays optional, so it never blocks Proceed. While the
+  // details card is in edit mode, Proceed stays disabled until the user clicks
+  // Save (which exits edit mode); clicking Save with no changes re-enables it.
   const isDisabled =
+    editMode ||
     !frontUploaded ||
     !backUploaded ||
     !documentType.trim() ||
@@ -421,6 +541,8 @@ export default function VisaUpload() {
         <p className={styles.sectionTitle}>Upload Visa Front</p>
       </div>
       <FileUploadCard
+        key={frontInitial?.id ?? 'front-empty'}
+        initialFiles={frontInitial ? [frontInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -439,6 +561,8 @@ export default function VisaUpload() {
         <p className={styles.sectionTitle}>Upload Visa Back</p>
       </div>
       <FileUploadCard
+        key={backInitial?.id ?? 'back-empty'}
+        initialFiles={backInitial ? [backInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -459,6 +583,8 @@ export default function VisaUpload() {
         <p className={styles.sectionTitle}>Upload Additional Document</p>
       </div>
       <FileUploadCard
+        key={additionalInitial?.id ?? 'additional-empty'}
+        initialFiles={additionalInitial ? [additionalInitial] : undefined}
         acceptedTypes={ACCEPTED_TYPES}
         maxSize={MAX_SIZE}
         acceptedLabel={ACCEPTED_LABEL}
@@ -498,7 +624,7 @@ export default function VisaUpload() {
             aria-pressed
             title="Save"
           >
-            {submitting ? 'Saving…' : 'Save'}
+            {submitting ? 'Saving' : 'Save'}
           </button>
         </div>
       ) : (
@@ -644,7 +770,7 @@ export default function VisaUpload() {
             disabled={isDisabled || submitting}
             aria-disabled={isDisabled || submitting}
           >
-            {submitting ? 'Saving…' : 'Proceed'}
+            {submitting ? 'Saving' : 'Proceed'}
           </LoadingButton>
         </div>
 
@@ -682,7 +808,7 @@ export default function VisaUpload() {
                 disabled={isDisabled || submitting}
                 aria-disabled={isDisabled || submitting}
               >
-                {submitting ? 'Saving…' : 'Proceed'}
+                {submitting ? 'Saving' : 'Proceed'}
               </LoadingButton>
             </div>
           </div>

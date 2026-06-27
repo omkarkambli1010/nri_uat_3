@@ -1,9 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './passport-upload.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import apiService from '@/services/api.service';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
 // PassportDetails — Passport type selection screen
 // Figma: Onboarding-Mob-Passportdetails (0:35835) + desktop (0:35923)
@@ -61,6 +65,31 @@ function RadioOption({
 export default function PassportDetails() {
   const router = useRouter();
   const [selected, setSelected] = useState<PassportType>('');
+
+  // Prefill the passport type from the saved PASSPORT stage (data.passportType)
+  // so a revisit shows the previously chosen option pre-selected.
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getPassportWorkflow(applicationId);
+        if (!alive) return;
+        const saved = String(
+          (res?.data as Record<string, unknown> | undefined)?.passportType ?? '',
+        );
+        if (saved === 'Indian' || saved === 'Foreign') setSelected(saved);
+      } catch {
+        // Non-fatal — the user just picks the type manually.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleBack = () => router.push('/manual-document-screen');
 

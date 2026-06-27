@@ -1,10 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './fatca.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useCountries } from '@/components/country-select/useCountries';
+import apiService from '@/services/api.service';
+
+const getApplicationId = (): string =>
+  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
 // FatcaDetails — FATCA form.
 // Top: Country of Birth + Citizenship (mandatory).
@@ -150,6 +154,76 @@ export default function FatcaDetails() {
   const [form, setForm] = useState<FatcaForm>(initForm);
   const [errors, setErrors] = useState<FormErrors>({ tins: [{}] });
 
+  // Country Master — used to resolve the saved country values (e.g. the
+  // uppercased "ALBANIA" countryOfBirth) back to the dropdown's proper-case
+  // option name so the <select> binds correctly.
+  const { selectable, loading: countriesLoading } = useCountries();
+
+  // Raw FATCA stage payload, fetched once on mount; resolved into the form once
+  // the country list has loaded (so country names can be matched to options).
+  const [savedData, setSavedData] = useState<Record<string, unknown> | null>(null);
+  const prefilledRef = useRef(false);
+
+  // Fetch the saved FATCA stage (POST …/get/workflow/stagewisedate
+  // { stagename: "FATCA" }) so a revisit can show the previously-entered details.
+  useEffect(() => {
+    const applicationId = getApplicationId();
+    if (!applicationId) return;
+
+    let alive = true;
+    (async () => {
+      try {
+        const res = await apiService.getFatcaWorkflow(applicationId);
+        const d = res?.data as Record<string, unknown> | undefined;
+        if (alive && d) setSavedData(d);
+      } catch {
+        // Non-fatal — the form just stays empty.
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Resolve the fetched payload into the form once countries have loaded. Guarded
+  // so it only applies once and never clobbers the user's later edits.
+  useEffect(() => {
+    if (!savedData || countriesLoading || prefilledRef.current) return;
+    prefilledRef.current = true;
+
+    const d = savedData;
+    const str = (v: unknown): string => (v == null ? '' : String(v));
+    // Match a saved value to a dropdown option name, case-insensitively (the API
+    // may return uppercased names); fall back to the raw value.
+    const resolveCountry = (v: string): string => {
+      if (!v) return '';
+      const hit = selectable.find((c) => c.name.toLowerCase() === v.toLowerCase());
+      return hit?.name ?? v;
+    };
+
+    // Each saved residency mirrors the submit payload; read defensively across
+    // the plausible key casings.
+    const rawTins = Array.isArray(d.taxResidencies)
+      ? (d.taxResidencies as Record<string, unknown>[])
+      : [];
+    const tins: TinEntry[] = rawTins.map((r) => ({
+      taxResidence: resolveCountry(
+        str(r.countryofTaxResidence ?? r.countryOfTaxResidence ?? r.taxResidence),
+      ),
+      tinIssuingCountry: resolveCountry(str(r.tinIssuingCountry)),
+      tinNumber: str(r.tin ?? r.tinNumber),
+    }));
+    const safeTins = tins.length > 0 ? tins : [emptyTin()];
+
+    setForm({
+      countryOfBirth: resolveCountry(str(d.countryOfBirth)),
+      citizenship: resolveCountry(str(d.citizenship)),
+      tins: safeTins,
+    });
+    setErrors({ tins: safeTins.map(() => ({})) });
+  }, [savedData, countriesLoading, selectable]);
+
   const updateField = (field: 'countryOfBirth' | 'citizenship', value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -213,7 +287,14 @@ export default function FatcaDetails() {
 
     // Persist the TIN sets so /fatca/upload renders one image-upload section each.
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem('fatca_tins', JSON.stringify(form.tins));
+      const tinsJson = JSON.stringify(form.tins);
+      // The per-slot upload ids (fatca_docids) are index-aligned to the TIN set;
+      // if the set changed (added/removed/reordered/edited) the old slot mapping
+      // is no longer valid, so drop it to avoid binding images to the wrong TIN.
+      if (sessionStorage.getItem('fatca_tins') !== tinsJson) {
+        sessionStorage.removeItem('fatca_docids');
+      }
+      sessionStorage.setItem('fatca_tins', tinsJson);
       sessionStorage.setItem(
         'fatca_meta',
         JSON.stringify({

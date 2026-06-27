@@ -214,7 +214,7 @@ export function SignatureCropperModal({
             onClick={confirmCrop}
             disabled={!canConfirm}
           >
-            {exporting ? 'Processing…' : 'Crop & Continue'}
+            {exporting ? 'Processing' : 'Crop & Continue'}
           </button>
         </div>
       </div>
