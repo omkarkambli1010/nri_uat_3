@@ -508,6 +508,28 @@ class APIService {
     );
   }
 
+  // Send the "resume on mobile" link for the application (used by the selfie
+  // screen's "Continue with mobile"). POST with an empty body — the
+  // applicationId travels as a query param per the backend contract. Returns
+  // the raw response (e.g. { status, message }) so the caller can surface the
+  // message in a toast.
+  async sendResumeLink(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    const url = `${this.nriapi}resume/send?applicationId=${encodeURIComponent(
+      applicationId,
+    )}`;
+    try {
+      const response = await axios.post(url, "", {
+        headers: { Accept: "*/*" },
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, hideSpinner);
+    }
+  }
+
   // Passport upload — multipart/form-data.
   async uploadPassportFile(
     applicationId: string,

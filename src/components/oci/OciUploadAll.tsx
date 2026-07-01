@@ -4,9 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { environment } from '@/environments/environment';
 import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
@@ -15,7 +15,7 @@ import LoadingButton from '@/components/ui/LoadingButton';
 // Reached from /oci (the Document Type + Card No. landing page). Two sections:
 //   • Upload OCI Front — inline file-upload dropzone (FileUploadCard).
 //   • Upload OCI Back  — inline file-upload dropzone (FileUploadCard).
-// Both are required before the user can advance to the Additional Document step.
+// Both front & back are required before Proceed is enabled.
 
 // ── Upload constraints ──────────────────────────────────────────────────────
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
@@ -44,31 +44,6 @@ const pickDocId = (r: unknown): string => {
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
-// Fetch a saved document URL into a real File + preview so it can be shown in the
-// dropzone AND re-submitted on Proceed. S3 presigned URLs aren't CORS-enabled, so
-// fetch via the same-origin proxy route (basePath-aware). Returns null on failure.
-const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
-  try {
-    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
-    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
-    const file = new File([blob], `oci-document.${ext}`, { type });
-    return {
-      id: `saved-${url.slice(-24)}`,
-      file,
-      status: 'success',
-      progress: 100,
-      previewUrl: URL.createObjectURL(file),
-    };
-  } catch {
-    return null;
-  }
-};
-
 // Pull a presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
   const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
@@ -91,10 +66,9 @@ const routeFromUiMetadata = (res: unknown): string | null => {
 export default function OciUploadAll() {
   const router = useRouter();
 
-  const [frontFiles,      setFrontFiles]      = useState<UploadedFile[]>([]);
-  const [backFiles,       setBackFiles]       = useState<UploadedFile[]>([]);
-  const [additionalFiles, setAdditionalFiles] = useState<UploadedFile[]>([]);
-  const [submitting,      setSubmitting]      = useState(false);
+  const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
+  const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   // Card type selected on /oci ("OCI" | "PIO"); drives the document-type prefix
   // and the section labels. Read from sessionStorage in the prefill effect.
@@ -103,9 +77,8 @@ export default function OciUploadAll() {
 
   // Previously-uploaded documents seeded into the cards so they show in the
   // dropzone preview (and are re-submitted on Proceed).
-  const [frontInitial,      setFrontInitial]      = useState<UploadedFile | null>(null);
-  const [backInitial,       setBackInitial]       = useState<UploadedFile | null>(null);
-  const [additionalInitial, setAdditionalInitial] = useState<UploadedFile | null>(null);
+  const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
+  const [backInitial,  setBackInitial]  = useState<UploadedFile | null>(null);
 
   // The prefill is async; gate the cards (and show the global loader) on this so
   // the cards mount once already-bound and a user upload can't be clobbered.
@@ -115,11 +88,11 @@ export default function OciUploadAll() {
   const frontUploaded = frontFiles.some((f) => f.status === 'success');
   const backUploaded  = backFiles.some((f) => f.status === 'success');
 
-  // Additional document is optional — Proceed only needs front + back.
+  // OCI/PIO only needs the card front + back.
   const isDisabled = !frontUploaded || !backUploaded;
 
   // Prefill from the saved OCI/PIO stage (stagewisedate) — bind the saved
-  // front/back/translation document previews into their cards.
+  // front/back document previews into their cards.
   useEffect(() => {
     showSpinner();
     const applicationId = getApplicationId();
@@ -148,17 +121,14 @@ export default function OciUploadAll() {
         };
         const frontUrl = urlFor('Front');
         const backUrl = urlFor('Back');
-        const translationUrl = urlFor('Translation');
 
-        const [front, back, translation] = await Promise.all([
-          frontUrl ? buildInitialFile(frontUrl) : Promise.resolve(null),
-          backUrl ? buildInitialFile(backUrl) : Promise.resolve(null),
-          translationUrl ? buildInitialFile(translationUrl) : Promise.resolve(null),
+        const [front, back] = await Promise.all([
+          buildInitialFileFromUrl(frontUrl ?? '', 'oci-document'),
+          buildInitialFileFromUrl(backUrl ?? '', 'oci-document'),
         ]);
         if (!alive) return;
         if (front) setFrontInitial(front);
         if (back) setBackInitial(back);
-        if (translation) setAdditionalInitial(translation);
       } catch {
         // Non-fatal — the cards just stay empty.
       } finally {
@@ -181,7 +151,7 @@ export default function OciUploadAll() {
   // Real upload — POST each file to documents/upload and store its documentId.
   // Rejecting marks the FileUploadCard as failed (success reflects a real 200).
   const makeUploadFn =
-    (suffix: 'Front' | 'Back' | 'Translation', storageKey: string) =>
+    (suffix: 'Front' | 'Back', storageKey: string) =>
     async (file: File, onProgress: (p: number) => void) => {
       const applicationId = getApplicationId();
       if (!applicationId) {
@@ -195,13 +165,12 @@ export default function OciUploadAll() {
       sessionStorage.setItem(storageKey, id);
     };
 
-  const uploadFront       = makeUploadFn('Front',       'frontDocumentId');
-  const uploadBack        = makeUploadFn('Back',        'backDocumentId');
-  const uploadTranslation = makeUploadFn('Translation', 'translationDocumentId');
+  const uploadFront = makeUploadFn('Front', 'frontDocumentId');
+  const uploadBack  = makeUploadFn('Back',  'backDocumentId');
 
   const handleBack = () => router.push('/oci');
 
-  // Proceed — submit the card details + the actual front/back/translation files
+  // Proceed — submit the card details + the actual front/back files
   // (poi-oci/upload), then route per the response uiMetadata. Stays on failure.
   const handleProceed = async () => {
     if (isDisabled || submitting) return;
@@ -212,7 +181,6 @@ export default function OciUploadAll() {
     }
     const frontFile = frontFiles.find((f) => f.status === 'success')?.file ?? null;
     const backFile  = backFiles.find((f) => f.status === 'success')?.file ?? null;
-    const translationFile = additionalFiles.find((f) => f.status === 'success')?.file ?? null;
     if (!frontFile || !backFile) return;
 
     setSubmitting(true);
@@ -222,7 +190,6 @@ export default function OciUploadAll() {
         cardNumber: sessionStorage.getItem('oci_cardNumber') ?? '',
         frontFile,
         backFile,
-        translationFile,
       });
       router.push(routeFromUiMetadata(res) ?? '/esign');
     } catch {
@@ -270,25 +237,6 @@ export default function OciUploadAll() {
     </div>
   );
 
-  // ── Additional document — optional, inline (mirrors the Visa layout) ─────────
-  const additionalSection = !prefillDone ? null : (
-    <div className={styles.section}>
-      <p className={styles.sectionTitle}>Upload Additional Document</p>
-      <FileUploadCard
-        key={additionalInitial?.id ?? 'additional-empty'}
-        initialFiles={additionalInitial ? [additionalInitial] : undefined}
-        acceptedTypes={ACCEPTED_TYPES}
-        maxSize={MAX_SIZE}
-        acceptedLabel={ACCEPTED_LABEL}
-        sizeErrorMessage={SIZE_ERR}
-        typeErrorMessage={TYPE_ERR}
-        cropImages
-        uploadFn={uploadTranslation}
-        onFilesChange={setAdditionalFiles}
-      />
-    </div>
-  );
-
   return (
     <>
       {/* ═══ MOBILE LAYOUT ════════════════════════════════════════════════════ */}
@@ -313,7 +261,6 @@ export default function OciUploadAll() {
         <div className={styles.mobileCard}>
           {frontSection}
           {backSection}
-          {additionalSection}
         </div>
 
         <div className={styles.mobileProceedArea}>
@@ -350,7 +297,6 @@ export default function OciUploadAll() {
             <div className={styles.desktopContentArea}>
               {frontSection}
               {backSection}
-              {additionalSection}
             </div>
 
             <div className={styles.desktopProceedWrapper}>

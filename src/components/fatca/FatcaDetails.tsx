@@ -194,11 +194,22 @@ export default function FatcaDetails() {
 
     const d = savedData;
     const str = (v: unknown): string => (v == null ? '' : String(v));
-    // Match a saved value to a dropdown option name, case-insensitively (the API
-    // may return uppercased names); fall back to the raw value.
+    // Match a saved value to a dropdown option name. The stagewise API returns a
+    // mix of formats — a full name ("India"), or an ISO code ("US", "USA",
+    // "AF/AFG") — so match case-insensitively against the option name, the ISO-2,
+    // and either part of the master countryCode. Fall back to the raw value.
     const resolveCountry = (v: string): string => {
       if (!v) return '';
-      const hit = selectable.find((c) => c.name.toLowerCase() === v.toLowerCase());
+      const needle = v.trim().toLowerCase();
+      const hit = selectable.find(
+        (c) =>
+          c.name.toLowerCase() === needle ||
+          c.iso2.toLowerCase() === needle ||
+          c.countryCode
+            .toLowerCase()
+            .split('/')
+            .some((part) => part.trim() === needle),
+      );
       return hit?.name ?? v;
     };
 

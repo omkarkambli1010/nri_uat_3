@@ -5,43 +5,17 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import { getLoadedCountries } from '@/components/country-select/countries';
 import { useCountries } from '@/components/country-select/useCountries';
 import { apiService } from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { environment } from '@/environments/environment';
 import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './passport-upload.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
-
-// Fetch a saved document URL into a real File + preview so it renders in the
-// dropzone. S3 presigned URLs aren't CORS-enabled, so fetch via the same-origin
-// proxy route (basePath-aware). Returns null on failure / empty url.
-const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
-  if (!url) return null;
-  try {
-    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
-    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
-    const file = new File([blob], `passport-document.${ext}`, { type });
-    return {
-      id: `saved-${url.slice(-24)}`,
-      file,
-      status: 'success',
-      progress: 100,
-      previewUrl: URL.createObjectURL(file),
-    };
-  } catch {
-    return null;
-  }
-};
 
 // Pull a presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
@@ -467,8 +441,8 @@ export default function PassportUploadAll() {
           return hit ? pickUrl(hit) : '';
         };
         const [front, back] = await Promise.all([
-          buildInitialFile(urlFor('passportfront')),
-          buildInitialFile(urlFor('passportback')),
+          buildInitialFileFromUrl(urlFor('passportfront'), 'passport-document'),
+          buildInitialFileFromUrl(urlFor('passportback'), 'passport-document'),
         ]);
         if (!alive) return;
         if (front) setFrontInitial(front);

@@ -11,35 +11,9 @@ import { useCountryNames } from '@/components/country-select/useCountries';
 import { useSpinner } from '@/components/spinner/Spinner';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { environment } from '@/environments/environment';
-
-// Fetch a saved document URL into a real File + preview so it renders in the
-// dropzone AND can be re-submitted on Proceed. S3 presigned URLs aren't
-// CORS-enabled, so fetch via the same-origin proxy route. Returns null on failure.
-const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
-  if (!url) return null;
-  try {
-    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
-    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
-    const file = new File([blob], `proof-document.${ext}`, { type });
-    return {
-      id: `saved-${url.slice(-24)}`,
-      file,
-      status: 'success',
-      progress: 100,
-      previewUrl: URL.createObjectURL(file),
-    };
-  } catch {
-    return null;
-  }
-};
 
 // Pull a presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
@@ -247,8 +221,8 @@ export default function PermanentAddress() {
 
         const urls = docs.map((doc) => pickUrl(doc)).filter(Boolean);
         const [front, back] = await Promise.all([
-          urls[0] ? buildInitialFile(urls[0]) : Promise.resolve(null),
-          urls[1] ? buildInitialFile(urls[1]) : Promise.resolve(null),
+          buildInitialFileFromUrl(urls[0] ?? '', 'proof-document'),
+          buildInitialFileFromUrl(urls[1] ?? '', 'proof-document'),
         ]);
         if (!alive) return;
         if (front) setFrontInitial(front);
@@ -465,6 +439,8 @@ export default function PermanentAddress() {
               placeholder="DD/MM/YYYY"
               showIcon
               iconPos="right"
+              touchUI
+              panelClassName="p-prime-cal-sm"
               className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
             />
             {expiryError && <p className={styles.fieldError} role="alert">{expiryError}</p>}
@@ -671,6 +647,8 @@ export default function PermanentAddress() {
                       placeholder="DD/MM/YYYY"
                       showIcon
                       iconPos="right"
+                      touchUI
+                      panelClassName="p-prime-cal-sm"
                       className={`p-prime-cal${expiryError ? ' p-prime-cal-error' : ''}`}
                     />
                   </div>

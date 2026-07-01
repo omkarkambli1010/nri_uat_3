@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import { DOCUMENT_TYPES } from '@/constants/document-types';
-import { environment } from '@/environments/environment';
 import styles from '@/components/oci/oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useCountries } from '@/components/country-select/useCountries';
@@ -30,31 +30,6 @@ const SLOTS = 3;
 
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
-
-// Fetch a saved document URL into a real File + preview so it can be shown in
-// the dropzone. S3 presigned URLs aren't CORS-enabled, so fetch via the
-// same-origin proxy route (basePath-aware). Returns null on failure.
-const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
-  try {
-    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    if (!resp.ok) return null;
-    const blob = await resp.blob();
-    const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
-    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-    const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
-    const file = new File([blob], `tin-document.${ext}`, { type });
-    return {
-      id: `saved-${url.slice(-24)}`,
-      file,
-      status: 'success',
-      progress: 100,
-      previewUrl: URL.createObjectURL(file),
-    };
-  } catch {
-    return null;
-  }
-};
 
 // Pull a document's presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
@@ -104,8 +79,7 @@ export default function FatcaUpload() {
   const [initialFiles, setInitialFiles] = useState<(UploadedFile | null)[][]>([]);
   // slotReady[entry][slot] — whether a slot currently holds a successful file,
   // whether freshly uploaded OR seeded from the saved stagewise preview. The
-  // Proceed gate uses this (not docIds) so an already-bound saved image counts,
-  // even though stagewise documents carry no documentId.
+  // Proceed gate uses this (not docIds) so an already-bound saved image counts.
   const [slotReady, setSlotReady] = useState<boolean[][]>([]);
   const [submitting, setSubmitting] = useState(false);
 
@@ -128,10 +102,11 @@ export default function FatcaUpload() {
     try { loaded = JSON.parse(sessionStorage.getItem('fatca_tins') ?? '[]'); } catch { loaded = []; }
     if (!Array.isArray(loaded)) loaded = [];
 
-    // Per-slot document ids persisted on upload (fatca_docids[entry][slot]). This
-    // is the only record of WHICH slot each image went into — the API's
-    // documents[] is slot-less — so it drives both the submit and which slot each
-    // saved preview is bound back to.
+    // Per-slot document ids persisted on upload (fatca_docids[entry][slot]).
+    // Records WHICH slot each image went into for this session; it drives both
+    // the submit and which slot each saved preview is bound back to. On a direct
+    // revisit this is empty, and the slot is recovered from the residency's
+    // tinProofDocumentId / …2 / …3 fields instead.
     let storedDocIds: string[][] = [];
     try { storedDocIds = JSON.parse(sessionStorage.getItem('fatca_docids') ?? '[]'); } catch { storedDocIds = []; }
     if (!Array.isArray(storedDocIds)) storedDocIds = [];
@@ -149,6 +124,13 @@ export default function FatcaUpload() {
           residencies = Array.isArray(d?.taxResidencies)
             ? (d!.taxResidencies as Record<string, unknown>[])
             : [];
+          // The API returns taxResidencies unordered; entryIndex encodes the
+          // order they were entered, so sort by it. serverTins and the per-slot
+          // id fallback are both derived from residencies[i], so sorting here
+          // keeps the sections, ids and previews all aligned.
+          residencies = [...residencies].sort(
+            (a, b) => Number(a.entryIndex ?? 0) - Number(b.entryIndex ?? 0),
+          );
           documents = Array.isArray(res?.documents)
             ? (res.documents as Record<string, unknown>[])
             : [];
@@ -194,16 +176,20 @@ export default function FatcaUpload() {
         ];
       });
 
-      // The API's documents[] are slot-less FatcaTinProof URLs, so assign them to
-      // the FILLED slots (those with a doc id, in slot order) — an image uploaded
-      // to Image 3 binds back to Image 3, not collapsed into Image 1.
-      const urls = documents
-        .filter((doc) => str(doc.documentType).toLowerCase() === 'fatcatinproof')
-        .map(pickUrl)
-        .filter(Boolean);
-      let u = 0;
+      // Each saved document now carries its own documentID, so bind every slot's
+      // proof by matching the slot's stored documentId to the document with that
+      // id — the image returns to the EXACT slot it was uploaded to (Image 3 →
+      // Image 3), instead of the old positional guess that could misplace or
+      // fail to display a preview.
+      const urlByDocId = new Map<string, string>();
+      for (const doc of documents) {
+        if (str(doc.documentType).toLowerCase() !== 'fatcatinproof') continue;
+        const docId = str(doc.documentID ?? doc.documentId ?? doc.id);
+        const url = pickUrl(doc);
+        if (docId && url) urlByDocId.set(docId, url);
+      }
       const pendingGrid: (string | null)[][] = ids.map((row) =>
-        row.map((id) => (id && u < urls.length ? urls[u++] : null)),
+        row.map((id) => (id ? urlByDocId.get(id) ?? null : null)),
       );
       // A slot keeps its saved id only where a matching preview was seeded, so the
       // success state and the id stay in sync (and the empty-card onFilesChange
@@ -212,7 +198,7 @@ export default function FatcaUpload() {
 
       const fileGrid = await Promise.all(
         pendingGrid.map((row) =>
-          Promise.all(row.map((url) => (url ? buildInitialFile(url) : Promise.resolve(null)))),
+          Promise.all(row.map((url) => buildInitialFileFromUrl(url ?? '', 'tin-document'))),
         ),
       );
       if (!alive) return;

@@ -11,9 +11,9 @@ import { useCountryNames } from '@/components/country-select/useCountries';
 import { useSpinner } from '@/components/spinner/Spinner';
 import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
 import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
+import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { environment } from '@/environments/environment';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -214,10 +214,17 @@ export default function ForeignAddress() {
         if (str(d.line2)) setAddrLine2(str(d.line2));
         if (str(d.line3)) setAddrLine3(str(d.line3));
         if (str(d.city)) setCity(str(d.city));
-        if (str(d.state)) setAddrState(str(d.state));
-        if (str(d.pincode)) setPincode(str(d.pincode));
+        // The saved stage returns `stateProvince` / `postalCode` (matching the
+        // submit payload) — the older `state` / `pincode` keys are kept only as
+        // a fallback so a revisit binds the State and Pincode fields.
+        if (str(d.stateProvince) || str(d.state)) setAddrState(str(d.stateProvince) || str(d.state));
+        if (str(d.postalCode) || str(d.pincode)) setPincode(str(d.postalCode) || str(d.pincode));
         if (str(d.country)) setSelCountry(str(d.country));
         if (str(d.proofNumber)) setDocNumber(str(d.proofNumber));
+        // Expiry is returned as YYYY-MM-DD (may carry a time component) — keep
+        // only the date part so DateField can parse it. Shown once an OVD
+        // proofType is prefilled below (showExpiry).
+        if (str(d.expiryDate)) setExpiryDate(str(d.expiryDate).slice(0, 10));
 
         // Saved proof documents (documents[] is on the response root, each with
         // a presignedUrl). Seed the first into the Front card and the second
@@ -250,8 +257,8 @@ export default function ForeignAddress() {
         // Await the document seeding so the loader stays up until the previews
         // are ready too (not just the text fields).
         const [front, back] = await Promise.all([
-          urls[0] ? buildInitialFile(urls[0]) : Promise.resolve(null),
-          urls[1] ? buildInitialFile(urls[1]) : Promise.resolve(null),
+          buildInitialFileFromUrl(urls[0] ?? '', 'proof-document'),
+          buildInitialFileFromUrl(urls[1] ?? '', 'proof-document'),
         ]);
         if (alive) {
           if (front) setFrontInitial(front);
@@ -281,33 +288,6 @@ export default function ForeignAddress() {
     if (prefillDone && !countryLoading) hideSpinner();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillDone, countryLoading]);
-
-  // Fetch a saved document URL into a real File + preview so it can be both
-  // shown in the dropzone and re-submitted unchanged. Returns null on failure
-  // (e.g. CORS) — the card then just stays empty.
-  const buildInitialFile = async (url: string): Promise<UploadedFile | null> => {
-    try {
-      // S3 presigned URLs aren't CORS-enabled, so fetch via the same-origin
-      // proxy route (basePath-aware so it works under /diynri in prod).
-      const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-      const resp = await fetch(proxied);
-      if (!resp.ok) return null;
-      const blob = await resp.blob();
-      const isPdf = /\.pdf(\?|$)/i.test(url) || blob.type === 'application/pdf';
-      const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-      const ext = isPdf ? 'pdf' : (type.split('/')[1] || 'jpg');
-      const file = new File([blob], `proof-document.${ext}`, { type });
-      return {
-        id: `saved-${url.slice(-24)}`,
-        file,
-        status: 'success',
-        progress: 100,
-        previewUrl: URL.createObjectURL(file),
-      };
-    } catch {
-      return null;
-    }
-  };
 
   // ── Validation ──────────────────────────────────────────────────────────────
   // Returns a map of fieldKey → error message. Empty map = valid.
@@ -555,6 +535,8 @@ export default function ForeignAddress() {
               placeholder="DD/MM/YYYY"
               showIcon
               iconPos="right"
+              touchUI
+              panelClassName="p-prime-cal-sm"
               className="p-prime-cal"
             />
             {errFor('expiryDate') && <p className={styles.fieldError}>{errFor('expiryDate')}</p>}
@@ -778,6 +760,8 @@ export default function ForeignAddress() {
                       placeholder="DD/MM/YYYY"
                       showIcon
                       iconPos="right"
+                      touchUI
+                      panelClassName="p-prime-cal-sm"
                       className="p-prime-cal"
                     />
                   </div>

@@ -394,14 +394,41 @@ export default function Selfie() {
     );
   };
 
-  const continueWithMobile = () => {
-    toast.info(
-      "Please open this link on your mobile device to capture your selfie.",
-      {
+  const continueWithMobile = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    if (!applicationId) {
+      toast.error("Your session has expired, please start again.", {
         position: "bottom-center",
         autoClose: 3000,
-      },
-    );
+      });
+      return;
+    }
+
+    showSpinner();
+    try {
+      const response = await apiService.sendResumeLink(
+        applicationId,
+        hideSpinner,
+      );
+
+      // Surface the backend message (e.g. "Link has been sent.") in a toast.
+      if (response?.status) {
+        toast.success(response?.message ?? "Link has been sent.", {
+          position: "bottom-center",
+          autoClose: 3000,
+        });
+      } else if (response?.message) {
+        toast.error(response.message, {
+          position: "bottom-center",
+          autoClose: 3000,
+        });
+      }
+    } catch (error: any) {
+      // apiService.handleError already surfaced the backend message in a toast.
+      console.log("Resume link send error:", error?.response?.data);
+    } finally {
+      hideSpinner();
+    }
   };
 
   const capture = useCallback(async () => {

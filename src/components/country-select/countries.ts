@@ -22,16 +22,20 @@ export interface Country {
   dialCode: string;
   /** Country Master status: "Y" = selectable, "N" = restricted. */
   status: string;
+  /** Raw Country Master countryCode, verbatim — "ISO2/ISO3" ("AF/AFG") or just "ISO2" ("IN"). */
+  countryCode: string;
 }
 
 /** Map a raw Country Master row to the dropdown-friendly Country shape. */
 export function toCountry(c: CountryMaster): Country {
-  const iso2 = (c.countryCode || "").split("/")[0].trim().toLowerCase();
+  const countryCode = (c.countryCode || "").trim();
+  const iso2 = countryCode.split("/")[0].trim().toLowerCase();
   return {
     iso2,
     name: c.countryName,
     dialCode: (c.teleCode || "").trim(),
     status: (c.status || "").toUpperCase(),
+    countryCode,
   };
 }
 
