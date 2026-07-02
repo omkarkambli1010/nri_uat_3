@@ -3,6 +3,7 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
 import { additionalDocumentStore } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
@@ -293,14 +294,19 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
 
   const showUploadFrame = !croppingObjectUrl;
 
+  // Nested cropper/camera modals manage their own trap via the shared stack.
+  const dialogRef = useFocusTrap<HTMLDivElement>(showUploadFrame, onClose);
+
   return (
     <>
       {showUploadFrame && (
         <div
+          ref={dialogRef}
           className={styles.overlay}
           role="dialog"
           aria-modal="true"
           aria-label="Upload Additional Document"
+          tabIndex={-1}
           onClick={handleBackdropClick}
         >
           <div className={styles.sheet}>

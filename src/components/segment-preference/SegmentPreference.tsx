@@ -36,15 +36,26 @@ const CheckMark = () => (
   </svg>
 );
 
+// Purely visual box. The interactive checkbox semantics (role/aria-checked/
+// focus/keyboard) live on the clickable row so the whole row is one operable
+// control — see the sp-seg-row elements below.
 const SegmentCheckbox = ({ checked }: { checked: boolean }) => (
   <div
     className={`sp-checkbox${checked ? ' sp-checkbox--checked' : ''}`}
-    role="checkbox"
-    aria-checked={checked}
+    aria-hidden="true"
   >
     {checked && <CheckMark />}
   </div>
 );
+
+// Space (and, forgivingly, Enter) toggles the row — WCAG 2.1.1 (Keyboard).
+const toggleOnKey =
+  (toggle: () => void) => (e: React.KeyboardEvent) => {
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault(); // stop Space scrolling the page
+      toggle();
+    }
+  };
 
 const RiskDisclosure = () => (
   <div className="sp-risk-card">
@@ -126,7 +137,11 @@ export default function SegmentPreference() {
             {/* Segment row: Equity */}
             <div
               className="sp-seg-row-mob"
+              role="checkbox"
+              aria-checked={equitySelected}
+              tabIndex={0}
               onClick={() => setEquitySelected(v => !v)}
+              onKeyDown={toggleOnKey(() => setEquitySelected(v => !v))}
               style={{ cursor: 'pointer' }}
             >
               <SegmentCheckbox checked={equitySelected} />
@@ -205,7 +220,11 @@ export default function SegmentPreference() {
                 <div className="sp-seg-list-desk">
                   <div
                     className="sp-seg-row-desk"
+                    role="checkbox"
+                    aria-checked={equitySelected}
+                    tabIndex={0}
                     onClick={() => setEquitySelected(v => !v)}
+                    onKeyDown={toggleOnKey(() => setEquitySelected(v => !v))}
                     style={{ cursor: 'pointer' }}
                   >
                     <SegmentCheckbox checked={equitySelected} />

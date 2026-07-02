@@ -10,6 +10,7 @@ import styles from "./email-home-screen.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { environment } from "@/environments/environment";
+import { buttonKeyProps } from "@/utils/a11y";
 
 // EmailHomeScreen — equivalent to Angular EmailHomeScreenComponent
 // Email ID Verification — choose Google OAuth or manual email entry
@@ -22,6 +23,7 @@ const BackArrowSvg = () => (
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
   >
     <path
       d="M15 18L9 12L15 6"
@@ -182,9 +184,11 @@ export default function EmailHomeScreen() {
       onClick={handleGoogleButtonClick}
       disabled={loading}
     >
+      {/* Decorative — the adjacent text already names the action. */}
       <img
         src={publicPath("/assets/images/diy/google_icon_mini.png")}
-        alt="Google"
+        alt=""
+        aria-hidden="true"
         className={styles.googleIcon}
       />
       <span>{loading ? "Please wait..." : "Continue with Google"}</span>
@@ -202,12 +206,7 @@ export default function EmailHomeScreen() {
   const altEmail = (
     <div
       className={styles.altEmailBlock}
-      onClick={emailTextPage}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") emailTextPage();
-      }}
+      {...buttonKeyProps(emailTextPage)}
     >
       <span className={styles.altEmailLink}>Use another E-mail ID</span>
       <span className={styles.altEmailNote}>(Require OTP Verification)</span>

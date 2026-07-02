@@ -10,6 +10,7 @@ import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './upload-pan.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from '@/hooks/useSessionValue';
+import { buttonKeyProps } from "@/utils/a11y";
 // UploadPan — Upload PAN card image when name mismatch detected
 // Equivalent to Angular UploadPanComponent
 
@@ -99,7 +100,7 @@ export default function UploadPan() {
                       <h5>Upload PAN Card</h5>
                     </div>
                     <div>
-                      <div className="help_btn" onClick={openFaq} style={{ cursor: 'pointer' }}>Need Help?</div>
+                      <div className="help_btn" style={{ cursor: 'pointer' }} {...buttonKeyProps(openFaq)}>Need Help?</div>
                     </div>
                   </div>
                   <p className="sub_title">Upload a clear image of your PAN card</p>
@@ -117,7 +118,7 @@ export default function UploadPan() {
                         <p className="sub_title">Upload a clear image of your PAN card</p>
                       </div>
                       <div>
-                        <div className="help_btn" onClick={openFaq} style={{ cursor: 'pointer' }}>Need Help?</div>
+                        <div className="help_btn" style={{ cursor: 'pointer' }} {...buttonKeyProps(openFaq)}>Need Help?</div>
                       </div>
                     </div>
                   </div>
@@ -127,8 +128,9 @@ export default function UploadPan() {
                 <div className="upload_section">
                   <div
                     className="upload_box"
-                    onClick={() => fileInputRef.current?.click()}
+                    aria-label="Upload PAN card image"
                     style={{ cursor: 'pointer', border: '2px dashed #ccc', borderRadius: 8, padding: 24, textAlign: 'center' }}
+                    {...buttonKeyProps(() => fileInputRef.current?.click())}
                   >
                     {imagePreview ? (
                       <img src={imagePreview} alt="PAN card preview" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8 }} />

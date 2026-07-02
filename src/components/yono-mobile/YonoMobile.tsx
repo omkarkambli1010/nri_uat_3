@@ -162,10 +162,13 @@ export default function YonoMobile() {
                     }}
                     placeholder="Enter 10-digit mobile number"
                     className={`${styles.input} ${mobileError ? styles.inputError : ''}`}
-                    aria-describedby="mobileError"
+                    aria-invalid={!!mobileError}
+                    aria-describedby={mobileError ? "mobileError" : undefined}
                   />
                   {mobileError && (
-                    <p id="mobileError" className={styles.errorText}>{mobileError}</p>
+                    // role="alert" so the validation message is announced the
+                    // moment it appears (WCAG 3.3.1 / 4.1.3).
+                    <p id="mobileError" role="alert" className={styles.errorText}>{mobileError}</p>
                   )}
                 </div>
 

@@ -5,6 +5,7 @@ import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from './SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
 import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import styles from './signature-upload-modal.module.scss';
 
 // SignatureUploadModal — desktop modal / mobile bottom-sheet for picking a
@@ -197,6 +198,12 @@ export function SignatureUploadModal({
     };
   }, [open]);
 
+  // Trap focus in the upload frame only while it's the visible dialog. When the
+  // cropper/camera opens on top, showUploadFrame goes false (cropper) or a
+  // stacked trap takes over (camera) — the shared trap stack keeps them in sync.
+  // Declared before the early return so the hook order stays stable.
+  const dialogRef = useFocusTrap<HTMLDivElement>(open && !croppingObjectUrl, onClose);
+
   if (!open) return null;
 
   const validate = (f: File) => {
@@ -340,10 +347,12 @@ export function SignatureUploadModal({
     <>
       {showUploadFrame && (
       <div
+        ref={dialogRef}
         className={isDesktop ? styles.overlay : styles.overlayMob}
         role="dialog"
         aria-modal="true"
         aria-label="Upload signature"
+        tabIndex={-1}
         onClick={onOverlayClick}
       >
         <div className={cardClass} onClick={(e) => e.stopPropagation()}>

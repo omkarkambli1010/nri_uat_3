@@ -1,21 +1,36 @@
 'use client';
 
 import type { UploadedFile } from './fileUpload.types';
-import { environment } from '@/environments/environment';
 
-// Shared loader that turns a saved document's presigned S3 URL into a real File
-// + preview, so it can be shown in the dropzone AND (where the flow re-submits
-// saved proofs) sent again unchanged. Used by every "revisit shows previously
-// uploaded documents" screen (foreign/permanent address, visa, passport, OCI,
-// FATCA) so the fetch + guard + filename logic lives in exactly one place.
-
-// The proxy only ever serves these whitelisted document/image types.
-const ALLOWED_TYPES = new Set([
-  'image/jpeg', 'image/png', 'image/webp',
-  'image/heic', 'image/heif', 'application/pdf',
-]);
+// Turns a saved document's presigned S3 URL into an UploadedFile so it renders
+// in the dropzone as a "previously uploaded" proof. Used by every "revisit
+// shows previously uploaded documents" screen (foreign/permanent address, visa,
+// passport, OCI, FATCA) so the filename logic lives in exactly one place.
+//
+// The presigned S3 URL is bound DIRECTLY as the preview (`previewUrl = url`) —
+// no `/api/file-proxy` round-trip. Presigned URLs render fine in <img> / tab
+// navigation because image loads aren't CORS-gated (only `fetch()` is, which is
+// why the old server-side proxy existed). That proxy fetched S3 from the Next
+// server, which was unreliable on some networks — so it's gone.
+//
+// The document bytes are never re-sent from here: re-submission of a saved proof
+// uses its saved `documentId`, not these bytes. So a lightweight, byte-less File
+// (carrying just the derived name + MIME type) is all the card needs to drive
+// the filename label, the image-vs-doc preview branch, and the icon.
 
 const KNOWN_EXT = new Set(['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif']);
+
+// Maps a file extension to the MIME type the card uses to decide image-vs-doc
+// preview (see isImageFile/isPdfFile). Defaults to JPEG for unknown extensions.
+const EXT_TO_TYPE: Record<string, string> = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  heic: 'image/heic',
+  heif: 'image/heif',
+};
 
 // Derive the real document filename from the S3 object key's last path segment
 // (query string stripped, percent-decoded) so the card shows the actual name
@@ -33,14 +48,11 @@ const deriveName = (
 };
 
 /**
- * Fetch a saved document's presigned S3 URL into a real File + preview.
+ * Build an UploadedFile preview from a saved document's presigned S3 URL.
  *
- * S3 presigned URLs aren't CORS-enabled, so the object is fetched through the
- * same-origin `/api/file-proxy` route (basePath-aware). Returns `null` on any
- * failure — empty url, non-OK response, or a non-media body (an HTML error /
- * app-shell page served when the request never reached the proxy route, e.g. a
- * basePath / reverse-proxy mismatch) — so a bogus ".html" file is never seeded.
- * Dev builds log a warning explaining exactly why the preview stayed empty.
+ * Binds the URL directly — no network fetch — so it works wherever the browser
+ * can reach S3 (image previews load straight from the presigned URL). Returns
+ * `null` only for an empty/invalid URL.
  *
  * @param url             the presigned S3 URL from the saved stage's documents[]
  * @param fallbackBaseName base name to use only when the S3 key has no usable
@@ -52,38 +64,6 @@ export const buildInitialFileFromUrl = async (
 ): Promise<UploadedFile | null> => {
   if (!url) return null;
   try {
-    const proxied = `${environment.basePath || ''}/api/file-proxy?url=${encodeURIComponent(url)}`;
-    const resp = await fetch(proxied);
-    if (!resp.ok) {
-      // The proxy route wasn't reached / errored (a 404 here usually means the
-      // basePath prefix isn't forwarded to the Next server in front of it).
-      if (!environment.production) {
-        console.warn(
-          `[buildInitialFile] file-proxy returned ${resp.status} ${resp.statusText} for ${proxied}. ` +
-          'The document preview will be empty. Check that the reverse proxy forwards ' +
-          `"${environment.basePath || '/'}/api/file-proxy" to the Next server with the basePath intact.`,
-        );
-      }
-      return null;
-    }
-
-    const blob = await resp.blob();
-
-    // Anything that isn't a whitelisted media type is an HTML error / app-shell
-    // page from a routing/basePath mismatch — do NOT seed it (that produced the
-    // bogus "*.html" previews). Opening the raw S3 URL directly works because
-    // <img>/tab navigation isn't CORS-gated, but fetch() is — hence the proxy.
-    if (blob.type && !ALLOWED_TYPES.has(blob.type.toLowerCase())) {
-      if (!environment.production) {
-        console.warn(
-          `[buildInitialFile] file-proxy returned a non-media response (Content-Type "${blob.type}") for ${proxied}. ` +
-          'This is almost always an HTML error / app-shell page served because the request never reached ' +
-          'the file-proxy route (basePath / reverse-proxy mismatch). Skipping so no bogus ".html" file is bound.',
-        );
-      }
-      return null;
-    }
-
     // Decode the last path segment for both the display name and its extension.
     const segment = (() => {
       try {
@@ -94,17 +74,19 @@ export const buildInitialFileFromUrl = async (
     })();
     const segExt = (segment.includes('.') ? segment.split('.').pop() || '' : '').toLowerCase();
 
-    const isPdf = segExt === 'pdf' || blob.type === 'application/pdf';
-    const type = blob.type || (isPdf ? 'application/pdf' : 'image/jpeg');
-    const ext = KNOWN_EXT.has(segExt) ? segExt : (isPdf ? 'pdf' : (type.split('/')[1] || 'jpg'));
+    const ext = KNOWN_EXT.has(segExt) ? segExt : 'jpg';
+    const type = EXT_TO_TYPE[ext] ?? 'image/jpeg';
+    const name = deriveName(segment, segExt, fallbackBaseName, ext);
 
-    const file = new File([blob], deriveName(segment, segExt, fallbackBaseName, ext), { type });
+    // Byte-less placeholder — see file header for why the bytes aren't needed.
+    const file = new File([], name, { type });
+
     return {
       id: `saved-${url.slice(-24)}`,
       file,
       status: 'success',
       progress: 100,
-      previewUrl: URL.createObjectURL(file),
+      previewUrl: url,
     };
   } catch {
     return null;

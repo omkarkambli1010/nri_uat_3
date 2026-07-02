@@ -243,16 +243,22 @@ export default function MobileHomeOtpScreen() {
 
       {/* OTP input */}
       <div className={styles.otpField}>
-        <label className={styles.otpLabel}>Enter OTP</label>
+        {/* The label is a group label (InputOtp renders 6 separate inputs, so a
+            single htmlFor can't target them); the wrapper is a labelled group so
+            screen readers announce "Enter OTP, group" on entry. */}
+        <span id="mob-otp-label" className={styles.otpLabel}>Enter OTP</span>
         <div
           className={`${styles.otpInputWrap}${shakeOtp ? ` ${styles.shake}` : ""}`}
           onAnimationEnd={() => setShakeOtp(false)}
+          role="group"
+          aria-labelledby="mob-otp-label"
         >
           <InputOtp
             value={otp}
             onChange={(e) => handleOtpChange(e.value as string)}
             length={6}
             integerOnly
+            aria-label="Enter the 6 digit OTP sent to your mobile number"
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>

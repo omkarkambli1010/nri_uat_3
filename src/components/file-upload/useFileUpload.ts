@@ -11,19 +11,28 @@ export function useFileUpload(config: FileUploadConfig) {
   configRef.current = config;
 
   useEffect(() => {
-    // (Re)create object URLs for seeded image files on mount. A blob URL passed
-    // in via initialFiles (e.g. from a saved-document preview) is unsafe: React
+    // (Re)create object URLs for seeded image files on mount, but ONLY for
+    // blob: URLs we own. A blob URL passed in via initialFiles is unsafe: React
     // strict mode runs effects mount→unmount→mount, and the cleanup below would
     // revoke that URL on the simulated unmount, leaving the <img> pointing at a
     // dead URL (blank preview). Generating a fresh URL we own here — replacing
-    // any passed-in one — survives the remount and is revoked only on real unmount.
+    // any passed-in blob — survives the remount and is revoked only on real unmount.
+    //
+    // A seeded REMOTE previewUrl (an http(s) presigned S3 URL from a saved
+    // document) must be left untouched: it has no backing bytes, so its File is
+    // a byte-less placeholder and URL.createObjectURL(file) would yield an empty
+    // (broken) blob — which previously clobbered the presigned URL and blanked
+    // the preview.
     setFiles((prev) => {
       let changed = false;
       const next = prev.map((f) => {
-        if (f.file && !f.isValidationError && isImageFile(f.file)) {
-          if (f.previewUrl) {
-            try { URL.revokeObjectURL(f.previewUrl); } catch { /* ignore */ }
-          }
+        if (
+          f.file &&
+          !f.isValidationError &&
+          isImageFile(f.file) &&
+          f.previewUrl?.startsWith('blob:')
+        ) {
+          try { URL.revokeObjectURL(f.previewUrl); } catch { /* ignore */ }
           const url = URL.createObjectURL(f.file);
           urlsRef.current.add(url);
           changed = true;

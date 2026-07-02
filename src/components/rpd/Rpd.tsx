@@ -10,6 +10,8 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./rpd.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
+import { buttonKeyProps } from "@/utils/a11y";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 // Rpd — Desktop QR code variant of Reverse Penny Drop
 // Equivalent to Angular RpdComponent
 // Shows UPI QR code, polls for payment status, navigates to reversePennyDrop/2 on success
@@ -30,6 +32,10 @@ export default function Rpd() {
   const [minutes, setMinutes] = useState(0);
   const [seconds, setSeconds] = useState(0);
   const [showMismatchModal, setShowMismatchModal] = useState(false);
+  const mismatchDialogRef = useFocusTrap<HTMLDivElement>(
+    showMismatchModal,
+    () => setShowMismatchModal(false),
+  );
 
   const rejectStatus = useSessionValue("RejectStatus");
 
@@ -233,15 +239,11 @@ export default function Rpd() {
                 <div className="d-flex align-items-start gap-2">
                   {rejectStatus !== "R" && (
                     <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={backToSix}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") backToSix();
-                      }}
+                      aria-label="Go back"
                       style={{ cursor: "pointer" }}
+                      {...buttonKeyProps(backToSix)}
                     >
-                      <span>
+                      <span aria-hidden="true">
                         <svg
                           width="24"
                           height="25"
@@ -341,11 +343,13 @@ export default function Rpd() {
       {/* Name Mismatch Modal */}
       {showMismatchModal && (
         <div
+          ref={mismatchDialogRef}
           className="modal fade show uploadPan"
           style={{ display: "block" }}
           tabIndex={-1}
+          role="dialog"
           aria-modal="true"
-          aria-labelledby="rpdMismatchLabel"
+          aria-label="Bank account name mismatch"
         >
           <div className="modal-dialog">
             <div className="modal-content">

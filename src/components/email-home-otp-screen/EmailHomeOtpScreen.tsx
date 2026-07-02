@@ -323,16 +323,21 @@ export default function EmailHomeOtpScreen() {
 
       {/* OTP input */}
       <div className={styles.otpField}>
-        <label className={styles.otpLabel}>Enter OTP</label>
+        {/* Group label — InputOtp renders 6 separate inputs, so a single htmlFor
+            can't target them; the wrapper is a labelled group instead. */}
+        <span id="email-otp-label" className={styles.otpLabel}>Enter OTP</span>
         <div
           className={`${styles.otpInputWrap}${shakeOtp ? ` ${styles.shake}` : ""}`}
           onAnimationEnd={() => setShakeOtp(false)}
+          role="group"
+          aria-labelledby="email-otp-label"
         >
           <InputOtp
             value={otp}
             onChange={(e) => handleOtpChange(e.value as string)}
             length={6}
             integerOnly
+            aria-label="Enter the 6 digit OTP sent to your email"
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
@@ -459,13 +464,16 @@ export default function EmailHomeOtpScreen() {
         </div>
       </section>
 
-      {/* ── SUCCESS MODAL — Figma 0:18971 ── */}
+      {/* ── SUCCESS MODAL — Figma 0:18971 ──
+          Transient success confirmation — it auto-dismisses and navigates on,
+          with no interactive content. So it's a live status announcement, not
+          a focus-trapping dialog: role="status" lets screen readers read the
+          confirmation without stranding keyboard users (WCAG 4.1.3). */}
       {showSuccessModal && (
         <div
           className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Email verified successfully"
+          role="status"
+          aria-live="polite"
         >
           <div className={styles.modalCard}>
             <SuccessCheckSvg />

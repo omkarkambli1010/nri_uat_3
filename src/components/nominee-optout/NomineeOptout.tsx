@@ -9,6 +9,7 @@ import navigationService from '@/services/navigation.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './nominee-optout.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { buttonKeyProps } from "@/utils/a11y";
 
 // NomineeOptout — Confirmation screen for nominee opt-out
 // Equivalent to Angular NomineeOptoutComponent
@@ -53,7 +54,7 @@ export default function NomineeOptout() {
           <div className="col-lg-10 col-12 m-auto">
             <div className="mobile_css">
               <div className="back_cls">
-                <div onClick={backToNominee} style={{ cursor: 'pointer' }}>
+                <div aria-label="Go back" style={{ cursor: 'pointer' }} {...buttonKeyProps(backToNominee)}>
                   <img src={publicPath("/assets/images/diy/ChevronLeft.png")} alt="" aria-hidden="true" /> Back
                 </div>
                 <div className="d-flex flex-column align-items-start gap-2">
@@ -63,8 +64,8 @@ export default function NomineeOptout() {
             </div>
             <div className="col-lg-12 col-md-12 col-12 desktop_css">
               <div className="d-flex align-items-start gap-2">
-                <div onClick={backToNominee} style={{ cursor: 'pointer' }}>
-                  <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <div aria-label="Go back" style={{ cursor: 'pointer' }} {...buttonKeyProps(backToNominee)}>
+                  <svg width="24" height="25" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <g clipPath="url(#clip0_optout)">
                       <path d="M5 12.5H19" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       <path d="M5 12.5L11 18.5" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />

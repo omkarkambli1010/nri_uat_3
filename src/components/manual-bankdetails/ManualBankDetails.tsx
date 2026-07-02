@@ -1152,10 +1152,14 @@ export default function ManualBankDetails() {
       </section>
 
       {showModal && (
+        // Transient "Verifying details" progress overlay, no interactive
+        // content — a live status region (not a focus-trapping dialog) so
+        // screen readers announce progress without stranding keyboard users.
         <div
           className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
           aria-labelledby="verify-modal-title"
         >
           <div className={styles.modalCard}>

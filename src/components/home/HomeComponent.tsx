@@ -15,6 +15,7 @@ import styles from "./home.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { APP_VERSION } from "@/lib/version";
 import LoadingButton from '@/components/ui/LoadingButton';
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 // Home component — equivalent to Angular HomeComponent
 // Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
@@ -238,6 +239,10 @@ export default function HomeComponent() {
 
   // FATF Modal state
   const [showFatfModal, setShowFatfModal] = useState(false);
+  const fatfDialogRef = useFocusTrap<HTMLDivElement>(
+    showFatfModal,
+    () => setShowFatfModal(false),
+  );
 
   // NRI info tabs (Eligibility / How to Get Started / KYC / Important Points)
   const [activeInfoTab, setActiveInfoTab] = useState(0);
@@ -528,12 +533,16 @@ export default function HomeComponent() {
 
     const isSemiDigital = accountType === "semi-digital";
 
+    // countryCode must be the Country Master's raw code ("IN/IND"), not the
+    // ISO-2 alone — that's what the register API expects.
+    const selectedCountry = countries.find((c) => c.iso2 === selectedIso2);
+
     // emailAddress and rmCode are optional: the backend rejects the literal "NA"
     // (COMMON_002) but accepts null/absent. Email is collected later on the email
     // screen (which re-registers), and rmCode is null unless RM-assisted.
     const payload: Record<string, string | null> = {
       mobileNumber: sendOtp.mobile,
-      countryCode: selectedIso2.toUpperCase(),
+      countryCode: selectedCountry?.countryCode ?? "",
       journeyType: isSemiDigital ? "NriSemiDigital" : "NroDigital",
       loginProvider: "Mobile",
       rmCode: rmAssisted && employeeId ? employeeId : null,
@@ -810,7 +819,7 @@ export default function HomeComponent() {
                             e.preventDefault();
                             e.stopPropagation();
                             window.open(
-                              "https://www.sbisecurities.in/fileserver/regulation/terms-and-conditions.html",
+                              "https://www.sbisecurities.in/fileserver/regulation/nri-terms-and-conditions.html",
                               "_blank",
                               "noopener,noreferrer",
                             );
@@ -819,7 +828,7 @@ export default function HomeComponent() {
                             if (e.key === "Enter" || e.key === " ") {
                               e.preventDefault();
                               window.open(
-                                "https://www.sbisecurities.in/fileserver/regulation/terms-and-conditions.html",
+                                "https://www.sbisecurities.in/fileserver/regulation/nri-terms-and-conditions.html",
                                 "_blank",
                                 "noopener,noreferrer",
                               );
@@ -1153,7 +1162,12 @@ export default function HomeComponent() {
       {/* FATF Modal */}
       {showFatfModal && (
         <div
+          ref={fatfDialogRef}
           className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="fatf-modal-title"
+          tabIndex={-1}
           onClick={() => setShowFatfModal(false)}
         >
           <div
@@ -1162,7 +1176,7 @@ export default function HomeComponent() {
             data-lenis-prevent
           >
             <div className={styles.modalHeader}>
-              <h2>FATF Countries</h2>
+              <h2 id="fatf-modal-title">FATF Countries</h2>
               <button
                 type="button"
                 className={styles.closeBtn}

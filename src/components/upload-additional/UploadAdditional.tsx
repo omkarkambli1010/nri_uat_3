@@ -9,6 +9,7 @@ import navigationService from '@/services/navigation.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './upload-additional.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { buttonKeyProps } from "@/utils/a11y";
 
 // UploadAdditional — Upload additional document (income proof, address proof, etc.)
 // Equivalent to Angular UploadAdditionalComponent
@@ -138,8 +139,9 @@ export default function UploadAdditional() {
 
                 <div
                   className="upload_box mt-3"
-                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Upload additional document"
                   style={{ cursor: 'pointer', border: '2px dashed #ccc', borderRadius: 8, padding: 24, textAlign: 'center' }}
+                  {...buttonKeyProps(() => fileInputRef.current?.click())}
                 >
                   {imagePreview ? (
                     <img

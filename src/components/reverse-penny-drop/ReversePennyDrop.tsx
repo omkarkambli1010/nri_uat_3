@@ -10,6 +10,8 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./reverse-penny-drop.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
+import { buttonKeyProps } from "@/utils/a11y";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 // ReversePennyDrop — Bank account verification via UPI (reverse penny drop)
 // Equivalent to Angular ReversePennyDropComponent (multi-step)
 // Step 1: Mobile → choose UPI app, Desktop → scan QR code
@@ -44,6 +46,10 @@ export default function ReversePennyDrop() {
   const [seconds, setSeconds] = useState(0);
 
   const [showMismatchModal, setShowMismatchModal] = useState(false);
+  const mismatchDialogRef = useFocusTrap<HTMLDivElement>(
+    showMismatchModal,
+    () => setShowMismatchModal(false),
+  );
 
   const rejectStatus = useSessionValue("RejectStatus");
   const isIos =
@@ -469,8 +475,9 @@ export default function ReversePennyDrop() {
                 <div className="mobile_css">
                   <div className="back_cls">
                     <div
-                      onClick={backToPersonalSix}
+                      aria-label="Go back"
                       style={{ cursor: "pointer" }}
+                      {...buttonKeyProps(backToPersonalSix)}
                     >
                       <img
                         src={publicPath("/assets/images/diy/ChevronLeft.png")}
@@ -497,8 +504,9 @@ export default function ReversePennyDrop() {
                     <div className="col-lg-12 col-md-12 col-12 desktop_css">
                       <div className="d-flex align-items-start gap-2">
                         <div
-                          onClick={backToPersonalSix}
+                          aria-label="Go back"
                           style={{ cursor: "pointer" }}
+                          {...buttonKeyProps(backToPersonalSix)}
                         >
                           <span aria-hidden="true">
                             <svg
@@ -559,12 +567,12 @@ export default function ReversePennyDrop() {
                     <div key={i} className="col-lg-12">
                       <div
                         className="square-box p-4"
-                        onClick={() => selectUPIBank(data)}
                         aria-pressed={
                           selectedUPIBank === data ? "true" : "false"
                         }
                         aria-label={`Select ${data.UpiName} as your UPI app`}
                         style={{ cursor: "pointer" }}
+                        {...buttonKeyProps(() => selectUPIBank(data))}
                       >
                         <div className="pan_details_align">
                           <input
@@ -668,8 +676,9 @@ export default function ReversePennyDrop() {
                     <div className="help_faq_css">
                       <div className="d-flex gap-2">
                         <div
-                          onClick={backToPersonalSix}
+                          aria-label="Go back"
                           style={{ cursor: "pointer" }}
+                          {...buttonKeyProps(backToPersonalSix)}
                         >
                           <span aria-hidden="true">
                             <svg
@@ -826,8 +835,9 @@ export default function ReversePennyDrop() {
                   <div className="back_cls">
                     {rejectStatus !== "R" && (
                       <div
-                        onClick={backToPersonalFive}
+                        aria-label="Go back"
                         style={{ cursor: "pointer" }}
+                        {...buttonKeyProps(backToPersonalFive)}
                       >
                         <img
                           src={publicPath("/assets/images/diy/ChevronLeft.png")}
@@ -850,8 +860,9 @@ export default function ReversePennyDrop() {
                       <div className="d-flex align-items-start gap-2">
                         {rejectStatus !== "R" && (
                           <div
-                            onClick={backToPersonalFive}
+                            aria-label="Go back"
                             style={{ cursor: "pointer" }}
+                            {...buttonKeyProps(backToPersonalFive)}
                           >
                             <span aria-hidden="true">
                               <svg
@@ -999,11 +1010,13 @@ export default function ReversePennyDrop() {
       {/* Name Mismatch Modal */}
       {showMismatchModal && (
         <div
+          ref={mismatchDialogRef}
           className="modal fade show uploadPan"
           style={{ display: "block" }}
           tabIndex={-1}
+          role="dialog"
           aria-modal="true"
-          aria-labelledby="mismatchModalLabel"
+          aria-label="Bank account name mismatch"
         >
           <div className="modal-dialog">
             <div className="modal-content">

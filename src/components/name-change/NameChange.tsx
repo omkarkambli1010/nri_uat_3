@@ -9,6 +9,7 @@ import navigationService from '@/services/navigation.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './name-change.module.scss';
 import { useSessionValue } from '@/hooks/useSessionValue';
+import { buttonKeyProps } from "@/utils/a11y";
 
 // NameChange — Upload name change document (gazette/marriage certificate etc.)
 // Equivalent to Angular NameChangeComponent
@@ -102,8 +103,9 @@ export default function NameChange() {
                 <hr className="desktop_css" />
                 <div
                   className="upload_box"
-                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Upload name change document"
                   style={{ cursor: 'pointer', border: '2px dashed #ccc', borderRadius: 8, padding: 24, textAlign: 'center' }}
+                  {...buttonKeyProps(() => fileInputRef.current?.click())}
                 >
                   {imagePreview ? (
                     <img src={imagePreview} alt="Document preview" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8 }} />

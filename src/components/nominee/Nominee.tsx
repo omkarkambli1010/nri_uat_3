@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './nominee.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import { buttonKeyProps } from "@/utils/a11y";
 // Nominee — Nominee option selection screen (add or opt-out)
 // Equivalent to Angular NomineeComponent
 
@@ -48,11 +49,8 @@ export default function Nominee() {
               <div className="group_btn">
                 <div
                   className="square-box p-3"
-                  onClick={goToAddNominee}
                   style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goToAddNominee(); }}
+                  {...buttonKeyProps(goToAddNominee)}
                 >
                   <div className="pan_details_align">
                     <img src={publicPath("/assets/images/diy/nominee-icon.png")} alt="" width={40} aria-hidden="true" />
@@ -65,11 +63,8 @@ export default function Nominee() {
 
                 <div
                   className="square-box p-3"
-                  onClick={goToOptOut}
                   style={{ cursor: 'pointer' }}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') goToOptOut(); }}
+                  {...buttonKeyProps(goToOptOut)}
                 >
                   <div className="pan_details_align">
                     <img src={publicPath("/assets/images/diy/addressprooficon-1.png")} alt="" width={40} aria-hidden="true" />

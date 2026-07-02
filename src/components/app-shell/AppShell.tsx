@@ -155,9 +155,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      {/* WCAG 2.4.1 — lets keyboard / screen-reader users bypass the header and
+          jump straight into the page content. Hidden until focused (see
+          .skip-link in globals.scss). */}
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       <Header />
       <Spinner />
-      <main>{children}</main>
+      {/* tabIndex={-1} makes <main> a programmatic focus target for the skip
+          link without adding it to the normal tab order. */}
+      <main id="main-content" tabIndex={-1}>
+        {children}
+      </main>
     </>
   );
 }

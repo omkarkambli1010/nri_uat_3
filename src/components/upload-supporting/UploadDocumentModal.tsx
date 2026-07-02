@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
 import styles from './upload-document-modal.module.scss';
 
@@ -192,6 +193,10 @@ export function UploadDocumentModal({
     };
   }, [open]);
 
+  // Nested cropper/camera modals manage their own trap via the shared stack.
+  // Declared before the early return so the hook order stays stable.
+  const dialogRef = useFocusTrap<HTMLDivElement>(open && !croppingObjectUrl, onClose);
+
   if (!open) return null;
 
   const validate = (f: File) => {
@@ -318,10 +323,12 @@ export function UploadDocumentModal({
     <>
       {showUploadFrame && (
       <div
+        ref={dialogRef}
         className={isDesktop ? styles.overlay : styles.overlayMob}
         role="dialog"
         aria-modal="true"
         aria-label="Upload document"
+        tabIndex={-1}
         onClick={onOverlayClick}
       >
         <div className={cardClass} onClick={(e) => e.stopPropagation()}>

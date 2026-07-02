@@ -13,6 +13,35 @@ $white: #ffffff;
 $light-bg: #f8f9fa;
 $font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 
+// ===== Skip to main content (WCAG 2.4.1 Bypass Blocks) =====
+// Visually hidden until keyboard-focused, then pinned to the top-left so a
+// keyboard / screen-reader user can jump straight past the header into <main>.
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -48px; // off-screen until focused
+  z-index: 2000; // above the sticky header
+  padding: 10px 16px;
+  background: $primary-color;
+  color: $white;
+  border-radius: 0 0 6px 6px;
+  font-family: $font-family;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: top 0.15s ease-in-out;
+
+  &:focus {
+    top: 0;
+    outline: 3px solid $accent-color;
+    outline-offset: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skip-link { transition: none; }
+}
+
 // ===== Reset & Base =====
 *,
 *::before,

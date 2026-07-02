@@ -10,6 +10,7 @@ import { toast } from "@/services/toast.service";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useSessionValue } from '@/hooks/useSessionValue';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,6 +268,10 @@ export default function PlanPreference() {
 
   const [showKnowMore, setShowKnowMore]   = useState(false);
   const [knowMoreIndex, setKnowMoreIndex] = useState(0);
+  const knowMoreDialogRef = useFocusTrap<HTMLDivElement>(
+    showKnowMore,
+    () => setShowKnowMore(false),
+  );
 
   const rejectStatus = useSessionValue('RejectStatus');
   // Mobile layout selection by plan count:
@@ -903,11 +908,13 @@ export default function PlanPreference() {
       {/* ── Know More Modal ──────────────────────────────────────────────────── */}
       {showKnowMore && kmPlan && (
         <div
+          ref={knowMoreDialogRef}
           className={styles.modalOverlay}
           onClick={() => setShowKnowMore(false)}
           role="dialog"
           aria-modal="true"
           aria-label={`${kmName} plan details`}
+          tabIndex={-1}
         >
           <div className={styles.modalSheet} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalDash} aria-hidden="true" />

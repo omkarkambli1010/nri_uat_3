@@ -3,6 +3,7 @@
 import { SyntheticEvent, useCallback, useEffect, useRef, useState } from 'react';
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop';
 import 'react-image-crop/dist/ReactCrop.css';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import styles from './signature-cropper-modal.module.scss';
 
 export interface SignatureCropperModalProps {
@@ -70,6 +71,7 @@ export function SignatureCropperModal({
   onConfirm,
 }: SignatureCropperModalProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>(open, onCancel);
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
@@ -160,10 +162,12 @@ export function SignatureCropperModal({
 
   return (
     <div
+      ref={dialogRef}
       className={overlayClass}
       role="dialog"
       aria-modal="true"
       aria-label="Crop signature"
+      tabIndex={-1}
       onClick={(e) => e.stopPropagation()}
     >
       <div className={cardClass} onClick={(e) => e.stopPropagation()}>

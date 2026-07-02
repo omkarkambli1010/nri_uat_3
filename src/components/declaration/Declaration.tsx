@@ -10,6 +10,7 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./declaration.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from '@/hooks/useSessionValue';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 // Declaration — plan process step 1
 // Figma: Onboarding / Step 4 / Declaration → 0:25471 (mobile) + 0:25592 (desktop)
 
@@ -383,6 +384,15 @@ export default function Declaration() {
   const [showTradingPrefModal, setShowTradingPrefModal] = useState(false);
   const [showFundCycleModal, setShowFundCycleModal] = useState(false);
   const [showConfirmPrefModal, setShowConfirmPrefModal] = useState(false);
+
+  // Focus traps for each modal — WAI-ARIA dialog pattern (focus in, trap,
+  // Escape to close, restore focus on close).
+  const termsDialogRef = useFocusTrap<HTMLDivElement>(showTermsModal, () => setShowTermsModal(false));
+  const taxpayerDialogRef = useFocusTrap<HTMLDivElement>(showTaxpayerModal, () => setShowTaxpayerModal(false));
+  const politicalDialogRef = useFocusTrap<HTMLDivElement>(showPoliticalModal, () => setShowPoliticalModal(false));
+  const tradingPrefDialogRef = useFocusTrap<HTMLDivElement>(showTradingPrefModal, () => setShowTradingPrefModal(false));
+  const fundCycleDialogRef = useFocusTrap<HTMLDivElement>(showFundCycleModal, () => setShowFundCycleModal(false));
+  const confirmPrefDialogRef = useFocusTrap<HTMLDivElement>(showConfirmPrefModal, () => setShowConfirmPrefModal(false));
 
   const rejectStatus = useSessionValue('RejectStatus');
   const utmSource =
@@ -1330,10 +1340,12 @@ export default function Declaration() {
       {/* Terms & Conditions Modal */}
       {showTermsModal && (
         <div
+          ref={termsDialogRef}
           className={styles.fscOverlay}
           role="dialog"
           aria-modal="true"
           aria-labelledby="termsModalTitle"
+          tabIndex={-1}
           onClick={() => setShowTermsModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
@@ -1377,6 +1389,7 @@ export default function Declaration() {
       {showTaxpayerModal && (
         <>
           <div
+            ref={taxpayerDialogRef}
             className="modal fade show uploadPan"
             style={{ display: "block" }}
             tabIndex={-1}
@@ -1422,10 +1435,12 @@ export default function Declaration() {
       {/* Politically Exposed Person Modal */}
       {showPoliticalModal && (
         <div
+          ref={politicalDialogRef}
           className={styles.fscOverlay}
           role="dialog"
           aria-modal="true"
           aria-labelledby="pepModalTitle"
+          tabIndex={-1}
           onClick={() => setShowPoliticalModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
@@ -1476,10 +1491,12 @@ export default function Declaration() {
       {/* Trading Preference Modal */}
       {showTradingPrefModal && (
         <div
+          ref={tradingPrefDialogRef}
           className={styles.fscOverlay}
           role="dialog"
           aria-modal="true"
           aria-labelledby="tradePrefModalTitle"
+          tabIndex={-1}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
             <button
@@ -1622,10 +1639,12 @@ export default function Declaration() {
       {/* Fund Settlement Cycle Modal — Figma 0:105487 (desktop) / 0:105189 (mobile) */}
       {showFundCycleModal && (
         <div
+          ref={fundCycleDialogRef}
           className={styles.fscOverlay}
           role="dialog"
           aria-modal="true"
           aria-labelledby="fsc-modal-title"
+          tabIndex={-1}
           onClick={() => setShowFundCycleModal(false)}
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
@@ -1688,6 +1707,7 @@ export default function Declaration() {
       {showConfirmPrefModal && (
         <>
           <div
+            ref={confirmPrefDialogRef}
             className="modal fade show uploadPan"
             style={{ display: "block" }}
             tabIndex={-1}

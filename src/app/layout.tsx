@@ -13,10 +13,12 @@ import Providers from "@/lib/providers";
 import AppShell from "@/components/app-shell/AppShell";
 
 export const metadata: Metadata = {
+  // Plain "&" — these are JS strings, so Next escapes them for the DOM. A literal
+  // "&amp;" here would render as the visible text "&amp;" in the tab/SERP.
   title:
-    "Open Demat Account - Free Demat &amp; Trading Account Opening Online | SBI Securities",
+    "Open Demat Account - Free Demat & Trading Account Opening Online | SBI Securities",
   description:
-    "Open Demat Account - Zero Cost Demat &amp; Trading Account opening online at SBI Securities; ₹0* Brokerage till ₹75 lakh Trades, Flat Brokerage ₹20/order* and Zero AMC for 1st Year &amp; more",
+    "Open Demat Account - Zero Cost Demat & Trading Account opening online at SBI Securities; ₹0* Brokerage till ₹75 lakh Trades, Flat Brokerage ₹20/order* and Zero AMC for 1st Year & more",
   keywords:
     "demat account, trading account, SBI Securities, open demat account online",
   robots: "index, follow",
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Open Demat Account | SBI Securities",
     description:
-      "Open a free Demat &amp; Trading Account in minutes with SBI Securities.",
+      "Open a free Demat & Trading Account in minutes with SBI Securities.",
     type: "website",
   },
 };

@@ -9,6 +9,7 @@ import styles from "./addNominee-landing.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 // AddNomineeLanding — "Add Nominee" instruction / landing screen.
 // Figma desktop: node 0:43797 ; mobile: node 0:43519.
@@ -122,6 +123,13 @@ export default function AddNomineeLanding() {
   const openOptOutPopup = () => setShowOptOutPopup(true);
   const closeOptOutPopup = () => setShowOptOutPopup(false);
 
+  // Only one of the desktop/mobile variants is mounted at a time, so a single
+  // trap ref serves both.
+  const optOutDialogRef = useFocusTrap<HTMLDivElement>(
+    showOptOutPopup,
+    closeOptOutPopup,
+  );
+
   const getApplicationId = () => {
     return typeof window !== "undefined"
       ? window.sessionStorage.getItem("ApplicationId") || ""
@@ -207,10 +215,12 @@ export default function AddNomineeLanding() {
     showOptOutPopup &&
     (isDesktop ? (
       <div
+        ref={optOutDialogRef}
         className={styles.popupOverlay}
         role="dialog"
         aria-modal="true"
         aria-labelledby="optOutPopupTitle"
+        tabIndex={-1}
         onClick={closeOptOutPopup}
       >
         <div className={styles.popupCard} onClick={(e) => e.stopPropagation()}>
@@ -258,10 +268,12 @@ export default function AddNomineeLanding() {
       </div>
     ) : (
       <div
+        ref={optOutDialogRef}
         className={styles.sheetBackdrop}
         role="dialog"
         aria-modal="true"
         aria-labelledby="optOutPopupTitle"
+        tabIndex={-1}
         onClick={closeOptOutPopup}
       >
         <div className={styles.sheetCard} onClick={(e) => e.stopPropagation()}>

@@ -10,6 +10,7 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./penny-drop.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
+import { buttonKeyProps } from "@/utils/a11y";
 
 // PennyDrop — Bank account verification via IFSC + account number
 // Equivalent to Angular PennyDropComponent (multi-step form)
@@ -166,15 +167,15 @@ export default function PennyDrop() {
             <div className="row">
               <div className="col-lg-10 col-12 m-auto">
                 <div className="mobile_css">
-                  <div
-                    className="back_cls"
-                    onClick={BackToSix}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <div>
+                  <div className="back_cls">
+                    <div
+                      aria-label="Go back"
+                      style={{ cursor: "pointer" }}
+                      {...buttonKeyProps(BackToSix)}
+                    >
                       <img
                         src={publicPath("/assets/images/diy/ChevronLeft.png")}
-                        alt="Previous Page"
+                        alt=""
                         aria-hidden="true"
                       />{" "}
                       Back
@@ -202,8 +203,9 @@ export default function PennyDrop() {
                         <div className="help_faq_css">
                           <div className="d-flex gap-2">
                             <div
-                              onClick={BackToSix}
+                              aria-label="Go back"
                               style={{ cursor: "pointer" }}
+                              {...buttonKeyProps(BackToSix)}
                             >
                               <span aria-hidden="true">
                                 <svg
@@ -286,10 +288,11 @@ export default function PennyDrop() {
                             <div key={i} className="col-md-6 col-12">
                               <div
                                 className="bank_box"
-                                onClick={() => redirectToFillDetails(bank)}
+                                aria-label={`Select ${bank.BankName}`}
                                 style={{ cursor: "pointer" }}
+                                {...buttonKeyProps(() => redirectToFillDetails(bank))}
                               >
-                                <img src={bank.BankLogo} alt="bank-logo" />
+                                <img src={bank.BankLogo} alt="" aria-hidden="true" />
                                 <p>{bank.BankName}</p>
                               </div>
                             </div>
@@ -324,12 +327,13 @@ export default function PennyDrop() {
                 <div className="mobile_css">
                   <div className="back_cls">
                     <div
-                      onClick={BackToPennyDropOne}
+                      aria-label="Go back"
                       style={{ cursor: "pointer" }}
+                      {...buttonKeyProps(BackToPennyDropOne)}
                     >
                       <img
                         src={publicPath("/assets/images/diy/ChevronLeft.png")}
-                        alt="Previous Page"
+                        alt=""
                         aria-hidden="true"
                       />{" "}
                       Back
@@ -360,10 +364,11 @@ export default function PennyDrop() {
                         <div className="help_faq_css">
                           <div className="d-flex gap-2">
                             <div
-                              onClick={BackToPennyDropOne}
+                              aria-label="Go back"
                               style={{ cursor: "pointer" }}
+                              {...buttonKeyProps(BackToPennyDropOne)}
                             >
-                              <span>
+                              <span aria-hidden="true">
                                 <svg
                                   width="24"
                                   height="25"

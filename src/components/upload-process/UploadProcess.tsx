@@ -677,10 +677,14 @@ export default function UploadProcess() {
           rgba(0,0,0,0.6) full-screen + white centered dialog (500px)
       ════════════════════════════════════════════════════════════════════════ */}
       {showVerifying && (
+        // Transient progress overlay, no interactive content — a live status
+        // region (not a focus-trapping dialog) so screen readers announce the
+        // verifying state without stranding keyboard users (WCAG 4.1.3).
         <div
           className={styles.verifyingOverlay}
-          role="dialog"
-          aria-modal="true"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
           aria-label="Verifying PAN"
         >
           <div className={styles.verifyingDialog}>
@@ -696,8 +700,9 @@ export default function UploadProcess() {
       {showVerifying && (
         <div
           className={styles.verifyingSheetOverlay}
-          role="dialog"
-          aria-modal="true"
+          role="status"
+          aria-live="polite"
+          aria-busy="true"
           aria-label="Verifying PAN"
         >
           <div className={styles.verifyingSheet}>

@@ -6,6 +6,7 @@ import { toast } from '@/services/toast.service';
 import { SignatureCropperModal } from '@/components/upload-signature/SignatureCropperModal';
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
 import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
+import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { fatcaStore } from './fatcaStore';
 import styles from './fatca.module.scss';
 
@@ -235,14 +236,19 @@ export default function FatcaUploadSheet({ onClose, onProceed }: FatcaUploadShee
 
   const showUploadFrame = !croppingObjectUrl;
 
+  // Nested cropper/camera modals manage their own trap via the shared stack.
+  const dialogRef = useFocusTrap<HTMLDivElement>(showUploadFrame, handleClose);
+
   return (
     <>
       {showUploadFrame && (
         <div
+          ref={dialogRef}
           className={styles.sheetOverlay}
           role="dialog"
           aria-modal="true"
           aria-label="Upload TIN Document"
+          tabIndex={-1}
           onClick={(e) => {
             if (e.target === e.currentTarget) handleClose();
           }}

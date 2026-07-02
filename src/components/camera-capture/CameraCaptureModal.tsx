@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import styles from "./camera-capture.module.scss";
 
 interface CameraCaptureModalProps {
@@ -31,6 +32,7 @@ export function CameraCaptureModal({
 }: CameraCaptureModalProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>(open, onClose);
   const [ready, setReady] = useState(false);
   const [unavailable, setUnavailable] = useState(false);
 
@@ -114,10 +116,12 @@ export function CameraCaptureModal({
 
   return (
     <div
+      ref={dialogRef}
       className={styles.overlay}
       role="dialog"
       aria-modal="true"
       aria-label="Take a photo"
+      tabIndex={-1}
     >
       <div className={styles.panel}>
         {unavailable ? (
