@@ -33,8 +33,6 @@ interface StaticPlanData {
   brokerageMain: string;
   brokerageNote: string;
   mobilePriceGst: string;
-  innerGap: number;
-  actionsGap: number;
   benefits: { type: BenefitKind; text: string; sub?: string }[];
   equity: { val: string; lbl: string }[];
   derivatives: { val: string; lbl: string }[];
@@ -49,8 +47,6 @@ const STATIC_BY_KEY: Record<string, StaticPlanData> = {
     brokerageMain: '₹20',
     brokerageNote: '*On Equity Intraday Trades',
     mobilePriceGst: '',
-    innerGap: 45,
-    actionsGap: 12,
     benefits: [
       { type: 'solid', text: '0.50% on Delivery Trade' },
       { type: 'solid', text: '₹50/Lot on Options' },
@@ -74,8 +70,6 @@ const STATIC_BY_KEY: Record<string, StaticPlanData> = {
     brokerageMain: 'Zero',
     brokerageNote: '*Till 75 Lacs Delivery Trade Value',
     mobilePriceGst: '+ GST',
-    innerGap: 24,
-    actionsGap: 12,
     benefits: [
       { type: 'solid', text: '₹20 on Equity Intraday' },
       { type: 'solid', text: '0.20% on Equity Delivery' },
@@ -100,8 +94,6 @@ const STATIC_BY_KEY: Record<string, StaticPlanData> = {
     brokerageMain: 'Zero',
     brokerageNote: '*On all Intraday Trades',
     mobilePriceGst: '+ GST',
-    innerGap: 42,
-    actionsGap: 16,
     benefits: [
       { type: 'solid', text: '0.20% on Equity Delivery' },
       { type: 'carry', text: '₹20/Order on Carry Forward Options' },
@@ -484,33 +476,34 @@ export default function PlanPreference() {
         onClick={() => setSelectedIndex(i)}
         style={{ cursor: "pointer" }}
       >
-        <div className={styles.dCardInner} style={{ gap: s.innerGap }}>
+        {/* Floating "Selected" badge — absolutely positioned above the card so it
+            never occupies internal space; every card keeps identical height and
+            row alignment whether or not it's selected (no layout shift). */}
+        {isSelected && (
+          <span className={styles.dSelectedBadge}>
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden="true"
+              style={{ flexShrink: 0 }}
+            >
+              <circle cx="8" cy="8" r="7.5" fill="#280071" stroke="#280071" />
+              <path
+                d="M4.5 8.5L6.5 10.5L11.5 5.5"
+                stroke="white"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            Selected
+          </span>
+        )}
+        <div className={styles.dCardInner}>
           <div className={styles.dCardTop}>
             <div className={styles.dPlanHeader}>
-              {/* "Selected" tag sits above the title row so a long plan name
-                  can't overlap it. */}
-              {isSelected && (
-                <span className={styles.dSelectedBadge}>
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    aria-hidden="true"
-                    style={{ flexShrink: 0 }}
-                  >
-                    <circle cx="8" cy="8" r="7.5" fill="#280071" stroke="#280071" />
-                    <path
-                      d="M4.5 8.5L6.5 10.5L11.5 5.5"
-                      stroke="white"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  Selected
-                </span>
-              )}
               <div className={styles.dTitleRow}>
                 <img src={s.icon} alt="" width={31} height={31} className={styles.dPlanIcon} />
                 <span className={styles.dPlanName}>{plan.name}</span>
@@ -552,7 +545,7 @@ export default function PlanPreference() {
             </div>
           </div>
 
-          <div className={styles.dCardActions} style={{ gap: s.actionsGap }}>
+          <div className={styles.dCardActions}>
             <LoadingButton
               type="button"
               className={styles.dProceedBtn}
@@ -865,14 +858,16 @@ export default function PlanPreference() {
               <div className={styles.dCarouselWrapper}>
                 <Splide
                   options={{
-                    autoWidth: true,
+                    perPage: 3,
                     perMove: 1,
                     gap: '24px',
-                    arrows: true,
+                    arrows: false,
                     pagination: true,
                     drag: true,
-                    focus: 'center',
-                    trimSpace: 'move',
+                    trimSpace: true,
+                    rewind: false,
+                    speed: 500,
+                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
                   }}
                   aria-label="Plan options"
                 >

@@ -33,6 +33,16 @@ function isExpired(iso: string): boolean {
   return d < today;
 }
 
+// Earliest acceptable visa expiry — today + 3 months (BRD: a visa must have
+// more than 3 months of validity remaining). Mirrors VisaUpload's minVisaExpiry()
+// so the entry gate matches the upload screen's validation.
+function minVisaExpiry(): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() + 3);
+  return d;
+}
+
 function IconBackArrow() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -87,14 +97,18 @@ export default function VisaEntry() {
   }, []);
 
   const expired = isExpired(expiryDate);
-  // Mirrors original /visa behaviour: button greys out only when empty; an
-  // expired date still enables Upload (warning is informational, not blocking).
+  // BRD: a visa must have more than 3 months of validity remaining. The picker
+  // disables every date before today + 3 months (past + next 3 months) via
+  // minDate, so it can't normally be selected; `tooSoon` is a backstop for a
+  // manually typed date (and drives the inline warning). `expired` picks the copy.
+  const tooSoon = !!expiryDate && new Date(expiryDate) < minVisaExpiry();
   const canUpload = !!expiryDate;
 
   const handleBack = () => router.back();
 
   const handleUpload = () => {
-    if (!canUpload) return;
+    // Backstop for a manually typed date that slipped past the picker's minDate.
+    if (!canUpload || tooSoon) return;
     // Persist the picked expiry so the upload screen can pre-fill + submit it.
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('visaExpiryDate', expiryDate);
@@ -118,15 +132,20 @@ export default function VisaEntry() {
           showIcon
           iconPos="right"
           touchUI
+          minDate={minVisaExpiry()}
           panelClassName="p-prime-cal-sm"
-          className={`p-prime-cal${expired ? ` ${styles.expiredCalendar}` : ''}`}
+          className={`p-prime-cal${tooSoon ? ` ${styles.expiredCalendar}` : ''}`}
         />
-        {expired && (
+        {tooSoon && (
           <div className={styles.expiryErrorRow} role="alert">
             <span className={styles.expiryErrorIcon}>
               <IconExclamationCircle />
             </span>
-            <p className={styles.expiryErrorText}>Visa has already expired</p>
+            <p className={styles.expiryErrorText}>
+              {expired
+                ? 'Visa has already expired'
+                : 'Visa must have more than 3 months of validity remaining'}
+            </p>
           </div>
         )}
       </div>

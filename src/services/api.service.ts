@@ -740,8 +740,10 @@ class APIService {
       proofType: string;
       proofNumber: string;
       expiryDate: string;
-      frontFile: File;
-      backFile: File;
+      frontFile?: File;
+      backFile?: File;
+      existingFrontDocumentId?: string;
+      existingBackDocumentId?: string;
       idempotencyKey?: string;
     },
     hideSpinner?: () => void,
@@ -763,9 +765,16 @@ class APIService {
     form.append("Line2", data.line2 ?? "");
     form.append("Line3", data.line3 ?? "");
 
-    // Files
-    form.append("BackFile", data.backFile);
-    form.append("FrontFile", data.frontFile);
+    // Files (first-time upload) — appended only when a fresh file is provided.
+    if (data.backFile) form.append("BackFile", data.backFile);
+    if (data.frontFile) form.append("FrontFile", data.frontFile);
+
+    // Existing documents (revisit) — appended only when re-using a saved proof
+    // by id. The id form omits the file fields entirely (and vice versa).
+    if (data.existingBackDocumentId)
+      form.append("ExistingBackDocumentId", data.existingBackDocumentId);
+    if (data.existingFrontDocumentId)
+      form.append("ExistingFrontDocumentId", data.existingFrontDocumentId);
 
     try {
       const response = await axios.post(url, form, {

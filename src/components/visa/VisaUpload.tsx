@@ -239,6 +239,12 @@ export default function VisaUpload() {
 
   const expired = isExpired(expiryDate);
 
+  // BRD: a visa must have more than 3 months of validity remaining. `tooSoon`
+  // covers both already-expired and future-but-within-3-months dates — the same
+  // rule validateDetails() enforces on Save/Proceed, surfaced inline here so the
+  // user sees it immediately (not only after acting). `expired` picks the copy.
+  const tooSoon = !!expiryDate && new Date(expiryDate) < minVisaExpiry();
+
   // Earliest selectable expiry — BRD: past dates and the next 3 months are
   // invalid, so the picker floor is today + 3 months (or the issue date if it
   // somehow falls later). Matches the validateDetails() rule.
@@ -576,12 +582,16 @@ export default function VisaUpload() {
   // One dashed-border card with all 8 fields. Read-only "Label: value" rows by
   // default; the pencil (locked until both uploads succeed) flips them to
   // inputs. The toggle becomes "Save" while editing.
-  const expiredWarning = expired && (
+  const expiredWarning = tooSoon && (
     <div className={styles.expiryErrorRow} role="alert">
       <span className={styles.expiryErrorIcon}>
         <IconExclamationCircle />
       </span>
-      <p className={styles.expiryErrorText}>Visa has already expired</p>
+      <p className={styles.expiryErrorText}>
+        {expired
+          ? 'Visa has already expired'
+          : 'Visa must have more than 3 months of validity remaining'}
+      </p>
     </div>
   );
 
@@ -676,9 +686,9 @@ export default function VisaUpload() {
               touchUI
               panelClassName="p-prime-cal-sm"
               minDate={expiryMinDate}
-              className={`p-prime-cal${errors.expiryDate ? ' p-prime-cal-error' : ''}${expired ? ` ${styles.expiredCalendar}` : ''}`}
+              className={`p-prime-cal${errors.expiryDate ? ' p-prime-cal-error' : ''}${tooSoon ? ` ${styles.expiredCalendar}` : ''}`}
             />
-            {expired && !errors.expiryDate && expiredWarning}
+            {!errors.expiryDate && expiredWarning}
           </FieldRow>
 
           <FieldRow id="country" label="Country" error={errors.country}>

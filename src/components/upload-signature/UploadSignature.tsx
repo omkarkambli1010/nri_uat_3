@@ -256,6 +256,18 @@ export default function UploadSignature() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [verifyFile, setVerifyFile] = useState<VerifyFile | null>(null);
 
+  // Saved signature's documentId from the SIGNATURE stage — held in a ref (no
+  // longer persisted to sessionStorage) and used as the documentId on proceed().
+  const savedDocumentIdRef = useRef<string>("");
+
+  // Mirror of verifyFile so the async stage fetch can tell whether the user has
+  // already drawn/picked a signature (and must not be clobbered) without
+  // capturing a stale value in its mount-time closure.
+  const verifyFileRef = useRef<VerifyFile | null>(null);
+  useEffect(() => {
+    verifyFileRef.current = verifyFile;
+  }, [verifyFile]);
+
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
     const update = () => setIsDesktop(mq.matches);
@@ -271,9 +283,12 @@ export default function UploadSignature() {
     navigationService.setRouter(router, hideSpinner);
   }, [router, hideSpinner]);
 
-  // Fetch the saved SIGNATURE stage data so the save uses the real documentId
-  // (POST …/get/workflow/stagewisedate { stagename: "SIGNATURE" }). Persist
-  // data.documentId so proceed() no longer falls back to a placeholder id.
+  // Fetch the saved SIGNATURE stage on load (POST …/get/workflow/stagewisedate
+  // { stagename: "SIGNATURE" }). Holds the real documentId in a ref (for
+  // proceed()), and — on a revisit — binds the previously saved signature from
+  // its presigned URL: the bytes are fetched into a Blob so the preview shows
+  // AND Proceed can re-submit the same image. Never clobbers a signature the
+  // user has just drawn or picked.
   useEffect(() => {
     const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
     if (!applicationId) return;
@@ -281,11 +296,42 @@ export default function UploadSignature() {
     let alive = true;
     apiService
       .getSignatureWorkflow(applicationId)
-      .then((res) => {
-        if (!alive) return;
-        const documentId = res?.data?.documentId;
-        if (documentId) {
-          sessionStorage.setItem("SignatureDocumentId", String(documentId));
+      .then(async (res) => {
+        if (!alive || !res) return;
+
+        const documentId =
+          res?.data?.documentId ?? res?.documents?.[0]?.documentID ?? "";
+        if (documentId) savedDocumentIdRef.current = String(documentId);
+
+        // Locate the saved Signature document's presigned URL.
+        const docs: any[] = Array.isArray(res?.documents) ? res.documents : [];
+        const doc =
+          docs.find(
+            (d) => String(d?.documentType).toLowerCase() === "signature",
+          ) ?? docs[0];
+        const url = doc?.presignedUrl ?? doc?.preSignedUrl ?? doc?.url ?? "";
+
+        // Don't overwrite a signature the user just drew/picked (via the store
+        // hand-off effect or the upload modal).
+        if (!url || signatureStore.get() || verifyFileRef.current) return;
+
+        try {
+          const resp = await fetch(String(url));
+          if (!alive || !resp.ok) return;
+          const blob = await resp.blob();
+          if (!alive || blob.size === 0 || verifyFileRef.current) return;
+
+          const type = blob.type || "image/png";
+          const ext = blobService.getExtensionFromMimeType(type);
+          const name = blobService.generateFileName(
+            `signature-${applicationId}`,
+            ext,
+          );
+          const objectUrl = blobService.fileToPreviewUrl(blob);
+          setVerifyFile({ name, blob, objectUrl, type, size: blob.size });
+        } catch {
+          // Non-fatal — the presigned URL may be unreachable; the user can
+          // still draw or upload a fresh signature.
         }
       })
       .catch(() => {
@@ -439,13 +485,11 @@ export default function UploadSignature() {
 
   const onReupload = () => {
     setVerifyFile(null);
-    sessionStorage.removeItem("SignatureVerified");
     setShowUploadModal(true);
   };
 
   const removeVerifyFile = () => {
     setVerifyFile(null);
-    sessionStorage.removeItem("SignatureVerified");
   };
 
   // Export the drawn signature as a tightly-cropped, transparent PNG (the
@@ -565,7 +609,7 @@ export default function UploadSignature() {
     }
 
     const documentId =
-      sessionStorage.getItem("SignatureDocumentId") ||
+      savedDocumentIdRef.current ||
       sessionStorage.getItem("DocumentId") ||
       "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
@@ -579,7 +623,6 @@ export default function UploadSignature() {
       return;
     }
 
-    const source: "draw" | "upload" = verifyFile ? "upload" : "draw";
     const captureMethod: "Draw" | "Upload" = verifyFile ? "Upload" : "Draw";
 
     const fileType =
@@ -632,11 +675,6 @@ export default function UploadSignature() {
       );
 
       console.log("Signature Verify Response:", response);
-
-      sessionStorage.setItem("SignatureVerified", "Yes");
-      sessionStorage.setItem("signatureSource", source);
-      sessionStorage.setItem("signatureName", fileName);
-      sessionStorage.setItem("signatureType", fileType);
 
       toast.success("Signature uploaded successfully!");
 

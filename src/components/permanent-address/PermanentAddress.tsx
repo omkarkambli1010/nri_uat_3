@@ -166,6 +166,12 @@ export default function PermanentAddress() {
   const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
   const [backInitial, setBackInitial] = useState<UploadedFile | null>(null);
 
+  // Existing proof document ids captured from the saved stage's documents[]
+  // (index 0 → front, 1 → back). Sent as Existing*DocumentId on a revisit when
+  // the user hasn't re-picked that slot's file.
+  const [frontDocumentId, setFrontDocumentId] = useState('');
+  const [backDocumentId, setBackDocumentId] = useState('');
+
   // Gate the form on the prefill (fields + document previews) so it never flashes
   // empty or half-bound; the global loader stays up until it settles.
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
@@ -204,6 +210,15 @@ export default function PermanentAddress() {
         const docs = Array.isArray(res?.documents)
           ? (res.documents as Record<string, unknown>[])
           : [];
+
+        // Capture the saved proof document ids (index 0 → front, 1 → back) so a
+        // revisit can re-submit them by id instead of re-uploading the bytes.
+        const pickDocId = (doc: Record<string, unknown> | undefined): string => {
+          const v = doc?.documentId ?? doc?.documentID ?? doc?.id;
+          return v == null ? '' : String(v);
+        };
+        if (pickDocId(docs[0])) setFrontDocumentId(pickDocId(docs[0]));
+        if (pickDocId(docs[1])) setBackDocumentId(pickDocId(docs[1]));
 
         // Document Type — prefer the saved proof's documentType, fall back to
         // data.proofType. Match against the enum keys AND display labels.
@@ -246,11 +261,26 @@ export default function PermanentAddress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillDone]);
 
-  const getFrontFile = (): File | null =>
-    frontFiles.find((f) => f.file instanceof File)?.file ?? null;
-  const getBackFile = (): File | null =>
-    backFiles.find((f) => f.file instanceof File)?.file ?? null;
-  const filesReady = getFrontFile() !== null && getBackFile() !== null;
+  // A freshly-picked file: a real File with bytes that isn't the byte-less
+  // saved-document preview (those carry an id prefixed "saved-").
+  const getFreshFile = (files: UploadedFile[]): File | null =>
+    files.find(
+      (f) => f.file instanceof File && !f.id.startsWith('saved-') && f.file.size > 0,
+    )?.file ?? null;
+
+  // Whether the seeded saved-document preview is still shown for a slot. Removing
+  // it (without picking a new file) makes the slot not-ready, forcing a re-pick.
+  const hasSeeded = (files: UploadedFile[]): boolean =>
+    files.some((f) => f.id.startsWith('saved-'));
+
+  const freshFront = getFreshFile(frontFiles);
+  const freshBack = getFreshFile(backFiles);
+
+  // Per-slot readiness: a new file was picked, OR a saved document exists and its
+  // preview is still shown (so it can be re-sent by id).
+  const frontReady = freshFront !== null || (!!frontDocumentId && hasSeeded(frontFiles));
+  const backReady = freshBack !== null || (!!backDocumentId && hasSeeded(backFiles));
+  const filesReady = frontReady && backReady;
 
   // Display label for the selected document type, used in the upload section
   // titles ("Upload <Document> Front/Back").
@@ -295,9 +325,8 @@ export default function PermanentAddress() {
     }
     setExpiryError('');
 
-    const frontFile = getFrontFile();
-    const backFile = getBackFile();
-    if (!frontFile || !backFile) return; // both proofs required
+    // Each slot needs either a freshly-picked file or a still-shown saved proof.
+    if (!frontReady || !backReady) return; // both proofs required
 
     const applicationId = getApplicationId();
     if (!applicationId) {
@@ -319,8 +348,12 @@ export default function PermanentAddress() {
         proofNumber: docNumber.trim(),
         expiryDate,                    // YYYY-MM-DD
         idempotencyKey: '',
-        frontFile,
-        backFile,
+        // Per slot: send the freshly-picked file, otherwise re-use the saved
+        // document by id (revisit without re-upload).
+        frontFile: freshFront ?? undefined,
+        backFile: freshBack ?? undefined,
+        existingFrontDocumentId: freshFront ? undefined : frontDocumentId,
+        existingBackDocumentId: freshBack ? undefined : backDocumentId,
       });
 
       // Navigate per uiMetadata route from the response, fall back to /esign.

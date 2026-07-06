@@ -275,6 +275,14 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
 
       const mappedResult = mapApiResponseToIFSCEntry(data);
 
+      // Populate the branch-details box as soon as the IFSC resolves — the
+      // fetched code is the exact 11-char code the user typed, so it's a
+      // confirmed match. Previously the details were set only on tapping the
+      // suggestion or on an exact-match blur; on mobile the fixed dropdown can
+      // sit behind the on-screen keyboard, so the tap never lands and the box
+      // stayed empty.
+      onChange(mappedResult.code, mappedResult);
+
       setResults([mappedResult]);
       setIsOpen(true);
       setActiveIndex(0);
