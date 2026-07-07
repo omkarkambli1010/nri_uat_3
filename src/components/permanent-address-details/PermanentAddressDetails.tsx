@@ -51,7 +51,7 @@ export default function PermanentAddressDetails() {
 
   const renderQuestion = (groupName: string) => (
     <div className={styles.questionBlock}>
-      <p className={styles.questionLabel}>Is your mobile number linked to Aadhaar?</p>
+      <p className={styles.questionLabel}>Is your mobile number linked to Aadhaar? *</p>
       <div className={styles.radioGroup}>
         <label className={styles.radioOption}>
           <input

@@ -115,7 +115,7 @@ function TinRow({
     <div className={styles.tinRow}>
       <SelectField
         id={`${idPrefix}-taxResidence-${index}`}
-        label={`Country of TAX Residence ${index + 1}`}
+        label={`Country of TAX Residence ${index + 1} *`}
         value={taxResidence}
         onChange={onTaxResidenceChange}
         groupClass={fullGroupClass}
@@ -123,7 +123,7 @@ function TinRow({
       />
       <SelectField
         id={`${idPrefix}-tinCountry-${index}`}
-        label={`TIN Issuing Country ${index + 1}`}
+        label={`TIN Issuing Country ${index + 1} *`}
         value={country}
         onChange={onCountryChange}
         groupClass={groupClass}
@@ -131,7 +131,7 @@ function TinRow({
       />
       <div className={groupClass}>
         <label className={styles.fieldLabel} htmlFor={`${idPrefix}-tinNumber-${index}`}>
-          TAX Identification Number (TIN) {index + 1}
+          TAX Identification Number (TIN) {index + 1} *
         </label>
         <input
           id={`${idPrefix}-tinNumber-${index}`}
@@ -396,8 +396,8 @@ export default function FatcaDetails() {
 
         <div className={styles.mobileCard}>
           <div className={styles.section}>
-            <SelectField id="mob-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.fieldGroup} error={errors.countryOfBirth} />
-            <SelectField id="mob-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.fieldGroup} error={errors.citizenship} />
+            <SelectField id="mob-countryOfBirth" label="Country of Birth *" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.fieldGroup} error={errors.countryOfBirth} />
+            <SelectField id="mob-citizenship"    label="Citizenship *"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.fieldGroup} error={errors.citizenship} />
 
             <p className={styles.cobNote}>
               Note: Country of Birth should be as mentioned on the Passport.
@@ -437,8 +437,8 @@ export default function FatcaDetails() {
             <div className={styles.desktopContentArea}>
               <div className={styles.section}>
                 <div className={styles.desktopFieldGrid}>
-                  <SelectField id="desk-countryOfBirth" label="Country of Birth" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.desktopFieldGroup} error={errors.countryOfBirth} />
-                  <SelectField id="desk-citizenship"    label="Citizenship"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.desktopFieldGroup} error={errors.citizenship} />
+                  <SelectField id="desk-countryOfBirth" label="Country of Birth *" value={form.countryOfBirth} onChange={(v) => updateField('countryOfBirth', v)} groupClass={styles.desktopFieldGroup} error={errors.countryOfBirth} />
+                  <SelectField id="desk-citizenship"    label="Citizenship *"       value={form.citizenship}    onChange={(v) => updateField('citizenship',    v)} groupClass={styles.desktopFieldGroup} error={errors.citizenship} />
                 </div>
 
                 <p className={styles.cobNote}>

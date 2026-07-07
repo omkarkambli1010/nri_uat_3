@@ -143,7 +143,7 @@ export default function OciUpload() {
 
           {/* Field: Document Type */}
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mob-doc-type">Document Type</label>
+            <label className={styles.fieldLabel} htmlFor="mob-doc-type">Document Type *</label>
             <div className={styles.fieldInputWrap}>
               <select
                 id="mob-doc-type"
@@ -164,7 +164,7 @@ export default function OciUpload() {
 
           {/* Field: Card No. */}
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mob-card-no">Card No.</label>
+            <label className={styles.fieldLabel} htmlFor="mob-card-no">Card No. *</label>
             <input
               id="mob-card-no"
               type="text"
@@ -214,7 +214,7 @@ export default function OciUpload() {
 
                 {/* Field: Document Type */}
                 <div className={styles.desktopFieldGroup}>
-                  <label className={styles.fieldLabel} htmlFor="desk-doc-type">Document Type</label>
+                  <label className={styles.fieldLabel} htmlFor="desk-doc-type">Document Type *</label>
                   <div className={styles.fieldInputWrap}>
                     <select
                       id="desk-doc-type"
@@ -235,7 +235,7 @@ export default function OciUpload() {
 
                 {/* Field: Card No. */}
                 <div className={styles.desktopFieldGroup}>
-                  <label className={styles.fieldLabel} htmlFor="desk-card-no">Card No.</label>
+                  <label className={styles.fieldLabel} htmlFor="desk-card-no">Card No. *</label>
                   <input
                     id="desk-card-no"
                     type="text"

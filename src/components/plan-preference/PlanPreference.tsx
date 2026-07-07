@@ -6,7 +6,6 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './plan-preference.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
-import { toast } from "@/services/toast.service";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useSessionValue } from '@/hooks/useSessionValue';
@@ -168,80 +167,6 @@ const ModalDoneIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
-function DesktopBenefitItem({ type, text, sub }: { type: BenefitKind; text: string; sub?: string }) {
-  if (type === 'carry') {
-    return (
-      <div className={styles.dBenefitCarry}>
-        <img
-          src={publicPath("/assets/plan-icons/done-carry.svg")}
-          alt=""
-          className={styles.dBenefitCarryIcon}
-          width={12}
-          height={12}
-        />
-        <div className={styles.dBenefitCarryText}>
-          <p>{"₹20/Order on Carry Forward "}</p>
-          <p>Options</p>
-        </div>
-      </div>
-    );
-  }
-  if (type === "open") {
-    return (
-      <div className={`${styles.dBenefitItem} ${styles.dBenefitItemTop}`}>
-        <div className={styles.dBenefitOpenWrap}>
-          <img
-            src={publicPath("/assets/plan-icons/done-open.svg")}
-            alt=""
-            width={10}
-            height={10}
-          />
-        </div>
-        <div className={styles.dBenefitTextMulti}>
-          <span>{text}</span>
-          {sub && <span className={styles.dBenefitSub}>{sub}</span>}
-        </div>
-      </div>
-    );
-  }
-  return (
-    <div className={styles.dBenefitItem}>
-      <div className={styles.dBenefitIconWrap}>
-        <img
-          src={publicPath("/assets/plan-icons/done-solid.svg")}
-          alt=""
-          width={12}
-          height={12}
-        />
-      </div>
-      <span className={styles.dBenefitText}>{text}</span>
-    </div>
-  );
-}
-
-// ─── Shared benefit item used inside the mobile single-plan card ──────────────
-
-function MobileBenefitItem({ type, text, sub }: { type: BenefitKind; text: string; sub?: string }) {
-  return (
-    <div className={styles.slideBenefitItem}>
-      <img
-        src={publicPath(
-          type === 'carry' ? '/assets/plan-icons/done-carry.svg'
-          : type === 'open'  ? '/assets/plan-icons/done-open.svg'
-          : '/assets/plan-icons/done-solid.svg'
-        )}
-        alt=""
-        width={12}
-        height={12}
-        style={{ flexShrink: 0, marginTop: 3 }}
-      />
-      <div>
-        <p>{text}</p>
-        {sub && <span className={styles.subLine}>{sub}</span>}
-      </div>
-    </div>
-  );
-}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -252,6 +177,11 @@ export default function PlanPreference() {
   const [apiPlans, setApiPlans]         = useState<ApiPlan[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError]     = useState<string | null>(null);
+
+  // Depository the plans are fetched for. Defaults to NSDL; the radio at the top
+  // switches it (persisted to sessionStorage) and re-fetches. Seeded from the
+  // stored value after mount to avoid a hydration mismatch.
+  const [depository, setDepository]     = useState<'NSDL' | 'CDSL'>('NSDL');
 
   const [selectedIndex, setSelectedIndex]     = useState<number | null>(null);
   const [isProceeding, setIsProceeding]       = useState(false);
@@ -274,15 +204,18 @@ export default function PlanPreference() {
   const isCarousel    = apiPlans.length > 3;
 
   useEffect(() => {
-    void fetchPlans();
+    // Seed the depository from the stored value (default NSDL) and fetch that
+    // depository's plans.
+    const stored = sessionStorage.getItem('depository') === 'CDSL' ? 'CDSL' : 'NSDL';
+    setDepository(stored);
+    void fetchPlans(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchPlans = async () => {
+  const fetchPlans = async (dep: 'NSDL' | 'CDSL' = depository) => {
     const applicationId = sessionStorage.getItem('ApplicationId') ?? '';
     const journeyType   = sessionStorage.getItem('accountType') === 'semi-digital'
       ? 'NriSemiDigital' : 'NroDigital';
-    const depository    = (sessionStorage.getItem('depository') as 'NSDL' | 'CDSL') ?? 'NSDL';
 
     if (!applicationId) {
       setPlansError('Session expired. Please start again.');
@@ -295,18 +228,16 @@ export default function PlanPreference() {
     showSpinner();
 
     try {
-      const plans: ApiPlan[] = await apiService.getPlans(applicationId, journeyType, depository);
+      const plans: ApiPlan[] = await apiService.getPlans(applicationId, journeyType, dep);
       if (Array.isArray(plans) && plans.length > 0) {
         const sorted = [...plans].sort((a, b) => a.feeInPaise - b.feeInPaise);
         setApiPlans(sorted);
 
-        // Default to the stored index (or the first plan).
-        const stored      = sessionStorage.getItem('selectedPlan');
-        const restoredIdx = stored !== null ? parseInt(stored, 10) : 0;
-        let selectedIdx   = Math.min(restoredIdx, sorted.length - 1);
-
-        // Pre-select the previously-saved plan from the PLANSELECTION stage by
-        // matching planId, when one exists.
+        // No plan is pre-selected by default — the user must actively pick one,
+        // so nothing shows as "Selected" on load or after switching depository.
+        // The only exception is restoring a previously-saved plan (PLANSELECTION
+        // stage) that still exists in THIS depository's list.
+        let selectedIdx: number | null = null;
         try {
           const saved       = await apiService.getPlanSelectionWorkflow(applicationId);
           const savedPlanId = saved?.data?.planId;
@@ -315,7 +246,7 @@ export default function PlanPreference() {
             if (matchIdx >= 0) selectedIdx = matchIdx;
           }
         } catch {
-          // Non-fatal — keep the stored/default selection.
+          // Non-fatal — leave nothing selected.
         }
 
         setSelectedIndex(selectedIdx);
@@ -328,6 +259,14 @@ export default function PlanPreference() {
       setPlansLoading(false);
       hideSpinner();
     }
+  };
+
+  // Radio change → persist the depository and re-fetch that depository's plans.
+  const handleDepositoryChange = (dep: 'NSDL' | 'CDSL') => {
+    if (dep === depository || plansLoading) return;
+    setDepository(dep);
+    sessionStorage.setItem('depository', dep);
+    void fetchPlans(dep);
   };
 
   const proceedWithPlan = async (idx: number) => {
@@ -385,12 +324,37 @@ export default function PlanPreference() {
     return (
       <div className={styles.errorState} aria-live="assertive">
         <p>{plansError}</p>
-        <button type="button" onClick={fetchPlans}>Retry</button>
+        <button type="button" onClick={() => fetchPlans()}>Retry</button>
       </div>
     );
   }
 
   const middleIndex = Math.floor(apiPlans.length / 2);
+
+  // Depository selector — NSDL / CDSL. Changing it re-fetches the plans for the
+  // chosen depository. Rendered at the top of both the mobile and desktop views
+  // (distinct radio-group names so the two copies don't collide).
+  const renderDepositoryRadio = (idSuffix: string) => (
+    <div className={styles.depositoryRow} role="radiogroup" aria-label="Select depository">
+      {(['NSDL', 'CDSL'] as const).map((dep) => (
+        <label
+          key={dep}
+          className={`${styles.depositoryOption}${depository === dep ? ` ${styles.depositoryOptionActive}` : ''}`}
+        >
+          <input
+            type="radio"
+            name={`depository-${idSuffix}`}
+            value={dep}
+            checked={depository === dep}
+            onChange={() => handleDepositoryChange(dep)}
+            disabled={plansLoading}
+            className={styles.depositoryRadioInput}
+          />
+          <span className={styles.depositoryLabelText}>{dep}</span>
+        </label>
+      ))}
+    </div>
+  );
 
   // Full plan card used by the mobile carousel (4+ plans). Reuses the existing
   // slide-card styles; tap selects, Proceed submits, Know More opens the modal.
@@ -422,20 +386,7 @@ export default function PlanPreference() {
         <div className={styles.slideDivider} />
 
         <div className={styles.slideBrokerageBlock}>
-          <p>
-            <span className={styles.brokerageMain}>{s.brokerageMain}</span>
-            <span className={styles.brokerageLabel}> Brokerage</span>
-          </p>
-          <span className={styles.brokerageNote}>{s.brokerageNote}</span>
-        </div>
-
-        <div className={styles.slideDivider} />
-
-        <div className={styles.slideBenefits}>
-          <p className={styles.slideBenefitsTitle}>Lifetime Benefits Include:</p>
-          {s.benefits.map((b, bi) => (
-            <MobileBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
-          ))}
+          <p className={styles.brokerageDescription}>{plan.description}</p>
         </div>
 
         <div className={styles.slideActions}>
@@ -526,23 +477,11 @@ export default function PlanPreference() {
             <div className={styles.dBrokerageSection}>
               <div className={styles.dDivider} />
               <div className={styles.dBrokerageText}>
-                <p>
-                  <strong className={styles.dBrokerageHL}>{s.brokerageMain}</strong>
-                  <span className={styles.dBrokerageBody}>{" Brokerage"}</span>
-                </p>
-                <p>
-                  <span className={styles.dBrokerageNote}>{s.brokerageNote}</span>
-                </p>
+                <p className={styles.dBrokerageDescription}>{plan.description}</p>
               </div>
               <div className={styles.dDivider} />
             </div>
 
-            <div className={styles.dBenefitsSection}>
-              <span className={styles.dBenefitsTitle}>Lifetime Benefits Include:</span>
-              {s.benefits.map((b, bi) => (
-                <DesktopBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
-              ))}
-            </div>
           </div>
 
           <div className={styles.dCardActions}>
@@ -603,6 +542,8 @@ export default function PlanPreference() {
 
         <div className={styles.mobilePlanCard}>
 
+          {renderDepositoryRadio('mob')}
+
           {/* ── SINGLE PLAN: show a full detail card + Proceed button ────────── */}
           {isSinglePlan && (() => {
             const plan = apiPlans[0];
@@ -630,21 +571,7 @@ export default function PlanPreference() {
 
                   {/* Brokerage */}
                   <div className={styles.slideBrokerageBlock}>
-                    <p>
-                      <span className={styles.brokerageMain}>{s.brokerageMain}</span>
-                      <span className={styles.brokerageLabel}> Brokerage</span>
-                    </p>
-                    <span className={styles.brokerageNote}>{s.brokerageNote}</span>
-                  </div>
-
-                  <div className={styles.slideDivider} />
-
-                  {/* Benefits */}
-                  <div className={styles.slideBenefits}>
-                    <p className={styles.slideBenefitsTitle}>Lifetime Benefits Include:</p>
-                    {s.benefits.map((b, bi) => (
-                      <MobileBenefitItem key={bi} type={b.type} text={b.text} sub={b.sub} />
-                    ))}
+                    <p className={styles.brokerageDescription}>{plan.description}</p>
                   </div>
 
                   {/* Know More */}
@@ -854,6 +781,8 @@ export default function PlanPreference() {
           </div>
 
           <div className={styles.desktopCardBody}>
+            {renderDepositoryRadio('desk')}
+
             {isCarousel ? (
               <div className={styles.dCarouselWrapper}>
                 <Splide

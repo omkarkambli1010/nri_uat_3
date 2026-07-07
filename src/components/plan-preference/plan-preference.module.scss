@@ -157,6 +157,51 @@ $border-plan-hl: #bda7ff;
   overflow: hidden;
 }
 
+// ─── Depository selector (NSDL / CDSL) ───────────────────────
+
+.depositoryRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 4px;
+  flex-wrap: wrap;
+}
+
+.depositoryOption {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid $border-plan;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: $text-dark;
+  background: $bg-white;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+
+  &:hover { border-color: $border-plan-hl; }
+}
+
+.depositoryOptionActive {
+  border-color: $primary;
+  background: #f3f1ff;
+  color: $primary;
+}
+
+.depositoryRadioInput {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: $primary;
+  cursor: pointer;
+}
+
+.depositoryLabelText {
+  line-height: 1;
+}
+
 // ─── Mobile Splide Carousel ───────────────────────────────────
 
 .splideWrapper {
@@ -309,6 +354,7 @@ $border-plan-hl: #bda7ff;
   .brokerageMain { font-size: 14px; font-weight: 700; color: $primary; }
   .brokerageLabel { font-size: 13px; font-weight: 400; color: #222; }
   .brokerageNote { font-size: 10px; color: #000; display: block; }
+  .brokerageDescription { font-size: 12px; font-weight: 400; color: #222; }
 }
 
 .slideBenefits {
@@ -914,7 +960,7 @@ $d-text-emargin:   #290172;
 }
 
 .dBrokerageText {
-  height: 35px;
+  min-height: 35px;
   text-align: center;
   width: 100%;
   font-size: 0;
@@ -942,6 +988,14 @@ $d-text-emargin:   #290172;
   font-weight: 400;
   color: #000;
   line-height: 18px;
+}
+
+.dBrokerageDescription {
+  font-size: 13px;
+  font-weight: 400;
+  color: $text-dark;
+  line-height: 18px;
+  margin: 0;
 }
 
 .dBenefitsSection {

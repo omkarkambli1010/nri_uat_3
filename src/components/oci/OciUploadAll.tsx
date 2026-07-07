@@ -14,8 +14,8 @@ import LoadingButton from '@/components/ui/LoadingButton';
 // OciUploadAll — all-in-one OCI/PIO upload screen (passport-upload style).
 // Reached from /oci (the Document Type + Card No. landing page). Two sections:
 //   • Upload OCI Front — inline file-upload dropzone (FileUploadCard).
-//   • Upload OCI Back  — inline file-upload dropzone (FileUploadCard).
-// Both front & back are required before Proceed is enabled.
+//   • Upload OCI Back  — inline file-upload dropzone (FileUploadCard, optional).
+// Only the front is required before Proceed is enabled; the back is optional.
 
 // ── Upload constraints ──────────────────────────────────────────────────────
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
@@ -88,8 +88,8 @@ export default function OciUploadAll() {
   const frontUploaded = frontFiles.some((f) => f.status === 'success');
   const backUploaded  = backFiles.some((f) => f.status === 'success');
 
-  // OCI/PIO only needs the card front + back.
-  const isDisabled = !frontUploaded || !backUploaded;
+  // OCI/PIO only requires the card front; the back is optional.
+  const isDisabled = !frontUploaded;
 
   // Prefill from the saved OCI/PIO stage (stagewisedate) — bind the saved
   // front/back document previews into their cards.
@@ -181,7 +181,7 @@ export default function OciUploadAll() {
     }
     const frontFile = frontFiles.find((f) => f.status === 'success')?.file ?? null;
     const backFile  = backFiles.find((f) => f.status === 'success')?.file ?? null;
-    if (!frontFile || !backFile) return;
+    if (!frontFile) return;
 
     setSubmitting(true);
     try {
@@ -221,7 +221,7 @@ export default function OciUploadAll() {
   // ── Back section ───────────────────────────────────────────────────────────
   const backSection = !prefillDone ? null : (
     <div className={styles.section}>
-      <p className={styles.sectionTitle}>Upload {cardType} Back</p>
+      <p className={styles.sectionTitle}>Upload {cardType} Back (Optional)</p>
       <FileUploadCard
         key={backInitial?.id ?? 'back-empty'}
         initialFiles={backInitial ? [backInitial] : undefined}

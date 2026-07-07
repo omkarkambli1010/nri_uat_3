@@ -79,19 +79,23 @@ function CheckboxOption({
   label,
   checked,
   onToggle,
+  readOnly = false,
 }: {
   label: string;
   checked: boolean;
   onToggle: () => void;
+  readOnly?: boolean;
 }) {
   return (
     <div className={styles.checkboxItem}>
       <button
         type="button"
         className={styles.checkboxBtn}
-        onClick={onToggle}
+        onClick={readOnly ? undefined : onToggle}
         aria-pressed={checked}
+        aria-readonly={readOnly || undefined}
         aria-label={label}
+        style={readOnly ? { cursor: "default" } : undefined}
       >
         <div
           className={`${styles.checkboxBox}${checked ? ` ${styles.checkboxBoxChecked}` : ""}`}
@@ -119,10 +123,19 @@ export default function LinkBankAccount() {
 
   // BRD: the "Non PIS NRE" account option is only valid for the semi-digital
   // journey. For the (fully) digital journey, show NRO only.
-  const isSemiDigital = useSessionValue('accountType') === 'semi-digital';
+  const accountType = useSessionValue('accountType');
+  const isSemiDigital = accountType === 'semi-digital';
+  const isDigital = accountType === 'digital';
   const accountTypes = isSemiDigital
     ? ACCOUNT_TYPES
     : ACCOUNT_TYPES.filter(({ id }) => id !== 'nre');
+
+  // Fully-digital journey offers only "NRO" — pre-check it and keep it locked
+  // (read-only) since it's the sole valid choice. Only applied once the journey
+  // resolves to 'digital' so a semi-digital user is never left with NRO seeded.
+  useEffect(() => {
+    if (isDigital) setSelected(['nro']);
+  }, [isDigital]);
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -202,6 +215,7 @@ export default function LinkBankAccount() {
           label={label}
           checked={selected.includes(id)}
           onToggle={() => toggle(id)}
+          readOnly={isDigital && id === 'nro'}
         />
       ))}
     </div>

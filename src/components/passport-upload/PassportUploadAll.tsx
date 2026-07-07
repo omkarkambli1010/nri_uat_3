@@ -626,7 +626,7 @@ export default function PassportUploadAll() {
 
   const renderEditFields = (idPrefix: 'front' | 'back') => (
     <>
-      <FieldRow id={`${idPrefix}-fullName`} label="Full Name" error={errors.fullName}>
+      <FieldRow id={`${idPrefix}-fullName`} label="Full Name *" error={errors.fullName}>
         <input
           id={`${idPrefix}-fullName`}
           type="text"
@@ -644,7 +644,7 @@ export default function PassportUploadAll() {
         />
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-dob`} label="Date of Birth" error={errors.dob}>
+      <FieldRow id={`${idPrefix}-dob`} label="Date of Birth *" error={errors.dob}>
         <DateField
           inputId={`${idPrefix}-dob`}
           value={isoToDate(dob)}
@@ -662,7 +662,7 @@ export default function PassportUploadAll() {
         />
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-passportNumber`} label="Passport Number" error={errors.passportNumber}>
+      <FieldRow id={`${idPrefix}-passportNumber`} label="Passport Number *" error={errors.passportNumber}>
         <input
           id={`${idPrefix}-passportNumber`}
           type="text"
@@ -680,7 +680,7 @@ export default function PassportUploadAll() {
         />
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-issueDate`} label="Issue Date" error={errors.issueDate}>
+      <FieldRow id={`${idPrefix}-issueDate`} label="Issue Date *" error={errors.issueDate}>
         <DateField
           inputId={`${idPrefix}-issueDate`}
           value={isoToDate(issueDate)}
@@ -698,7 +698,7 @@ export default function PassportUploadAll() {
         />
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-expiryDate`} label="Expiry Date" error={errors.expiryDate}>
+      <FieldRow id={`${idPrefix}-expiryDate`} label="Expiry Date *" error={errors.expiryDate}>
         <DateField
           inputId={`${idPrefix}-expiryDate`}
           value={isoToDate(expiryDate)}
@@ -717,7 +717,7 @@ export default function PassportUploadAll() {
         />
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-nationality`} label="Nationality" error={errors.nationality}>
+      <FieldRow id={`${idPrefix}-nationality`} label="Nationality *" error={errors.nationality}>
         <select
           id={`${idPrefix}-nationality`}
           value={nationality}
@@ -732,7 +732,7 @@ export default function PassportUploadAll() {
         </select>
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-gender`} label="Gender" error={errors.gender}>
+      <FieldRow id={`${idPrefix}-gender`} label="Gender *" error={errors.gender}>
         <select
           id={`${idPrefix}-gender`}
           value={gender}
@@ -747,7 +747,7 @@ export default function PassportUploadAll() {
         </select>
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-placeOfIssue`} label="Place of Issue" error={errors.placeOfIssue}>
+      <FieldRow id={`${idPrefix}-placeOfIssue`} label="Place of Issue *" error={errors.placeOfIssue}>
         <input
           id={`${idPrefix}-placeOfIssue`}
           type="text"

@@ -120,7 +120,7 @@ export default function VisaEntry() {
   const fieldBlock = (idSuffix: 'mob' | 'desk') => (
     <div className={styles.expiryField}>
       <label htmlFor={`${idSuffix}-visa-expiry`} className={styles.expiryLabel}>
-        Select Visa Expiry
+        Select Visa Expiry *
       </label>
       <div className={styles.expiryInputWrap}>
         <DateField

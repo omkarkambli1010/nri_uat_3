@@ -155,20 +155,51 @@ export default function FatcaUpload() {
       }
       setTins(tinsToUse);
 
+      // Match each TIN entry to its saved residency by TIN number (with the two
+      // countries as tie-breakers), NOT by array position: the sessionStorage
+      // tin order (raw API order, from /fatca) and the entryIndex-sorted
+      // residencies order can differ, and a positional match then pairs an entry
+      // with the wrong residency — the TIN guard trips and no document binds.
+      // Consumed residencies are tracked so two entries sharing a TIN don't grab
+      // the same one.
+      const usedResidency = new Set<number>();
+      const residencyFor = (t: TinEntry): Record<string, unknown> | null => {
+        const wantTin = t.tinNumber.trim().toUpperCase();
+        const scoreOf = (r: Record<string, unknown>): number => {
+          const rTin = str(r.tin ?? r.tinNumber).trim().toUpperCase();
+          // A concrete TIN mismatch disqualifies the residency outright.
+          if (wantTin && rTin && rTin !== wantTin) return -1;
+          let s = 0;
+          if (wantTin && rTin === wantTin) s += 2;
+          if (
+            str(r.countryofTaxResidence ?? r.countryOfTaxResidence ?? r.taxResidence)
+              .toLowerCase() === t.taxResidence.toLowerCase()
+          ) s += 1;
+          if (str(r.tinIssuingCountry).toLowerCase() === t.tinIssuingCountry.toLowerCase()) s += 1;
+          return s;
+        };
+        let bestIdx = -1;
+        let bestScore = -1;
+        residencies.forEach((r, idx) => {
+          if (usedResidency.has(idx)) return;
+          const s = scoreOf(r);
+          if (s > bestScore) { bestScore = s; bestIdx = idx; }
+        });
+        if (bestIdx < 0 || bestScore < 0) return null;
+        usedResidency.add(bestIdx);
+        return residencies[bestIdx];
+      };
+
       // Per-slot document ids. Prefer the sessionStorage record (it knows the
       // exact slot of every upload from this session); fall back to the saved
-      // residencies by index (tin-matched) when sessionStorage has none.
+      // residency (tin-matched) when sessionStorage has none.
       const ids: string[][] = tinsToUse.map((t, i) => {
         const stored = Array.isArray(storedDocIds[i]) ? storedDocIds[i] : null;
         if (stored && stored.some(Boolean)) {
           return [str(stored[0]), str(stored[1]), str(stored[2])];
         }
-        const r = residencies[i];
+        const r = residencyFor(t);
         if (!r) return Array<string>(SLOTS).fill('');
-        const serverTin = str(r.tin ?? r.tinNumber);
-        if (serverTin && t.tinNumber && serverTin.toUpperCase() !== t.tinNumber.toUpperCase()) {
-          return Array<string>(SLOTS).fill('');
-        }
         return [
           str(r.tinProofDocumentId),
           str(r.tinProofDocumentId2),

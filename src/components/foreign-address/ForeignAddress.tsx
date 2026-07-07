@@ -523,7 +523,7 @@ export default function ForeignAddress() {
 
         {/* Document Type */}
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-doc-type">Document Type</label>
+          <label className={styles.fieldLabel} htmlFor="mob-doc-type">Document Type *</label>
           <div className={styles.fieldSelectWrap}>
             <select
               id="mob-doc-type"
@@ -542,7 +542,7 @@ export default function ForeignAddress() {
 
         {/* Document Number */}
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-doc-number">Document Number</label>
+          <label className={styles.fieldLabel} htmlFor="mob-doc-number">Document Number *</label>
           <input
             id="mob-doc-number"
             type="text"
@@ -558,7 +558,7 @@ export default function ForeignAddress() {
         {/* Document Expiry Date — OVD documents only */}
         {showExpiry && (
           <div className={styles.fieldGroup}>
-            <label className={styles.fieldLabel} htmlFor="mob-expiry">Document Expiry Date</label>
+            <label className={styles.fieldLabel} htmlFor="mob-expiry">Document Expiry Date *</label>
             <DateField
               inputId="mob-expiry"
               value={strToDate(expiryDate)}
@@ -577,7 +577,7 @@ export default function ForeignAddress() {
 
         {/* Select Country */}
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-sel-country">Select Country</label>
+          <label className={styles.fieldLabel} htmlFor="mob-sel-country">Select Country *</label>
           <div className={styles.fieldSelectWrap}>
             <select
               id="mob-sel-country"
@@ -596,7 +596,7 @@ export default function ForeignAddress() {
 
         {/* Address Line 1 */}
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-addr1">Address Line 1</label>
+          <label className={styles.fieldLabel} htmlFor="mob-addr1">Address Line 1 *</label>
           <input
             id="mob-addr1"
             type="text"
@@ -638,7 +638,7 @@ export default function ForeignAddress() {
         {/* City + State — side by side, gap-24 */}
         <div className={styles.mobileRowGroup}>
           <div className={styles.mobileRowField}>
-            <label className={styles.fieldLabel} htmlFor="mob-city">City</label>
+            <label className={styles.fieldLabel} htmlFor="mob-city">City *</label>
             <input
               id="mob-city"
               type="text"
@@ -667,7 +667,7 @@ export default function ForeignAddress() {
 
         {/* Pincode + hint */}
         <div className={styles.fieldGroup}>
-          <label className={styles.fieldLabel} htmlFor="mob-pincode">Pincode</label>
+          <label className={styles.fieldLabel} htmlFor="mob-pincode">Pincode *</label>
           <input
             id="mob-pincode"
             type="text"
@@ -746,7 +746,7 @@ export default function ForeignAddress() {
 
             {/* Document Type */}
             <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>Document Type</p>
+              <p className={styles.desktopLabel}>Document Type *</p>
               <div className={styles.desktopSelectWrap}>
                 <select
                   className={styles.deskSelect}
@@ -765,7 +765,7 @@ export default function ForeignAddress() {
 
             {/* Document Number */}
             <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>Document Number</p>
+              <p className={styles.desktopLabel}>Document Number *</p>
               <input
                 type="text"
                 className={`${styles.deskInput} ${styles.desktopInputSingle}`}
@@ -782,7 +782,7 @@ export default function ForeignAddress() {
             {showExpiry && (
               <>
                 <div className={styles.desktopFieldRow}>
-                  <p className={styles.desktopLabel}>Document Expiry Date</p>
+                  <p className={styles.desktopLabel}>Document Expiry Date *</p>
                   <div className={styles.deskCalendarWrap}>
                     <DateField
                       inputId="desk-expiry"
@@ -804,7 +804,7 @@ export default function ForeignAddress() {
 
             {/* Select Country */}
             <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>Select Country</p>
+              <p className={styles.desktopLabel}>Select Country *</p>
               <div className={styles.desktopSelectWrap}>
                 <select
                   className={styles.deskSelect}
@@ -823,7 +823,7 @@ export default function ForeignAddress() {
 
             {/* Address — Line 1 + Line 2 inline */}
             <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>Address</p>
+              <p className={styles.desktopLabel}>Address *</p>
               <div className={styles.desktopInputPair}>
                 <input
                   type="text"
@@ -860,7 +860,7 @@ export default function ForeignAddress() {
 
             {/* City & State — inline */}
             <div className={styles.desktopFieldRow}>
-              <p className={styles.desktopLabel}>City &amp; State</p>
+              <p className={styles.desktopLabel}>City &amp; State *</p>
               <div className={styles.desktopInputPair}>
                 <input
                   type="text"
@@ -889,7 +889,7 @@ export default function ForeignAddress() {
             {/* Pincode + hint */}
             <div className={styles.fieldGroup}>
               <div className={styles.desktopFieldRow}>
-                <p className={styles.desktopLabel}>Pincode</p>
+                <p className={styles.desktopLabel}>Pincode *</p>
                 <input
                   type="text"
                   maxLength={12}

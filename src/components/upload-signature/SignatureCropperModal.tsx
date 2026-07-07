@@ -35,6 +35,53 @@ function XIcon() {
   );
 }
 
+function RotateLeftIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 4v6h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.5 10a8 8 0 1 1-1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function RotateRightIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M20 4v6h-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M19.5 10a8 8 0 1 0 1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// Renders the source image rotated by `deg` (a multiple of 90) onto a canvas and
+// returns it as a data URL, so the cropper always works on an already-upright
+// image and the crop coordinates + exported blob both include the rotation.
+function rotateImageToDataUrl(src: string, deg: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      const w = image.naturalWidth;
+      const h = image.naturalHeight;
+      const swap = Math.abs(deg % 180) === 90;
+      const canvas = document.createElement('canvas');
+      canvas.width = swap ? h : w;
+      canvas.height = swap ? w : h;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('No 2D context'));
+        return;
+      }
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((deg * Math.PI) / 180);
+      ctx.drawImage(image, -w / 2, -h / 2);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    image.onerror = () => reject(new Error('Image load failed'));
+    image.src = src;
+  });
+}
+
 // Maps an output MIME type to its file extension. Falls back to 'png' for
 // unrecognised types.
 function extensionForType(type: string): string {
@@ -75,14 +122,38 @@ export function SignatureCropperModal({
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
+  // Rotation applied to the image, in degrees (0/90/180/270). The rotated image
+  // is baked into `displaySrc`, which is what the cropper renders and crops.
+  const [rotation, setRotation] = useState(0);
+  // Only non-zero rotations are baked into a data URL and held here. The 0° case
+  // is derived straight from `src` during render (see `displaySrc`), so the
+  // image never briefly renders an empty src while this effect settles.
+  const [rotatedSrc, setRotatedSrc] = useState('');
 
   useEffect(() => {
     if (!open) {
       setCrop(undefined);
       setCompletedCrop(undefined);
       setExporting(false);
+      setRotation(0);
+      setRotatedSrc('');
     }
   }, [open]);
+
+  // Bake a non-zero rotation into a data URL so both the crop selection and the
+  // exported blob reflect it. Changing the shown src reloads the <img>, which
+  // reseeds the crop.
+  useEffect(() => {
+    if (!open || rotation % 360 === 0) {
+      setRotatedSrc('');
+      return;
+    }
+    let cancelled = false;
+    rotateImageToDataUrl(src, rotation)
+      .then((url) => { if (!cancelled) setRotatedSrc(url); })
+      .catch(() => { if (!cancelled) setRotatedSrc(''); });
+    return () => { cancelled = true; };
+  }, [open, src, rotation]);
 
   useEffect(() => {
     if (!open) return;
@@ -153,7 +224,14 @@ export function SignatureCropperModal({
     );
   }, [completedCrop, fileName, onConfirm, outputType, outputQuality]);
 
+  const rotateLeft = () => setRotation((r) => (r + 270) % 360);
+  const rotateRight = () => setRotation((r) => (r + 90) % 360);
+
   if (!open) return null;
+
+  // At 0° use the original src directly; otherwise the rotated data URL once
+  // it's ready (falling back to the original while it's being generated).
+  const displaySrc = rotation % 360 === 0 ? src : rotatedSrc || src;
 
   const cardClass = isDesktop ? styles.deskCard : styles.mobSheet;
   const overlayClass = isDesktop ? styles.overlay : styles.overlayMob;
@@ -188,24 +266,47 @@ export function SignatureCropperModal({
           </button>
         </div>
 
-        <div className={styles.cropArea}>
-          <ReactCrop
-            crop={crop}
-            onChange={(_, percentCrop) => setCrop(percentCrop)}
-            onComplete={(c) => setCompletedCrop(c)}
-            keepSelection
-            minWidth={20}
-            minHeight={20}
+        <div className={styles.rotateRow}>
+          <button
+            type="button"
+            className={styles.rotateBtn}
+            onClick={rotateLeft}
+            disabled={exporting}
+            aria-label="Rotate left"
           >
-            <img
-              ref={imgRef}
-              src={src}
-              alt="Signature to crop"
-              onLoad={onImageLoad}
-              className={styles.cropImage}
-              crossOrigin="anonymous"
-            />
-          </ReactCrop>
+            <RotateLeftIcon />
+          </button>
+          <button
+            type="button"
+            className={styles.rotateBtn}
+            onClick={rotateRight}
+            disabled={exporting}
+            aria-label="Rotate right"
+          >
+            <RotateRightIcon />
+          </button>
+        </div>
+
+        <div className={styles.cropArea}>
+          {displaySrc && (
+            <ReactCrop
+              crop={crop}
+              onChange={(_, percentCrop) => setCrop(percentCrop)}
+              onComplete={(c) => setCompletedCrop(c)}
+              keepSelection
+              minWidth={20}
+              minHeight={20}
+            >
+              <img
+                ref={imgRef}
+                src={displaySrc}
+                alt="Image to crop"
+                onLoad={onImageLoad}
+                className={styles.cropImage}
+                crossOrigin="anonymous"
+              />
+            </ReactCrop>
+          )}
         </div>
 
         <div className={styles.actionRow}>

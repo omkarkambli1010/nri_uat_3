@@ -129,7 +129,7 @@ export default function PassportDetails() {
         {/* White card */}
         <div className={styles.mobileCard}>
           <div className={styles.selectTypeSection}>
-            <p className={styles.selectTypeLabel}>Select Passport Type</p>
+            <p className={styles.selectTypeLabel}>Select Passport Type *</p>
             <div className={styles.radioGroup}>
               <RadioOption label="Indian" value="Indian" selected={selected} onSelect={setSelected} />
               <RadioOption label="Foreign Country" value="Foreign" selected={selected} onSelect={setSelected} />
@@ -175,7 +175,7 @@ export default function PassportDetails() {
           <div className={styles.desktopCardBody}>
             <div className={styles.desktopContentArea}>
               <div className={styles.selectTypeSection}>
-                <p className={styles.selectTypeLabel}>Select Passport Type</p>
+                <p className={styles.selectTypeLabel}>Select Passport Type *</p>
                 <div className={styles.radioGroup}>
                   <RadioOption label="Indian" value="Indian" selected={selected} onSelect={setSelected} />
                   <RadioOption label="Foreign Country" value="Foreign" selected={selected} onSelect={setSelected} />

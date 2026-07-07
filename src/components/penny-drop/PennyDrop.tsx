@@ -441,7 +441,7 @@ export default function PennyDrop() {
                           <div className="bank_field">
                             <div>
                               <label htmlFor="ifsccode" className="form-label">
-                                Enter IFSC Code
+                                Enter IFSC Code *
                               </label>
                             </div>
                             <div>
@@ -468,7 +468,7 @@ export default function PennyDrop() {
                           <div className="bank_field">
                             <div>
                               <label htmlFor="accountNo" className="form-label">
-                                Enter your Account no.
+                                Enter your Account no. *
                               </label>
                             </div>
                             <div>
@@ -498,7 +498,7 @@ export default function PennyDrop() {
                                 htmlFor="renteraccountNo"
                                 className="form-label"
                               >
-                                Re-enter your Account no.
+                                Re-enter your Account no. *
                               </label>
                             </div>
                             <div>
