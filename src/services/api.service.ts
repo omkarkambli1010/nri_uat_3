@@ -117,9 +117,17 @@ class APIService {
     }
   }
 
-  private handleError(error: any, hideSpinner?: () => void): never {
+  private handleError(
+    error: any,
+    hideSpinner?: () => void,
+    options?: { silentStatuses?: number[]; silentErrorCodes?: string[] },
+  ): never {
     const status = error?.response?.status;
     const errorData = error?.response?.data;
+    const errorCode = errorData?.errorCode;
+    const isSilent =
+      (!!status && !!options?.silentStatuses?.includes(status)) ||
+      (!!errorCode && !!options?.silentErrorCodes?.includes(errorCode));
 
     const msg =
       (errorData?.detail ?? "") ||
@@ -152,8 +160,10 @@ class APIService {
 
     if (status === 400) {
       hideSpinner?.();
-      showError(msg);
-      trackError(msg, 400);
+      if (!isSilent) {
+        showError(msg);
+        trackError(msg, 400);
+      }
       this.removeModal();
     } else if (status === 401) {
       hideSpinner?.();
@@ -182,22 +192,27 @@ class APIService {
       }
       this.removeModal();
     } else if (status === 404) {
-      toast.error("Details Not Found...", {
-        position: "bottom-center",
-        autoClose: 3500,
-      });
-      trackError("Details Not Found...", 404);
-      this.removeModal();
       hideSpinner?.();
+      if (!isSilent) {
+        toast.error("Details Not Found...", {
+          position: "bottom-center",
+          autoClose: 3500,
+        });
+        trackError("Details Not Found...", 404);
+      }
+      this.removeModal();
     } else {
       hideSpinner?.();
-      showError(msg);
-      trackError(msg, status ?? 0);
+      if (!isSilent) {
+        showError(msg);
+        trackError(msg, status ?? 0);
+      }
       this.removeModal();
     }
 
     throw error;
   }
+
 
   async postRequest(
     controller: string,
@@ -306,7 +321,35 @@ class APIService {
 
       return response.data;
     } catch (error) {
-      return this.handleError(error, hideSpinner);
+      console.log(error)
+      this.removeModal();
+      throw error; //this.handleError(error, hideSpinner);
+    }
+  }
+
+  async searchBankMasterByIfsc(
+    query: string,
+    extraHeaders?: Record<string, string>,
+  ): Promise<BankMasterIFSCResponse[]> {
+    const url = `${this.nriapi}bank-master/${encodeURIComponent(query)}`;
+
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          accept: "application/json",
+          ...extraHeaders,
+        },
+      });
+
+      const body = response.data;
+      if (Array.isArray(body)) return body;
+      if (Array.isArray(body?.data)) return body.data;
+      if (body?.ifscCode) return [body];
+      return [];
+    } catch (error) {
+      console.log(error);
+      this.removeModal();
+      throw error;
     }
   }
 
@@ -337,8 +380,6 @@ class APIService {
   async submitFatca(
     applicationId: string,
     data: {
-      // POST /fatca binds the array from "residencies" (the stagewise READ model
-      // exposes it as "taxResidencies", but the submit contract is "residencies").
       residencies: {
         countryCode: string;                 // ISO-2 of Country of TAX Residence
         tin: string;
@@ -371,12 +412,12 @@ class APIService {
     }
   }
 
-  // NRI API — sends raw (unencrypted) JSON. Used by registration and OTP endpoints.
   async postNri(
     path: string,
     data: any,
     hideSpinner?: () => void,
     extraHeaders?: Record<string, string>,
+    errorOptions?: { silentStatuses?: number[]; silentErrorCodes?: string[] },
   ): Promise<any> {
     const url = this.nriapi + path;
     const headers = { "Content-Type": "application/json", ...extraHeaders };
@@ -385,11 +426,11 @@ class APIService {
       const response = await axios.post(url, data, { headers });
       return await response.data;
     } catch (error) {
-      return this.handleError(error, hideSpinner);
+      return this.handleError(error, hideSpinner, errorOptions);
     }
   }
 
-  // Registration — requires an Idempotency-Key header.
+
   async registerUser(data: any, hideSpinner?: () => void): Promise<any> {
     return this.postNri("register", data, hideSpinner, {
       "Idempotency-Key": this.generateIdempotencyKey(),
@@ -506,28 +547,6 @@ class APIService {
       { channel, code },
       hideSpinner,
     );
-  }
-
-  // Send the "resume on mobile" link for the application (used by the selfie
-  // screen's "Continue with mobile"). POST with an empty body — the
-  // applicationId travels as a query param per the backend contract. Returns
-  // the raw response (e.g. { status, message }) so the caller can surface the
-  // message in a toast.
-  async sendResumeLink(
-    applicationId: string,
-    hideSpinner?: () => void,
-  ): Promise<any> {
-    const url = `${this.nriapi}resume/send?applicationId=${encodeURIComponent(
-      applicationId,
-    )}`;
-    try {
-      const response = await axios.post(url, "", {
-        headers: { Accept: "*/*" },
-      });
-      return response.data;
-    } catch (error) {
-      return this.handleError(error, hideSpinner);
-    }
   }
 
   // Passport upload — multipart/form-data.
@@ -650,7 +669,6 @@ class APIService {
     if (data.backFile) form.append("BackFile", data.backFile);
     if (data.translationFile)
       form.append("TranslationFile", data.translationFile);
-    // form.append("IdempotencyKey", this.generateIdempotencyKey());
     form.append("IdempotencyKey", '');
 
     try {
@@ -702,12 +720,9 @@ class APIService {
     form.append("Line2", data.line2 ?? "");
     form.append("Line3", data.line3 ?? "");
 
-    // Files (first-time upload) — appended only when a fresh file is provided.
     if (data.backFile) form.append("BackFile", data.backFile);
     if (data.frontFile) form.append("FrontFile", data.frontFile);
 
-    // Existing documents (revisit) — appended only when re-using a saved proof
-    // by id. The id form omits the file fields entirely (and vice versa).
     if (data.existingBackDocumentId)
       form.append("ExistingBackDocumentId", data.existingBackDocumentId);
     if (data.existingFrontDocumentId)
@@ -752,7 +767,6 @@ class APIService {
 
     const form = new FormData();
 
-    // Address fields
     form.append("State", data.State ?? "");
     form.append("ExpiryDate", data.expiryDate ?? "");
     form.append("City", data.city ?? "");
@@ -765,12 +779,9 @@ class APIService {
     form.append("Line2", data.line2 ?? "");
     form.append("Line3", data.line3 ?? "");
 
-    // Files (first-time upload) — appended only when a fresh file is provided.
     if (data.backFile) form.append("BackFile", data.backFile);
     if (data.frontFile) form.append("FrontFile", data.frontFile);
 
-    // Existing documents (revisit) — appended only when re-using a saved proof
-    // by id. The id form omits the file fields entirely (and vice versa).
     if (data.existingBackDocumentId)
       form.append("ExistingBackDocumentId", data.existingBackDocumentId);
     if (data.existingFrontDocumentId)
@@ -791,7 +802,6 @@ class APIService {
 
   // ─── Plans ────────────────────────────────────────────────────────────────
 
-  // Fetch available plans for the application.
   async getPlans(
     applicationId: string,
     journeyType: string,
@@ -874,31 +884,45 @@ class APIService {
     stagename: string,
     hideSpinner?: () => void,
   ): Promise<any> {
-    const url = `${this.nriapi}applications/${applicationId}/get/workflow/stagewisedate`;
     try {
-      const response = await axios.post(
-        url,
-        { stagename, idempotencyKey: "" },
-        { headers: { "Content-Type": "application/json", accept: "*/*" } },
+      return await this.postNri(
+        `applications/${applicationId}/get/workflow/stagewisedate`,
+        {
+          stagename,
+          idempotencyKey: '',
+        },
+        hideSpinner,
+        { accept: "*/*" },
+        { silentStatuses: [400, 404], silentErrorCodes: ["COMMON_001"] },
       );
-      return response.data;
-    } catch (error: any) {
-      const status = error?.response?.status;
-      const data = error?.response?.data;
-      const msg = String(
-        data?.detail ?? data?.message ?? data?.title ?? "",
-      ).toLowerCase();
-      if (status === 404 || /no data|not found|no record/.test(msg)) {
-        hideSpinner?.();
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const errorCode = err?.response?.data?.errorCode;
+      if (status === 404 || status === 400 || errorCode === "COMMON_001") {
         return null;
       }
+      throw err;
+    }
+  }
 
+  // ─── Resume / Continue on mobile ───────────────────────────────────────────
+  async sendResumeLink(
+    applicationId: string,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    const url = `${this.nriapi}resume/send?applicationId=${encodeURIComponent(
+      applicationId,
+    )}`;
+    try {
+      const response = await axios.post(url, "", {
+        headers: { Accept: "*/*" },
+      });
+      return response.data;
+    } catch (error) {
       return this.handleError(error, hideSpinner);
     }
   }
 
-  // DigiLocker workflow data — fetch stage-wise details after a successful
-  // callback.
   async getDigilockerWorkflow(
     applicationId: string,
     hideSpinner?: () => void,
@@ -969,8 +993,6 @@ class APIService {
     return this.getWorkflowStageData(applicationId, "FATCA", hideSpinner);
   }
 
-  // OCI / PIO share the workflow endpoint; the stage is chosen by the selected
-  // card type (OCI → "OCI", PIO → "PIO").
   async getOciPoiWorkflow(
     applicationId: string,
     cardType: string,

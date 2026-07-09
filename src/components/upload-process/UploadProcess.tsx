@@ -62,7 +62,7 @@ function PanCardFront() {
   return (
     <div className={styles.panSlide}>
       <img
-        src={publicPath("/pan-card-sample-front.png")}
+        src={publicPath("/Pan_slide_1.png")}
         alt="Sample PAN card front"
         className={styles.panCardImg}
       />
@@ -74,16 +74,25 @@ function PanCardFront() {
 function PanCardBack() {
   return (
     <div className={styles.panSlide}>
-      <div className={styles.panCardMini}>
-        <div className={styles.panCardBackStrip} />
-        <p className={styles.panCardBackLabel}>Permanent Account Number Card</p>
-        <div className={styles.panCardBackBarcode} />
-        <p
-          className={`${styles.panCardBackLabel} ${styles.panCardBackLabelSm}`}
-        >
-          Income Tax Department, Govt. of India
-        </p>
-      </div>
+      <img
+        src={publicPath("/Pan_slide_2.png")}
+        alt="Sample PAN card front"
+        className={styles.panCardImg}
+      />
+    </div>
+  );
+}
+
+
+// ── PAN card back (slide 3) ──────────────────────────────────────────────────
+function PanCardBackThree() {
+  return (
+    <div className={styles.panSlide}>
+      <img
+        src={publicPath("/Pan_slide_3.png")}
+        alt="Sample PAN card front"
+        className={styles.panCardImg}
+      />
     </div>
   );
 }
@@ -111,6 +120,9 @@ function PanCardCarousel() {
         </SplideSlide>
         <SplideSlide>
           <PanCardBack />
+        </SplideSlide>
+        <SplideSlide>
+          <PanCardBackThree />
         </SplideSlide>
       </Splide>
     </div>
@@ -329,7 +341,13 @@ export default function UploadProcess() {
     }
   };
 
-  const handleBack = () => router.back();
+  const handleBack = () => {
+    showSpinner();
+    setTimeout(() => {
+      router.push("/home");
+      hideSpinner();
+    }, 200);
+  };
 
   return (
     <>

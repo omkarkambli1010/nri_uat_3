@@ -98,87 +98,6 @@ export default function PersonalDetailsForm() {
     getPersonalDetailsData();
   }, []);
 
-  // const getMaritalData = async () => {
-  //   showSpinner();
-  //   const reqData = {
-  //     flag: 'Maritalstatus',
-  //     formnumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
-  //   };
-  //   try {
-  //     const response = await apiService.postRequest('api/v1/WorkflowDetails/getworkflowdata', reqData, hideSpinner);
-  //     if (response?.status === true && response?.message === 'Data found' && response?.data?.length) {
-  //       setSelectedMarital(response.data[0].MaritialStauts || '');
-  //     }
-  //   } catch { hideSpinner(); }
-  // };
-
-  // const getPersonalDetails = async () => {
-  //   showSpinner();
-  //   try {
-  //     const response = await apiService.postRequest('api/v1/masters/get', { flag: 'all' }, hideSpinner);
-  //     if (response) {
-  //       setGuid(response.request_id || '');
-  //       if (response?.status === true && response?.data) {
-  //         setMaritalResponse(response.data.data13 || []);
-  //       }
-  //     }
-  //   } catch { hideSpinner(); }
-  // };
-
-  // const getDigilockerStatus = async () => {
-  //   showSpinner();
-  //   const reqData = {
-  //     flag: 'IsDigilocker',
-  //     formnumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
-  //   };
-  //   try {
-  //     const response = await apiService.postRequest('api/v1/WorkflowDetails/getworkflowdata', reqData, hideSpinner);
-  //     if (response?.status === true && response?.message === 'Data found' && response?.data?.length) {
-  //       if (response.data[0].IsDigilocker === 1 || response.data[0].isKraBenefit?.toUpperCase() === 'Y') {
-  //         router.push('/aadhar');
-  //       } else {
-  //         router.push('/uploadProcess/1');
-  //       }
-  //     } else {
-  //       router.push('/aadhar');
-  //     }
-  //     hideSpinner();
-  //   } catch { hideSpinner(); }
-  // };
-
-  // const redirectAadhaar = () => {
-  //   showSpinner();
-  //   setTimeout(() => { getDigilockerStatus(); }, 200);
-  // };
-
-  // const PersonalDetailsave = async (flag: string, declaration: string) => {
-  //   showSpinner();
-  //   const reqData = {
-  //     Flag: flag,
-  //     MaritialStatus: declaration,
-  //     FormNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
-  //     utm_source: 'search-engine',
-  //     utm_medium: 'organic',
-  //     utm_campaign: 'Onboarding-DIY',
-  //     Guid: guid,
-  //     Stage: '1',
-  //   };
-  //   try {
-  //     const response = await apiService.postRequest('api/v1/personalDetail/save', reqData, hideSpinner);
-  //     if (response?.status === true) {
-  //       setSelectedMarital(declaration);
-  //       if (rejectStatus !== 'R') {
-  //         setTimeout(() => { router.push('/personalDetailsForm/2'); hideSpinner(); }, 200);
-  //       } else {
-  //         navigationService.navigateToNextStep();
-  //       }
-  //     } else {
-  //       toast.error(response?.message || 'Error', { autoClose: 4000 });
-  //       hideSpinner();
-  //     }
-  //   } catch { hideSpinner(); }
-  // };
-
   const goBack = () => {
     showSpinner();
     setTimeout(() => {
@@ -273,7 +192,7 @@ export default function PersonalDetailsForm() {
   return (
     <>
       {/* ── MOBILE (< 768px) ─────────────────────────────────────────────────── */}
-      <section aria-label="Personal Details" className={styles.mobilePage}>
+      <section aria-label="Gender" className={styles.mobilePage}>
         <div className={styles.mobileHeader}>
           {rejectStatus !== "R" ? (
             <button
@@ -288,7 +207,7 @@ export default function PersonalDetailsForm() {
             <div className={styles.backPlaceholder} aria-hidden="true" />
           )}
           <div className={styles.mobileTitleBlock}>
-            <h1 className={styles.mobileTitle}>Personal Details</h1>
+            <h1 className={styles.mobileTitle}>Gender</h1>
             <p className={styles.mobileSubtitle}>
               Select any one from the below
             </p>
@@ -299,7 +218,7 @@ export default function PersonalDetailsForm() {
       </section>
 
       {/* ── DESKTOP (≥ 768px) ────────────────────────────────────────────────── */}
-      <section aria-label="Personal Details" className={styles.desktopPage}>
+      <section aria-label="Gender" className={styles.desktopPage}>
         <div className={styles.desktopCard}>
           <div className={styles.desktopCardHeader}>
             {rejectStatus !== "R" ? (
@@ -313,7 +232,7 @@ export default function PersonalDetailsForm() {
               </button>
             ) : null}
             <div className={styles.desktopTitleBlock}>
-              <h1 className={styles.desktopCardTitle}>Personal Details</h1>
+              <h1 className={styles.desktopCardTitle}>Gender</h1>
               <p className={styles.desktopCardSubtitle}>
                 Select any one from the below
               </p>

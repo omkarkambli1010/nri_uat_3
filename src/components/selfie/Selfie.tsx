@@ -630,7 +630,7 @@ export default function Selfie() {
               </div>
               <p className={styles.mobSubtitle}>
                 Take a clear picture and upload it. Please ensure your selfie
-                matches the photo on your Aadhar or Pan card
+                matches the photo on your Aadhaar or Pan card
               </p>
             </div>
           </div>
@@ -724,7 +724,7 @@ export default function Selfie() {
                 </div>
                 <p>
                   Take a clear picture and upload it. Please ensure your selfie
-                  matches the photo on your Aadhar or Pan card
+                  matches the photo on your Aadhaar or Pan card
                 </p>
               </div>
             </div>

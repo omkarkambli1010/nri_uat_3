@@ -158,9 +158,6 @@ export function FileUploadItem({ file, onRemove, onRetry, onUnlock }: Props) {
             <span className={styles.fileName} title={file.file.name}>
               {file.file.name}
             </span>
-            {/* Seeded previews of already-saved documents are byte-less File
-                placeholders (size 0) — the S3 bytes are never re-fetched. Skip the
-                size label rather than show a misleading "0 B". */}
             {file.file.size > 0 && (
               <span className={styles.fileSize}>{formatFileSize(file.file.size)}</span>
             )}

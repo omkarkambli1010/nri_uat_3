@@ -10,16 +10,11 @@ import { EsignIllustration } from "./EsignIllustration";
 import styles from "./esign.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 
-// Esign — "Finish Account Setup using E-Sign" landing screen.
-// Figma:
-//   Web    — empty RM code 0:23735 / RM code applied 0:24274
-//   Mobile — empty RM code 0:23029 / RM code applied 0:23381
-// Two states: an optional RM Code can be submitted to reveal the RM's name.
-
 const DESKTOP_MQ = "(min-width: 992px)";
 
 const SUBTITLE =
   "Almost done! Verify your details and complete e-sign securely with Aadhaar OTP.";
+
 const CONSENT_TEXT =
   "By clicking on “Proceed to E-Sign” you agree to digitally sign the account " +
   "opening form and you will redirected to the e-Sign service provider website.";
@@ -120,7 +115,7 @@ export default function Esign() {
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   const [isRejectStatus, setIsRejectStatus] = useState(false);
   const [rmCode, setRmCode] = useState("");
-  const [rmName, setRmName] = useState(""); // non-empty once a valid RM code is applied
+  const [rmName, setRmName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -133,9 +128,16 @@ export default function Esign() {
 
   useEffect(() => {
     document.title = "E-Sign | SBI Securities";
+
+    const rejectStatus =
+      typeof window !== "undefined"
+        ? window.sessionStorage.getItem("RejectStatus")
+        : "";
+
+    setIsRejectStatus(rejectStatus === "R");
   }, []);
 
-  const getFormNumber = () =>
+  const getApplicationId = () =>
     (typeof window !== "undefined" &&
       sessionStorage.getItem("ApplicationId")) ||
     "";
@@ -150,114 +152,86 @@ export default function Esign() {
     }, 200);
   };
 
-  // const onRmCodeChange = (value: string) => {
-  //   setRmCode(value);
-  //   // Editing the code invalidates any previously resolved RM, so the user
-  //   // must re-submit — this also re-enables the Submit button.
-  //   if (rmName) setRmName('');
-  // };
+  const decodeHtmlUrl = (url: string) => {
+    if (typeof document === "undefined") return url;
 
-  // // RM Code lookup. NOTE: the 'ValidateRMCode' flag / 'RMName' response field
-  // // are assumed to match the e-sign backend — confirm and adjust if they differ.
-  // const submitRmCode = async () => {
-  //   const code = rmCode.trim();
-  //   if (!code || submitting || rmName) return;
-  //   setSubmitting(true);
-  //   showSpinner();
-  //   try {
-  //     const response = await apiService.postRequestEsign(
-  //       '',
-  //       { ApplicationId: getFormNumber(), flag: 'ValidateRMCode', RMCode: code },
-  //       hideSpinner,
-  //     );
-  //     if (response?.status === true && response?.data?.RMName) {
-  //       setRmName(response.data.RMName);
-  //       toast.success('RM code applied.');
-  //     } else {
-  //       toast.error(response?.message || 'Invalid RM code. Please check and try again.');
-  //     }
-  //   } catch {
-  //     toast.error('Could not validate the RM code. Please try again.');
-  //   } finally {
-  //     setSubmitting(false);
-  //     hideSpinner();
-  //   }
-  // };
+    const textarea = document.createElement("textarea");
+    textarea.innerHTML = url;
+    return textarea.value;
+  };
+
+  const getAofGenerateData = async () => {
+    const applicationId = getApplicationId();
+
+    if (!applicationId) {
+      toast.error("Application ID not found. Please restart the process.");
+      return null;
+    }
+
+    const response = await apiService.postNri(
+      `applications/${applicationId}/aof/generate`,
+      null,
+      hideSpinner,
+      {
+        accept: "application/json",
+      },
+    );
+
+    return response;
+  };
 
   const reviewApplicationForm = async () => {
-    // const fn = getFormNumber();
-    // if (!fn) {
-    //   toast.error('Form number not found. Please restart the process.');
-    //   return;
-    // }
-    // showSpinner();
-    // try {
-    //   const response = await apiService.postRequestEsign(
-    //     '',
-    //     { ApplicationId: fn, flag: 'GetEsignPDF' },
-    //     hideSpinner,
-    //   );
-    //   if (response?.status === true && response?.data?.EsignURL) {
-    //     window.open(response.data.EsignURL, '_blank', 'noopener,noreferrer');
-    //   } else {
-    //     toast.error(response?.message || 'Unable to load the application form.');
-    //   }
-    // } catch {
-    //   toast.error('An error occurred while loading the application form.');
-    // } finally {
-    //   hideSpinner();
-    // }
+    if (submitting) return;
+
+    showSpinner();
+
+    try {
+      const response = await getAofGenerateData();
+
+      if (response?.status === true && response?.presignedUrl) {
+        const previewUrl = decodeHtmlUrl(response.presignedUrl);
+
+        window.open(previewUrl, "_blank", "noopener,noreferrer");
+      } else {
+        toast.error(
+          response?.detail || "Unable to load the application form.",
+        );
+      }
+    } catch (error: any) {
+      const errorData = error?.response?.data;
+
+      console.log("Esign Error:", errorData);
+    } finally {
+      hideSpinner();
+    }
   };
 
   const proceedToEsign = async () => {
-    // const fn = getFormNumber();
-    // if (!fn) {
-    //   toast.error('Form number not found. Please restart the process.');
-    //   return;
-    // }
-    // showSpinner();
-    // try {
-    //   const response = await apiService.postRequestEsign(
-    //     '',
-    //     { ApplicationId: fn, flag: 'GetEsignPDF' },
-    //     hideSpinner,
-    //   );
-    //   if (response?.status === true && response?.data?.EsignURL) {
-    //     // Hand off to the e-sign service provider. Spinner stays up until the
-    //     // browser navigates away.
-    //     window.location.href = response.data.EsignURL;
-    //   } else {
-    //     toast.error(response?.message || 'Unable to start e-sign. Please try again.');
-    //     hideSpinner();
-    //   }
-    // } catch {
-    //   toast.error('An error occurred while starting e-sign.');
-    //   hideSpinner();
-    // }
+    if (submitting) return;
+
+    setSubmitting(true);
+    showSpinner();
+
+    try {
+      const response = await getAofGenerateData();
+
+      if (response?.status === true && response?.redirectUrl) {
+        const redirectUrl = decodeHtmlUrl(response.redirectUrl);
+
+        window.location.href = redirectUrl;
+      } else {
+        toast.error(
+          response?.message || "Unable to start e-sign. Please try again.",
+        );
+        setSubmitting(false);
+        hideSpinner();
+      }
+    } catch {
+      toast.error("An error occurred while starting e-sign.");
+      setSubmitting(false);
+      hideSpinner();
+    }
   };
-
-  // ── Shared UI fragments ───────────────────────────────────────────────────
-
-  // const rmInputRow = (
-  //   <div className={styles.rmInputRow}>
-  //     <input
-  //       className={styles.rmInput}
-  //       placeholder="Enter Code"
-  //       aria-label="RM Code (optional)"
-  //       value={rmCode}
-  //       maxLength={20}
-  //       onChange={(e) => onRmCodeChange(e.target.value)}
-  //     />
-  //     <LoadingButton
-  //       type="button"
-  //       className={styles.rmSubmitBtn}
-  //       disabled={submitDisabled}
-  //       onClick={submitRmCode}
-  //     >
-  //       Submit
-  //     </LoadingButton>
-  //   </div>
-  // );
 
   const rmNameRow = rmName ? (
     <p className={styles.rmName}>
@@ -282,8 +256,6 @@ export default function Esign() {
     </div>
   );
 
-  // ── Initial (pre-measurement) render — avoids a layout flash ──────────────
-
   if (isDesktop === null) {
     return (
       <section
@@ -293,8 +265,6 @@ export default function Esign() {
       />
     );
   }
-
-  // ── Desktop layout ────────────────────────────────────────────────────────
 
   if (isDesktop) {
     return (
@@ -320,6 +290,7 @@ export default function Esign() {
                 <BackArrow />
               </button>
             )}
+
             <div className={styles.deskHeaderText}>
               <div className={styles.deskTitleRow}>
                 <h5>Finish Account Setup using E-Sign</h5>
@@ -339,24 +310,11 @@ export default function Esign() {
             <div className={styles.deskBodyScroll} data-lenis-prevent>
               <p className={styles.consentText}>{CONSENT_TEXT}</p>
 
-              {/* <div className={styles.rmRow}>
-                <p className={styles.rmLabel}>
-                  RM Code <span>(Optional)</span>
-                </p>
-                <div className={styles.rmField}>
-                  {rmInputRow}
-                  {rmNameRow}
-                </div>
-              </div> */}
-
               {illustration}
               {reviewCard}
             </div>
 
             <div className={styles.deskFooter}>
-              {/* <button type="button" className={styles.deskBtnFilled} onClick={proceedToEsign}>
-                Proceed to E-Sign
-              </button> */}
               <LoadingButton
                 type="button"
                 className={styles.deskBtnFilled}
@@ -370,8 +328,6 @@ export default function Esign() {
       </section>
     );
   }
-
-  // ── Mobile layout ─────────────────────────────────────────────────────────
 
   return (
     <section
@@ -399,6 +355,7 @@ export default function Esign() {
             </button>
           </div>
         )}
+
         <div className={styles.mobTitleBlock}>
           <div className={styles.mobTitleRow}>
             <p className={styles.mobTitle}>Finish account setup using eSign</p>
@@ -417,26 +374,11 @@ export default function Esign() {
       <div className={styles.mobCard} data-lenis-prevent>
         <p className={styles.consentText}>{CONSENT_TEXT}</p>
 
-        {/* <div className={styles.mobRmSection}>
-          <p className={styles.rmLabel}>
-            RM Code <span>(Optional)</span>
-          </p>
-          {rmInputRow}
-          {rmNameRow}
-        </div> */}
-
         {illustration}
         {reviewCard}
       </div>
 
       <div className={styles.mobBtnBar}>
-        {/* <button
-          type="button"
-          className={styles.mobBtnFilled}
-          onClick={proceedToEsign}
-        >
-          Proceed to E-Sign
-        </button> */}
         <LoadingButton
           type="button"
           className={styles.deskBtnFilled}

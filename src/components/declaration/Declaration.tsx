@@ -430,15 +430,15 @@ export default function Declaration() {
       );
       const d = response?.data;
       if (d) {
-        const pep = !!d.pepAccepted;
         const pref = !!d.preferenceAccepted;
         const terms = !!d.termsAccepted;
-        const mitc = !!d.mitcAccepted;
-        setIspep(pep);
+        // pepAccepted / mitcAccepted no longer have visible checkboxes; keep
+        // them true so the save payload always sends them as accepted.
+        setIspep(true);
         setIstradingPref(pref);
         setIstermsandcond(terms);
-        setIssettledfunds(mitc);
-        checkAllCheckboxesSelected(pep, pref, mitc, terms, isyono);
+        setIssettledfunds(true);
+        checkAllCheckboxesSelected(true, pref, true, terms, isyono);
       }
     } catch {
       // Non-fatal — defaults from selectAllCheckboxes(true) remain.
@@ -561,10 +561,12 @@ export default function Declaration() {
       setIsProceedButton(false);
     } else {
       setIsIndianCitizen(false);
-      setIspep(false);
+      // ispep / issettledfunds have no visible checkbox anymore; keep them
+      // accepted so pepAccepted / mitcAccepted are always sent as true.
+      setIspep(true);
       setIsyono(false);
       setIstradingPref(false);
-      setIssettledfunds(false);
+      setIssettledfunds(true);
       setIstermsandcond(false);
       setIsProceedButton(true);
     }
@@ -579,7 +581,9 @@ export default function Declaration() {
     terms: boolean,
     yono: boolean,
   ) => {
-    const allVisible = pep && trading && settled && terms;
+    // PEP and Fund Settlement checkboxes were removed from the UI, so only
+    // Preferences + Terms & Conditions (and YONO when shown) gate Select All.
+    const allVisible = trading && terms;
     const allSelected = IsYonoForm ? allVisible && yono : allVisible;
     setSelectAll(allSelected);
     setIsProceedButton(!allSelected);
@@ -912,16 +916,6 @@ export default function Declaration() {
         </div>
       </div>
 
-      {/* PEP */}
-      <CheckboxRow
-        id="mob-pep"
-        checked={ispep}
-        onChange={(v) => handleCheckbox("ispep", v)}
-        label="I am not politically-exposed (PEP) or related to a PEP"
-        onInfoClick={() => setShowPoliticalModal(true)}
-        infoLabel="What is a PEP?"
-      />
-
       {/* Trading Preferences */}
       <CheckboxRow
         id="mob-tradingPref"
@@ -953,50 +947,6 @@ export default function Declaration() {
         onInfoClick={() => setShowTradingPrefModal(true)}
         infoLabel="View trading preferences"
       />
-
-      {/* Fund Settlement */}
-      <div
-        className={styles.declarationRow}
-        onClick={() => handleCheckbox("issettledfunds", !issettledfunds)}
-      >
-        <div className={styles.fundSettlementLeft}>
-          <div className={styles.fundSettlementTextGroup}>
-            <div className={styles.checkboxWrap}>
-              <input
-                id="mob-settledFunds"
-                type="checkbox"
-                className={styles.customCheckbox}
-                checked={issettledfunds}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleCheckbox("issettledfunds", e.target.checked);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                aria-label="Fund settlement consent"
-              />
-            </div>
-            <label
-              htmlFor="mob-settledFunds"
-              className={styles.fundLabelText}
-              onClick={(e) => e.stopPropagation()}
-            >
-              I want my unused funds to be settled after every
-            </label>
-          </div>
-          <button
-            type="button"
-            className={styles.fundDropdownBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowFundCycleModal(true);
-            }}
-            aria-label={`Change fund settlement cycle, currently ${selectedOption.Days}`}
-          >
-            <span className={styles.fundDaysText}>{selectedOption.Days}</span>
-            <IconChevronDown />
-          </button>
-        </div>
-      </div>
 
       {/* Terms & Conditions */}
       <CheckboxRow
@@ -1080,16 +1030,6 @@ export default function Declaration() {
         </div>
       </div>
 
-      {/* PEP */}
-      <CheckboxRow
-        id="desk-pep"
-        checked={ispep}
-        onChange={(v) => handleCheckbox("ispep", v)}
-        label="I am not politically-exposed (PEP) or related to a PEP"
-        onInfoClick={() => setShowPoliticalModal(true)}
-        infoLabel="What is a PEP?"
-      />
-
       {/* Trading Preferences */}
       <CheckboxRow
         id="desk-tradingPref"
@@ -1121,50 +1061,6 @@ export default function Declaration() {
         onInfoClick={() => setShowTradingPrefModal(true)}
         infoLabel="View trading preferences"
       />
-
-      {/* Fund Settlement */}
-      <div
-        className={styles.declarationRow}
-        onClick={() => handleCheckbox("issettledfunds", !issettledfunds)}
-      >
-        <div className={styles.fundSettlementLeft}>
-          <div className={styles.fundSettlementTextGroup}>
-            <div className={styles.checkboxWrap}>
-              <input
-                id="desk-settledFunds"
-                type="checkbox"
-                className={styles.customCheckbox}
-                checked={issettledfunds}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  handleCheckbox("issettledfunds", e.target.checked);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                aria-label="Fund settlement consent"
-              />
-            </div>
-            <label
-              htmlFor="desk-settledFunds"
-              className={styles.fundLabelText}
-              onClick={(e) => e.stopPropagation()}
-            >
-              I want my unused funds to be settled after every
-            </label>
-          </div>
-          <button
-            type="button"
-            className={styles.fundDropdownBtn}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowFundCycleModal(true);
-            }}
-            aria-label={`Change fund settlement cycle, currently ${selectedOption.Days}`}
-          >
-            <span className={styles.fundDaysText}>{selectedOption.Days}</span>
-            <IconChevronDown />
-          </button>
-        </div>
-      </div>
 
       {/* Terms & Conditions */}
       <CheckboxRow

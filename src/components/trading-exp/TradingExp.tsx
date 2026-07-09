@@ -9,12 +9,8 @@ import navigationService from "@/services/navigation.service";
 import styles from "./trading-exp.module.scss";
 import { useSessionValue } from '@/hooks/useSessionValue';
 
-// TradingExp — step 2: Trading Experience
-// Figma: 8TizndCcBb3VyE5CIJBEZe
-//   Desktop node 0-28836 · Mobile node 0-28750
-
 // Dummy values matching Figma — swap with API data when ready
-const TRADING_OPTIONS = ["New", "0-2 Years", "3-4 Years", "More than 4 Years"];
+const TRADING_OPTIONS = ["No Experience", "1-3 Years", "4-6 Years", "More than 6-9 Years", "10 or More than 10 years"];
 
 function BackArrow() {
   return (

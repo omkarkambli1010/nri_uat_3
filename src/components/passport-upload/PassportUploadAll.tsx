@@ -407,14 +407,33 @@ export default function PassportUploadAll() {
   const frontUploaded = frontFiles.some(f => f.status === 'success');
   const backUploaded  = backFiles.some(f => f.status === 'success');
 
-  // Details are filled only from the FRONT image (real OCR happens in
-  // makeUploadFn('FrontFile')). Do NOT fill on back upload — otherwise skipping
-  // the front and uploading the back would populate the fields unexpectedly.
-  // Skip when we have saved-stage data — the prefill below provides the real values.
+  const frontWasUploadedRef = useRef(false);
+  useEffect(() => {
+    if (frontUploaded) {
+      frontWasUploadedRef.current = true;
+      return;
+    }
+    if (!frontWasUploadedRef.current) return; // never uploaded yet — nothing to clear
+    frontWasUploadedRef.current = false;
+
+    setFullName('');
+    setDob('');
+    setPassportNumber('');
+    setIssueDate('');
+    setExpiryDate('');
+    setNationality('');
+    setGender('');
+    setPlaceOfIssue('');
+    setErrors({});
+    setFrontEditMode(false);
+    setDetailsFetched(false);
+    setDetailsEdited(false);
+    setSavedData(null);
+    prefilledRef.current = true;
+  }, [frontUploaded]);
+
   useEffect(() => { if (frontUploaded && !savedData) fillMockDetails(); }, [frontUploaded, savedData]);
 
-  // Prefill from the saved PASSPORT stage (POST …/get/workflow/stagewisedate
-  // { stagename: "PASSPORT" }) — fetch the payload + seed the front/back previews.
   useEffect(() => {
     showSpinner();
     const applicationId = getApplicationId();
@@ -429,6 +448,13 @@ export default function PassportUploadAll() {
         const res = await apiService.getPassportWorkflow(applicationId);
         if (!alive) return;
         const d = res?.data as Record<string, unknown> | undefined;
+
+        const chosenType = searchParams.get('type') ?? '';
+        const savedType = d ? String(d.passportType ?? '') : '';
+        if (chosenType && savedType && savedType !== chosenType) {
+          return; // skip binding savedData and the front/back previews
+        }
+
         if (d) setSavedData(d);
 
         const docs = Array.isArray(res?.documents)

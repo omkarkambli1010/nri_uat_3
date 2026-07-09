@@ -198,7 +198,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   }
 }
 
-// Figma: w-800, h-732, rounded-24, border #d9d9d9, shadow
 .desktopCard {
   width: 100%;
   max-width: 800px;
@@ -209,7 +208,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
-// Header: border-bottom 0.5px, p-24
 .desktopCardHeader {
   background: $bg-white;
   border-bottom: 0.5px solid $border;
@@ -240,7 +238,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 8px;
 }
 
-// Figma: 18px SemiBold #222
 .desktopCardTitle {
   font-size: 18px;
   font-weight: 600;
@@ -249,7 +246,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   line-height: normal;
 }
 
-// Figma: 14px Regular #666
 .desktopCardSubtitle {
   font-size: 14px;
   font-weight: 400;
@@ -258,7 +254,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   line-height: normal;
 }
 
-// Figma 1:77166 — p-24, justify-between, min-height to push button to bottom
 .desktopCardBody {
   background: $bg-white;
   padding: 24px;
@@ -269,19 +264,17 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 20px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
+  min-height: 500px;
 }
 
-// ── Email form row (desktop — horizontal label + input) ─────────────────────
-// Figma 1:77183: label 231px wide, gap 24px, input 265px wide
 .desktopEmailRow {
   display: flex;
   align-items: center;
   gap: 24px;
   width: 100%;
-  max-width: 520px; // 231 + 24 + 265
+  max-width: 520px;
 }
 
-// Figma: 16px Regular #666, w-231px
 .desktopEmailLabel {
   font-size: 16px;
   font-weight: 400;
@@ -290,7 +283,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   width: 231px;
 }
 
-// Figma: h-40, border #d9d9d9, rounded-8, w-265px, 14px Regular #222
 .desktopEmailInput {
   width: 265px;
   height: 40px;

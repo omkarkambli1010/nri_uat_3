@@ -9,18 +9,12 @@ import navigationService from "@/services/navigation.service";
 import styles from "./annual-income.module.scss";
 import { useSessionValue } from '@/hooks/useSessionValue';
 
-// AnnualIncome — step 3: Annual Income
-// Figma: 8TizndCcBb3VyE5CIJBEZe
-//   Desktop node 0-28219 · Mobile node 0-28129
-
-// Dummy values matching Figma — swap with API data when ready
 const INCOME_OPTIONS = [
   "Below 1 lac",
   "1 lac - 5 lacs",
   "5 lacs - 10 lacs",
   "10 lacs - 25 lacs",
-  "25 lacs - 1 Crore",
-  "Above 1 Crore",
+  "> 25 lacs",
 ];
 
 function BackArrow() {

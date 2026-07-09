@@ -15,9 +15,6 @@ export const FOREIGN_UPLOAD_TYPES = {
 } as const;
 
 
-// BRD: Document Type is driven by the Document Master and offers exactly
-// Passport, Driving License and Aadhaar. The keys are the enum values sent to
-// the API as ProofType; the labels are shown to the user.
 export const PERMANENT_UPLOAD_TYPES = {
   PassportAddress: 'Passport',
   DrivingLicense: 'Driving License',

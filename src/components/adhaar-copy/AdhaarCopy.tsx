@@ -10,19 +10,6 @@ import { publicPath } from "@/utils/publicPath";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useSessionValue } from '@/hooks/useSessionValue';
 
-// AdhaarCopy — Aadhaar DigiLocker verification result screen
-// Figma: 8TizndCcBb3VyE5CIJBEZe
-//   Desktop node 0-25166 · Mobile node 0-25394
-//
-// Flow:
-//   1. Page loads — parse URL params (code, state, hmac, error).
-//   2. If `code` present → call digilockerCallback API.
-//   3. On callback success (status true) → call getDigilockerWorkflow and bind
-//      the returned data (DOB, address, masked Aadhaar) to the screen.
-//      Store callback response in sessionStorage for Continue routing.
-//   4. On callback failure / no code → fall through to legacy fetchAadhaarData.
-//   5. Continue button → read stored callback uiMetadata route and navigate.
-
 function BackArrow() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 25" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -51,10 +38,6 @@ function PersonIcon() {
   );
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-// Extract the next route from a callback / workflow response uiMetadata field.
-// uiMetadata is a JSON string e.g. "{\"route\": \"personalDetailsForm/1\"}".
 const routeFromUiMetadata = (res: unknown): string | null => {
   const meta = (res ?? {}) as Record<string, unknown>;
   try {
@@ -68,7 +51,6 @@ const routeFromUiMetadata = (res: unknown): string | null => {
   }
 };
 
-// First non-empty value across candidate keys (API field names aren't pinned).
 const pickField = (o: Record<string, unknown> | undefined, ...keys: string[]): string => {
   if (!o) return '';
   for (const k of keys) {
@@ -78,7 +60,6 @@ const pickField = (o: Record<string, unknown> | undefined, ...keys: string[]): s
   return '';
 };
 
-// Normalise an Aadhaar value to the masked "XXXXXXXX1234" display form.
 const maskAadhaar = (v: string): string => {
   if (!v) return '';
   if (/[xX*]/.test(v)) return v.replace(/\*/g, 'X');
@@ -87,10 +68,6 @@ const maskAadhaar = (v: string): string => {
   return `XXXXXXXX${digits.slice(-4)}`;
 };
 
-// From the workflow response's root `documents[]`, pick the pre-signed URL of
-// the "AadhaarPhoto" document — used as the profile photo on the Aadhaar card.
-// (Note: `documents` sits on the response root, not inside `data`, and the URL
-// field is `presignedUrl`.)
 const aadhaarPhotoUrl = (res: Record<string, unknown>): string => {
   const docs = Array.isArray(res.documents)
     ? (res.documents as Record<string, unknown>[])
@@ -101,8 +78,6 @@ const aadhaarPhotoUrl = (res: Record<string, unknown>): string => {
   return pickField(photo, 'presignedUrl', 'preSignedUrl', 'preSignUrl', 'url');
 };
 
-// Build a single-line address from the DigiLocker workflow data response.
-// Response fields: line1, line2, line3, city, state, pincode, country.
 const buildAddress = (d: Record<string, unknown>): string => {
   return [
     d.line1,
@@ -115,6 +90,21 @@ const buildAddress = (d: Record<string, unknown>): string => {
     .join(', ');
 };
 
+const clearDigilockerQueryParams = (): void => {
+  if (typeof window === 'undefined') return;
+  const url = new URL(window.location.href);
+  let changed = false;
+  for (const key of ['code', 'state', 'hmac', 'error']) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+  if (changed) {
+    window.history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdhaarCopy() {
@@ -124,6 +114,7 @@ export default function AdhaarCopy() {
   const [dob, setDob] = useState('');
   const [address, setAddress] = useState('');
   const [name, setName] = useState('');
+  const [gender, setGender] = useState('');
   const [maskedNumber, setMaskedNumber] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
 
@@ -132,149 +123,95 @@ export default function AdhaarCopy() {
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
 
-    // Read applicationId once — needed by both callback and workflow calls.
     const applicationId = sessionStorage.getItem('ApplicationId') ?? '';
 
-    // Parse all DigiLocker redirect params from the URL in one place.
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code') ?? '';
     const state = params.get('state') ?? '';
     const hmac = params.get('hmac') ?? '';
     const error = params.get('error') ?? '';
 
-    // Persist raw callback params for debugging / retry.
     sessionStorage.setItem('digilockerCallback', JSON.stringify({ code, state, hmac, error }));
     if (code) sessionStorage.setItem('digilocker_code', code);
     if (state) sessionStorage.setItem('digilocker_state', state);
-
+    clearDigilockerQueryParams();
     void initAadhaar(applicationId, code);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Entry point on page load ──────────────────────────────────────────────
   const initAadhaar = async (applicationId: string, code: string) => {
     if (code && applicationId) {
-      const handled = await handleDigilockerCallback(applicationId, code);
-      if (handled) return; // workflow data already bound — nothing more to do
+      await handleDigilockerCallback(applicationId, code);
+    } else {
+      await fetchDigilockerStage(applicationId);
     }
-    // No code / missing applicationId / callback failed → legacy fallback.
-    await fetchAadhaarData();
   };
 
-  // ── Step 1: DigiLocker OAuth callback ─────────────────────────────────────
-  // Calls GET /api/v1/digilocker/callback?applicationId=...&code=...
-  // On status true → calls getDigilockerWorkflow to bind screen data.
-  // Returns true when the workflow data has been bound (screen stays visible).
-  // Returns false to signal the caller should fall back to fetchAadhaarData.
+  // ── Code present → DigiLocker/callback API ─────────────────────────────────
   const handleDigilockerCallback = async (
     applicationId: string,
     code: string,
-  ): Promise<boolean> => {
+  ): Promise<void> => {
     showSpinner();
     try {
       const callbackRes = await apiService.digilockerCallback(applicationId, code);
-
-      // Persist full callback response — Continue button uses its uiMetadata route.
       sessionStorage.setItem('digilockerCallbackResult', JSON.stringify(callbackRes ?? {}));
-
       if (callbackRes?.status === true) {
-        // ── Step 2: fetch DigiLocker workflow details and bind to screen ──
-        await fetchDigilockerWorkflow(applicationId);
-        return true;
+        await bindDigilockerWorkflow(applicationId);
       }
-
-      // Callback returned status false — fall through to legacy data fetch.
-      return false;
     } catch {
-      // apiService.handleError already surfaced the backend message.
-      return false;
     } finally {
       hideSpinner();
     }
   };
 
-  // ── Step 2: Get workflow stage data and bind to UI ─────────────────────────
-  // POST /api/v1/applications/{id}/get/workflow/stagewisedate
-  // body: { stagename: "DIGILOCKER", idempotencyKey: null }
-  // Response.data fields used:
-  //   dateOfBirth  → DOB row
-  //   line1/line2/line3/city/state/pincode/country → Address row
-  //   proofNumber  → last 4 digits of Aadhaar for masked display
-  const fetchDigilockerWorkflow = async (applicationId: string) => {
+  // ── No code → stagewise DIGILOCKER fetch API ───────────────────────────────
+  const fetchDigilockerStage = async (applicationId: string): Promise<void> => {
+    showSpinner();
+    try {
+      await bindDigilockerWorkflow(applicationId);
+    } finally {
+      hideSpinner();
+    }
+  };
+
+  const formatGender = (v: string): string => {
+    const g = v.trim().toUpperCase();
+    if (g === 'M' || g === 'MALE') return 'Male';
+    if (g === 'F' || g === 'FEMALE') return 'Female';
+    return v ? 'Others' : '';
+  };
+
+  const bindDigilockerWorkflow = async (applicationId: string) => {
     try {
       const res = await apiService.getDigilockerWorkflow(applicationId);
 
       if (res?.status === true && res?.data) {
         const d = res.data as Record<string, unknown>;
 
-        // DOB — response field: dateOfBirth (ISO string e.g. "1994-12-19")
         setDob(pickField(d, 'dateOfBirth', 'DateOfBirth', 'dob', 'DOB'));
-
-        // Address — concatenate line1/2/3, city, state, pincode, country
         setAddress(buildAddress(d));
-
-        // Name — not in the current response payload but picked if present
         setName(pickField(d, 'name', 'Name', 'CustomerName', 'NameAsPerAadhaar', 'fullName'));
-
-        // Masked Aadhaar — proofNumber holds last 4 digits per the response
+        setGender(formatGender(pickField(d, 'gender', 'Gender')));
         setMaskedNumber(
           maskAadhaar(
             pickField(d, 'proofNumber', 'MaskedAadhaar', 'MaskedAadhaarNumber', 'AadhaarNumber'),
           ),
         );
-
-        // Profile photo — pre-signed URL of the "AadhaarPhoto" document
-        // (documents[] is on the response root, not inside data).
         setPhotoUrl(aadhaarPhotoUrl(res));
       }
     } catch {
-      // Non-fatal — screen shows dashes for missing fields.
     }
   };
-
-  // ── Fallback: legacy Aadhaar details fetch (no DigiLocker code in URL) ─────
-  const fetchAadhaarData = async () => {
-    showSpinner();
-    const reqData = {
-      flag: 'AadhaarDetails',
-      formnumber: sessionStorage.getItem('ApplicationId') ?? '',
-    };
-    try {
-      const response = await apiService.postRequest(
-        'api/v1/WorkflowDetails/getworkflowdata',
-        reqData,
-        hideSpinner,
-      );
-      if (response?.status === true && response?.data?.length) {
-        const d = response.data[0] as Record<string, unknown>;
-        setDob(pickField(d, 'DOB', 'DateOfBirth', 'dob'));
-        setAddress(pickField(d, 'Address', 'address'));
-        setName(pickField(d, 'Name', 'CustomerName', 'NameAsPerAadhaar', 'NameAsPerPan', 'name', 'fullName'));
-        setMaskedNumber(
-          maskAadhaar(
-            pickField(d, 'MaskedAadhaar', 'MaskedAadhaarNumber', 'AadhaarNumber', 'AadhaarNo', 'aadhaarNumber', 'UID'),
-          ),
-        );
-      }
-    } catch {
-      // error already handled by apiService
-    } finally {
-      hideSpinner();
-    }
-  };
-
-  // ── Navigation helpers ────────────────────────────────────────────────────
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
   }
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => { router.back(); hideSpinner(); }, 200);
-  };
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => { router.back(); hideSpinner(); }, 200);
+  // };
 
-  // Continue — reads the stored callback response uiMetadata and routes accordingly.
   const handleContinue = () => {
     showSpinner();
     setTimeout(() => {
@@ -332,6 +269,10 @@ export default function AdhaarCopy() {
         <span className={styles.infoValue}>{dob || '—'}</span>
       </div>
       <div className={styles.infoRow}>
+        <span className={styles.infoLabel}>Gender:</span>
+        <span className={styles.infoValue}>{gender || '-'}</span>
+      </div>
+      <div className={styles.infoRow}>
         <span className={styles.infoLabel}>Address:</span>
         <span className={styles.infoValue}>{address || '—'}</span>
       </div>
@@ -343,7 +284,7 @@ export default function AdhaarCopy() {
       {/* ── MOBILE (< 768px) ─────────────────────────────────────────────────── */}
       <section aria-label="Aadhaar Verification" className={styles.mobilePage}>
         <div className={styles.mobileHeader}>
-          <div className={styles.mobileTopRow}>
+          {/* <div className={styles.mobileTopRow}>
             {rejectStatus !== 'R' ? (
               <button
                 type="button"
@@ -356,7 +297,7 @@ export default function AdhaarCopy() {
             ) : (
               <div className={styles.backPlaceholder} aria-hidden="true" />
             )}
-          </div>
+          </div> */}
 
           <div className={styles.mobileTitleRow}>
             <div className={styles.mobileTitleBlock}>
@@ -397,7 +338,7 @@ export default function AdhaarCopy() {
       <section aria-label="Aadhaar Verification" className={styles.desktopPage}>
         <div className={styles.desktopCard}>
           <div className={styles.desktopCardHeader}>
-            {rejectStatus !== 'R' ? (
+            {/* {rejectStatus !== 'R' ? (
               <button
                 type="button"
                 className={styles.desktopBackBtn}
@@ -408,7 +349,7 @@ export default function AdhaarCopy() {
               </button>
             ) : (
               <div className={styles.backPlaceholder} aria-hidden="true" />
-            )}
+            )} */}
 
             <div className={styles.desktopTitleBlock}>
               <h1 className={styles.desktopCardTitle}>Verify using Aadhaar with DigiLocker</h1>

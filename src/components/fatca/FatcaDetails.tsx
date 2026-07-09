@@ -10,16 +10,7 @@ import apiService from '@/services/api.service';
 const getApplicationId = (): string =>
   typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
 
-// FatcaDetails — FATCA form.
-// Top: Country of Birth + Citizenship (mandatory).
-// Repeatable TIN set (1–3): Country of TAX Residence + TIN Issuing Country + TIN.
-// On Upload, completed TIN sets are persisted so /fatca/upload renders one
-// image-upload section each. Validation runs on Upload click with inline
-// per-field error messages. FATF-restricted countries are excluded everywhere.
-
 const MAX_TINS = 3;
-
-// Tax Identification Number — alphanumeric only.
 const TIN_RE = /^[A-Za-z0-9]+$/;
 
 type TinEntry = {
@@ -154,18 +145,10 @@ export default function FatcaDetails() {
   const [form, setForm] = useState<FatcaForm>(initForm);
   const [errors, setErrors] = useState<FormErrors>({ tins: [{}] });
 
-  // Country Master — used to resolve the saved country values (e.g. the
-  // uppercased "ALBANIA" countryOfBirth) back to the dropdown's proper-case
-  // option name so the <select> binds correctly.
   const { selectable, loading: countriesLoading } = useCountries();
-
-  // Raw FATCA stage payload, fetched once on mount; resolved into the form once
-  // the country list has loaded (so country names can be matched to options).
   const [savedData, setSavedData] = useState<Record<string, unknown> | null>(null);
   const prefilledRef = useRef(false);
 
-  // Fetch the saved FATCA stage (POST …/get/workflow/stagewisedate
-  // { stagename: "FATCA" }) so a revisit can show the previously-entered details.
   useEffect(() => {
     const applicationId = getApplicationId();
     if (!applicationId) return;
@@ -186,18 +169,12 @@ export default function FatcaDetails() {
     };
   }, []);
 
-  // Resolve the fetched payload into the form once countries have loaded. Guarded
-  // so it only applies once and never clobbers the user's later edits.
   useEffect(() => {
     if (!savedData || countriesLoading || prefilledRef.current) return;
     prefilledRef.current = true;
 
     const d = savedData;
     const str = (v: unknown): string => (v == null ? '' : String(v));
-    // Match a saved value to a dropdown option name. The stagewise API returns a
-    // mix of formats — a full name ("India"), or an ISO code ("US", "USA",
-    // "AF/AFG") — so match case-insensitively against the option name, the ISO-2,
-    // and either part of the master countryCode. Fall back to the raw value.
     const resolveCountry = (v: string): string => {
       if (!v) return '';
       const needle = v.trim().toLowerCase();
@@ -296,12 +273,8 @@ export default function FatcaDetails() {
     setErrors(errs);
     if (hasErrors(errs)) return;
 
-    // Persist the TIN sets so /fatca/upload renders one image-upload section each.
     if (typeof window !== 'undefined') {
       const tinsJson = JSON.stringify(form.tins);
-      // The per-slot upload ids (fatca_docids) are index-aligned to the TIN set;
-      // if the set changed (added/removed/reordered/edited) the old slot mapping
-      // is no longer valid, so drop it to avoid binding images to the wrong TIN.
       if (sessionStorage.getItem('fatca_tins') !== tinsJson) {
         sessionStorage.removeItem('fatca_docids');
       }
@@ -325,8 +298,6 @@ export default function FatcaDetails() {
     </button>
   );
 
-  // Renders the repeatable TIN list. `groupClass` styles each field for the
-  // mobile (stacked) vs desktop (2-col grid via .tinRow) layouts.
   const renderTinList = (idPrefix: 'mob' | 'desk', groupClass: string, fullGroupClass: string) => (
     <>
       <div className={styles.tinSectionHeader}>

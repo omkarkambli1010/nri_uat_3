@@ -9,7 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import LoadingButton from '@/components/ui/LoadingButton';
+import LoadingButton from "@/components/ui/LoadingButton";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useSpinner } from "@/components/spinner/Spinner";
@@ -21,6 +21,7 @@ import { publicPath } from "@/utils/publicPath";
 import apiService, { BankMasterIFSCResponse } from "@/services/api.service";
 import { DOCUMENT_TYPES } from "@/constants/document-types";
 import { toast } from "@/services/toast.service";
+import { getBankStageData } from "../manual-bankinfo/ManualBankInfo";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,36 @@ interface UploadDocumentResponse {
   s3Key: string;
   preSignedURL: string;
   status: boolean;
+}
+
+interface StageDocument {
+  documentType?: string;
+  documentID?: string;
+  documentId?: string;
+  presignedUrl?: string;
+  documentSide?: string | null;
+}
+
+interface StageBankData {
+  applicationId?: string;
+  accountType?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  micrcode?: string;
+  branchcode?: string;
+  branchaddress?: string;
+  bankaccounttype?: string;
+  bankName?: string;
+  branchName?: string | null;
+  accountHolderName?: string;
+  verificationMethod?: string;
+  status?: string;
+  nameMatchOutcome?: string;
+  nameMatchScore?: number;
+  documentId?: string;
+  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 const STATEMENT_TYPES = [
@@ -92,27 +123,6 @@ function BackArrow() {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 16 16"
-      fill="none"
-      aria-hidden="true"
-    >
-      <circle cx="8" cy="8" r="7" stroke="#280071" strokeWidth="1.2" />
-      <path
-        d="M8 7v4"
-        stroke="#280071"
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      <circle cx="8" cy="5" r="0.75" fill="#280071" />
     </svg>
   );
 }
@@ -191,14 +201,59 @@ function AlertIcon() {
   );
 }
 
+// ── Locked Uploaded Document Preview ──────────────────────────────────────────
+
+interface LockedStatementPreviewProps {
+  title: string;
+  documentUrl: string;
+}
+
+function LockedStatementPreview({
+  title,
+  documentUrl,
+}: LockedStatementPreviewProps) {
+  const cleanUrl = documentUrl || "";
+  const lowerUrl = cleanUrl.toLowerCase();
+
+  const isImage =
+    lowerUrl.includes(".png") ||
+    lowerUrl.includes(".jpg") ||
+    lowerUrl.includes(".jpeg") ||
+    lowerUrl.includes(".webp");
+
+  const isPdf = lowerUrl.includes(".pdf");
+
+  return (
+    <div>
+      <p className={styles.sectionTitle}>{title}</p>
+
+      <div className={styles.addressBox}>
+        {cleanUrl ? (
+          isImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cleanUrl} alt={title || "Statement preview"} />
+          ) : (
+            <a href={cleanUrl} target="_blank" rel="noopener noreferrer">
+              {isPdf ? "View uploaded statement" : "View uploaded document"}
+            </a>
+          )
+        ) : (
+          <p className={styles.addressText}>Uploaded document available</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── IFSC Autocomplete ─────────────────────────────────────────────────────────
 
 interface IFSCSelectProps {
   value: string;
+  disabled?: boolean;
   onChange: (code: string, details?: IFSCEntry | null) => void;
 }
 
-function IFSCSelect({ value, onChange }: IFSCSelectProps) {
+function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
   const [inputText, setInputText] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
@@ -218,6 +273,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
   useEffect(() => {
     if (isOpen && inputRef.current) {
       const rect = inputRef.current.getBoundingClientRect();
+
       setDropdownPos({
         top: rect.bottom + 4,
         left: rect.left,
@@ -232,6 +288,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     const handleScroll = () => {
       if (inputRef.current) {
         const rect = inputRef.current.getBoundingClientRect();
+
         setDropdownPos({
           top: rect.bottom + 4,
           left: rect.left,
@@ -241,6 +298,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     };
 
     window.addEventListener("scroll", handleScroll, true);
+
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isOpen]);
 
@@ -261,44 +319,40 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     };
   };
 
+  const requestIdRef = useRef(0);
+
   const fetchIFSCDetails = async (ifscCode: string) => {
+    const requestId = ++requestIdRef.current;
     try {
       setIsLoading(true);
       setApiError("");
       setResults([]);
 
-      const data = await apiService.getBankMasterByIfsc(ifscCode);
+      const list = await apiService.searchBankMasterByIfsc(ifscCode);
+      if (requestId !== requestIdRef.current) return; // stale response
 
-      if (!data?.ifscCode) {
+      if (!list.length) {
         throw new Error("No IFSC details found");
       }
 
-      const mappedResult = mapApiResponseToIFSCEntry(data);
-
-      // Populate the branch-details box as soon as the IFSC resolves — the
-      // fetched code is the exact 11-char code the user typed, so it's a
-      // confirmed match. Previously the details were set only on tapping the
-      // suggestion or on an exact-match blur; on mobile the fixed dropdown can
-      // sit behind the on-screen keyboard, so the tap never lands and the box
-      // stayed empty.
-      onChange(mappedResult.code, mappedResult);
-
-      setResults([mappedResult]);
+      setResults(list.map(mapApiResponseToIFSCEntry));
       setIsOpen(true);
       setActiveIndex(0);
     } catch {
+      if (requestId !== requestIdRef.current) return; // stale response
       setResults([]);
       setApiError("No matching IFSC code found");
-      onChange("", null);
     } finally {
-      setIsLoading(false);
+      if (requestId === requestIdRef.current) setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    if (disabled) return;
+
     const q = inputText.trim().toUpperCase();
 
-    if (q.length !== 11) {
+    if (q.length <= 1) {
       setResults([]);
       setApiError("");
       return;
@@ -309,7 +363,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [inputText]);
+  }, [inputText, disabled]);
 
   const handleSelect = (item: IFSCEntry) => {
     setInputText(item.code);
@@ -326,7 +380,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     setIsOpen(true);
     setActiveIndex(-1);
 
-    if (raw.length < 11) {
+    if (raw.length <= 1) {
       setResults([]);
       setApiError("");
     }
@@ -341,39 +395,49 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
     switch (e.key) {
       case "ArrowDown": {
         e.preventDefault();
+
         setActiveIndex((prev) => {
           const next = Math.min(prev + 1, results.length - 1);
+
           setTimeout(() => {
             optionRefs.current[next]?.scrollIntoView({
               block: "nearest",
               behavior: "smooth",
             });
           }, 0);
+
           return next;
         });
+
         break;
       }
 
       case "ArrowUp": {
         e.preventDefault();
+
         setActiveIndex((prev) => {
           const p = Math.max(prev - 1, 0);
+
           setTimeout(() => {
             optionRefs.current[p]?.scrollIntoView({
               block: "nearest",
               behavior: "smooth",
             });
           }, 0);
+
           return p;
         });
+
         break;
       }
 
       case "Enter": {
         e.preventDefault();
+
         if (activeIndex >= 0 && results[activeIndex]) {
           handleSelect(results[activeIndex]);
         }
+
         break;
       }
 
@@ -412,11 +476,14 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
         placeholder="Search IFSC code"
         value={inputText}
         onChange={handleInputChange}
-        onFocus={() => setIsOpen(true)}
+        onFocus={() => {
+          if (!disabled) setIsOpen(true);
+        }}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
+        disabled={disabled}
         autoComplete="off"
-        maxLength={11}
+        maxLength={15}
         role="combobox"
         aria-expanded={isOpen}
         aria-autocomplete="list"
@@ -439,7 +506,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
         </svg>
       </span>
 
-      {isOpen && (
+      {isOpen && !disabled && (
         <ul
           id={listboxId}
           className={styles.ifscDropdown}
@@ -469,13 +536,13 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
             >
               {apiError}
             </li>
-          ) : inputText.length > 0 && inputText.length < 11 ? (
+          ) : inputText.length <= 1 ? (
             <li
               className={styles.ifscNoResults}
               role="option"
               aria-selected={false}
             >
-              Enter complete 11-character IFSC code
+              Enter IFSC code to search
             </li>
           ) : results.length === 0 ? (
             <li
@@ -483,7 +550,7 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
               role="option"
               aria-selected={false}
             >
-              Enter IFSC code to search
+              Searching IFSC details...
             </li>
           ) : (
             results.map((item, i) => (
@@ -493,7 +560,9 @@ function IFSCSelect({ value, onChange }: IFSCSelectProps) {
                 ref={(el) => {
                   optionRefs.current[i] = el;
                 }}
-                className={`${styles.ifscOption}${i === activeIndex ? ` ${styles.ifscOptionActive}` : ""}`}
+                className={`${styles.ifscOption}${
+                  i === activeIndex ? ` ${styles.ifscOptionActive}` : ""
+                }`}
                 role="option"
                 aria-selected={i === activeIndex}
                 onMouseDown={(e) => {
@@ -531,6 +600,7 @@ interface BankSectionProps {
   ifscDetails: IFSCEntry | null;
   showAccount: boolean;
   errors: BankSectionErrors;
+  disabled?: boolean;
   onChange: (
     field: "accountNo" | "reAccountNo" | "ifsc",
     value: string,
@@ -548,6 +618,7 @@ function BankSection({
   ifscDetails,
   showAccount,
   errors,
+  disabled = false,
   onChange,
   onToggleShow,
 }: BankSectionProps) {
@@ -555,30 +626,35 @@ function BankSection({
     <div className={styles.bankSection}>
       {uploadSlot}
 
-      {/* Title sits below the statement preview and above the form fields. */}
       <p className={styles.sectionTitle}>{title}</p>
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Enter your Account No.</label>
+
         <div className={styles.inputCol}>
           <div className={styles.inputWrapper}>
             <input
               type={showAccount ? "text" : "password"}
               inputMode="numeric"
-              className={`${styles.input} ${styles.withEye}${errors.duplicateAccount ? ` ${styles.inputError}` : ""}`}
+              className={`${styles.input} ${styles.withEye}${
+                errors.duplicateAccount ? ` ${styles.inputError}` : ""
+              }`}
               placeholder="e.g. 00112233445566"
               value={accountNo}
               onChange={(e) =>
                 onChange("accountNo", e.target.value.replace(/[^0-9]/g, ""))
               }
+              disabled={disabled}
               maxLength={20}
               aria-invalid={errors.duplicateAccount}
               suppressHydrationWarning
             />
+
             <button
               type="button"
               className={styles.eyeBtn}
               onClick={onToggleShow}
+              disabled={disabled}
               aria-label={
                 showAccount ? "Hide account number" : "Show account number"
               }
@@ -587,6 +663,7 @@ function BankSection({
               {showAccount ? <EyeOpenIcon /> : <EyeClosedIcon />}
             </button>
           </div>
+
           {errors.duplicateAccount && (
             <p className={styles.fieldError} role="alert">
               <AlertIcon />
@@ -598,23 +675,28 @@ function BankSection({
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Re-enter your Account No.</label>
+
         <div className={styles.inputCol}>
           <div className={styles.inputWrapper}>
             <input
               type="text"
               inputMode="numeric"
-              className={`${styles.input}${errors.accountMismatch ? ` ${styles.inputError}` : ""}`}
+              className={`${styles.input}${
+                errors.accountMismatch ? ` ${styles.inputError}` : ""
+              }`}
               placeholder="e.g. 00112233445566"
               value={reAccountNo}
               onChange={(e) =>
                 onChange("reAccountNo", e.target.value.replace(/[^0-9]/g, ""))
               }
               onPaste={(e) => e.preventDefault()}
+              disabled={disabled}
               maxLength={20}
               aria-invalid={errors.accountMismatch}
               suppressHydrationWarning
             />
           </div>
+
           {errors.accountMismatch && (
             <p className={styles.fieldError} role="alert">
               <AlertIcon />
@@ -626,9 +708,11 @@ function BankSection({
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Enter IFSC Code</label>
+
         <div className={styles.inputCol}>
           <IFSCSelect
             value={ifsc}
+            disabled={disabled}
             onChange={(v, details) => onChange("ifsc", v, details)}
           />
         </div>
@@ -640,11 +724,13 @@ function BankSection({
             <p className={styles.addressText}>
               {ifscDetails.bankName || "Bank details not available"}
             </p>
+
             <p className={styles.addressText}>
               {ifscDetails.address ||
                 ifscDetails.branch ||
                 "Branch address not available"}
             </p>
+
             {ifscDetails.micrNo && (
               <p className={styles.addressText}>MICR: {ifscDetails.micrNo}</p>
             )}
@@ -667,13 +753,9 @@ export default function ManualBankDetails() {
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   const [showModal, setShowModal] = useState(false);
-  const modalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isStageDataLocked, setIsStageDataLocked] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (modalTimerRef.current) clearTimeout(modalTimerRef.current);
-    };
-  }, []);
+  const modalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [selectedAccountTypes, setSelectedAccountTypes] = useState<
     SelectedAccountType[]
@@ -682,12 +764,16 @@ export default function ManualBankDetails() {
   const [nroStatementFiles, setNroStatementFiles] = useState<UploadedFile[]>(
     [],
   );
+
   const [nreStatementFiles, setNreStatementFiles] = useState<UploadedFile[]>(
     [],
   );
 
   const [nroStatementDocumentId, setNroStatementDocumentId] = useState("");
   const [nreStatementDocumentId, setNreStatementDocumentId] = useState("");
+
+  const [nroStatementPreviewUrl, setNroStatementPreviewUrl] = useState("");
+  const [nreStatementPreviewUrl, setNreStatementPreviewUrl] = useState("");
 
   const [nroAccountNo, setNroAccountNo] = useState("");
   const [nroReAccountNo, setNroReAccountNo] = useState("");
@@ -703,36 +789,243 @@ export default function ManualBankDetails() {
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
-  }, []);
+  }, [router, hideSpinner]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    return () => {
+      if (modalTimerRef.current) clearTimeout(modalTimerRef.current);
+    };
+  }, []);
+
+  const getSelectedAccountTypesFromSession = (): SelectedAccountType[] => {
+    if (typeof window === "undefined") return ["nre", "nro"];
 
     const rawSelectedAccountTypes = window.sessionStorage.getItem(
       "SelectedAccountTypes",
     );
 
-    if (!rawSelectedAccountTypes) return;
+    if (!rawSelectedAccountTypes) return ["nre", "nro"];
 
     try {
       const parsed = JSON.parse(rawSelectedAccountTypes);
 
-      if (Array.isArray(parsed)) {
-        const normalized = parsed
-          .map((item) => String(item).toLowerCase())
-          .filter(
-            (item): item is SelectedAccountType =>
-              item === "nre" || item === "nro",
-          );
+      if (!Array.isArray(parsed)) return ["nre", "nro"];
 
-        if (normalized.length > 0) {
-          setSelectedAccountTypes(normalized);
-        }
-      }
+      const normalized = parsed
+        .map((item) => String(item).toLowerCase())
+        .filter(
+          (item): item is SelectedAccountType =>
+            item === "nre" || item === "nro",
+        );
+
+      const uniqueTypes = Array.from(new Set(normalized));
+
+      return uniqueTypes.length > 0 ? uniqueTypes : ["nre", "nro"];
     } catch {
-      setSelectedAccountTypes(["nre", "nro"]);
+      return ["nre", "nro"];
     }
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    setSelectedAccountTypes(getSelectedAccountTypesFromSession());
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const applicationId = window.sessionStorage.getItem("ApplicationId") || "";
+
+    let cancelled = false;
+
+    const normalizeAccountType = (
+      accountType?: string,
+    ): SelectedAccountType | null => {
+      const type = String(accountType || "").toLowerCase();
+
+      if (type.includes("nro") || type.includes("Nro")) return "nro";
+      if (
+        type.includes("nre") ||
+        type.includes("Nre") ||
+        type.includes("Non PIS NRE")
+      )
+        return "nre";
+
+      return null;
+    };
+
+    const cleanPresignedUrl = (url?: string) => {
+      return String(url || "")
+        .replace(/&amp;amp;amp;/g, "&")
+        .replace(/&amp;amp;/g, "&")
+        .replace(/&amp;/g, "&");
+    };
+
+    const getDocumentsFromResponse = (response: any): StageDocument[] => {
+      if (Array.isArray(response?.documents)) return response.documents;
+      if (Array.isArray(response?.data?.documents))
+        return response.data.documents;
+
+      return [];
+    };
+
+    const getBankRecordsFromResponse = (response: any): StageBankData[] => {
+      const data = response?.data;
+
+      if (Array.isArray(data)) return data;
+      if (Array.isArray(data?.bankDetails)) return data.bankDetails;
+      if (Array.isArray(data?.bankDetail)) return data.bankDetail;
+      if (Array.isArray(data?.banks)) return data.banks;
+      if (data) return [data];
+
+      return [];
+    };
+
+    const findDocumentForAccountType = (
+      documents: StageDocument[],
+      type: SelectedAccountType,
+      fallbackDocumentId?: string,
+    ) => {
+      const byType = documents.find((doc) => {
+        const documentType = String(doc.documentType || "").toLowerCase();
+
+        if (type === "nro") {
+          return documentType.includes("nro");
+        }
+
+        return documentType.includes("nre");
+      });
+
+      if (byType) return byType;
+
+      return documents.find((doc) => {
+        const docId = doc.documentID || doc.documentId || "";
+        return !!fallbackDocumentId && docId === fallbackDocumentId;
+      });
+    };
+
+    const findBankRecordForAccountType = (
+      bankRecords: StageBankData[],
+      type: SelectedAccountType,
+    ) => {
+      const exactRecord = bankRecords.find((record) => {
+        const accountType = normalizeAccountType(record.accountType);
+        return accountType === type;
+      });
+
+      if (exactRecord) return exactRecord;
+
+      /*
+        Backend currently returns only one data object even when session has
+        both ["nro","nre"]. To keep both selected account sections locked and
+        bound, use available bank data as fallback for the missing account type.
+        Documents are still matched account-wise from the documents array.
+      */
+      return bankRecords[0];
+    };
+
+    const mapStageIfscDetails = (bankData: StageBankData): IFSCEntry => {
+      return {
+        code: bankData.ifscCode || "",
+        branch:
+          bankData.branchName ||
+          bankData.branchaddress ||
+          "Branch details not available",
+        bankName: bankData.bankName || "",
+        address: bankData.branchaddress || "",
+        micrNo: bankData.micrcode || "",
+        bbmCd: bankData.branchcode || "",
+      };
+    };
+
+    const bindStageBankData = (
+      bankData: StageBankData,
+      type: SelectedAccountType,
+      documents: StageDocument[],
+    ) => {
+      const matchedDocument = findDocumentForAccountType(
+        documents,
+        type,
+        bankData.documentId,
+      );
+
+      const documentId =
+        matchedDocument?.documentID ||
+        matchedDocument?.documentId ||
+        bankData.documentId ||
+        "";
+
+      const documentUrl = cleanPresignedUrl(matchedDocument?.presignedUrl);
+
+      const mappedIfscDetails = mapStageIfscDetails(bankData);
+
+      if (type === "nro") {
+        setNroAccountNo(bankData.accountNumber || "");
+        setNroReAccountNo(bankData.accountNumber || "");
+        setNroIfsc(bankData.ifscCode || "");
+        setNroIfscDetails(mappedIfscDetails);
+        setNroStatementDocumentId(documentId);
+        setNroStatementPreviewUrl(documentUrl);
+      }
+
+      if (type === "nre") {
+        setNreAccountNo(bankData.accountNumber || "");
+        setNreReAccountNo(bankData.accountNumber || "");
+        setNreIfsc(bankData.ifscCode || "");
+        setNreIfscDetails(mappedIfscDetails);
+        setNreStatementDocumentId(documentId);
+        setNreStatementPreviewUrl(documentUrl);
+      }
+    };
+
+    const fetchBankStageData = async () => {
+      showSpinner();
+
+      try {
+        const response: any = await getBankStageData(
+          applicationId,
+          hideSpinner,
+        );
+
+        if (cancelled) return;
+
+        if (response?.status === true && response?.data) {
+          const sessionAccountTypes = getSelectedAccountTypesFromSession();
+          const documents = getDocumentsFromResponse(response);
+          const bankRecords = getBankRecordsFromResponse(response);
+
+          if (bankRecords.length > 0) {
+            setSelectedAccountTypes(sessionAccountTypes);
+
+            sessionAccountTypes.forEach((type) => {
+              const bankRecord = findBankRecordForAccountType(
+                bankRecords,
+                type,
+              );
+
+              if (!bankRecord) return;
+
+              bindStageBankData(bankRecord, type, documents);
+            });
+
+            setIsStageDataLocked(true);
+          }
+        }
+      } catch (error: any) {
+        const errorData = error?.response?.data;
+        console.log("Bank Stage Data Error:", errorData);
+      } finally {
+        hideSpinner();
+      }
+    };
+
+    fetchBankStageData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hideSpinner, showSpinner]);
 
   const showNroSection = selectedAccountTypes.includes("nro");
   const showNreSection = selectedAccountTypes.includes("nre");
@@ -740,10 +1033,11 @@ export default function ManualBankDetails() {
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
-  }
+  };
 
   const goBack = () => {
     showSpinner();
+
     setTimeout(() => {
       router.push("/personalDetailsForm/6");
       hideSpinner();
@@ -756,17 +1050,12 @@ export default function ManualBankDetails() {
       : "";
   };
 
-  const generateIdempotencyKey = () => {
-    return typeof crypto !== "undefined" &&
-      typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  };
-
   const uploadNroStatement = async (
     file: File,
     onProgress: (p: number) => void,
   ): Promise<void> => {
+    if (isStageDataLocked) return;
+
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -774,6 +1063,8 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
+
+      return;
     }
 
     onProgress(10);
@@ -799,6 +1090,8 @@ export default function ManualBankDetails() {
     file: File,
     onProgress: (p: number) => void,
   ): Promise<void> => {
+    if (isStageDataLocked) return;
+
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -806,6 +1099,8 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
+
+      return;
     }
 
     onProgress(10);
@@ -828,24 +1123,32 @@ export default function ManualBankDetails() {
   };
 
   const handleNroFilesChange = (files: UploadedFile[]) => {
+    if (isStageDataLocked) return;
+
     setNroStatementFiles(files);
 
     const hasSuccessFile = files.some((f) => f.status === "success");
+
     if (!hasSuccessFile) {
       setNroStatementDocumentId("");
     }
   };
 
   const handleNreFilesChange = (files: UploadedFile[]) => {
+    if (isStageDataLocked) return;
+
     setNreStatementFiles(files);
 
     const hasSuccessFile = files.some((f) => f.status === "success");
+
     if (!hasSuccessFile) {
       setNreStatementDocumentId("");
     }
   };
 
   const submitManualBankDetails = async () => {
+    if (isStageDataLocked) return;
+
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -853,6 +1156,8 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
+
+      return;
     }
 
     const path = `applications/${applicationId}/bank/manual`;
@@ -869,8 +1174,7 @@ export default function ManualBankDetails() {
             holderName: "",
             accountType: "Nro",
             documentId: nroStatementDocumentId,
-            // idempotencyKey: generateIdempotencyKey(),
-            idempotencyKey: '',
+            idempotencyKey: "",
           },
           hideSpinner,
         ),
@@ -887,8 +1191,7 @@ export default function ManualBankDetails() {
             holderName: "",
             accountType: "NreNonPis",
             documentId: nreStatementDocumentId,
-            // idempotencyKey: generateIdempotencyKey(),
-            idempotencyKey: '',
+            idempotencyKey: "",
           },
           hideSpinner,
         ),
@@ -900,8 +1203,18 @@ export default function ManualBankDetails() {
 
   const handleProceed = async () => {
     try {
-      setShowModal(true);
       showSpinner();
+
+      if (isStageDataLocked) {
+        setTimeout(() => {
+          router.push("/manualBankInfo");
+          hideSpinner();
+        }, 200);
+
+        return;
+      }
+
+      setShowModal(true);
 
       await submitManualBankDetails();
 
@@ -926,9 +1239,13 @@ export default function ManualBankDetails() {
     value: string,
     details?: IFSCEntry | null,
   ) => {
-    if (field === "accountNo") setNroAccountNo(value);
-    else if (field === "reAccountNo") setNroReAccountNo(value);
-    else {
+    if (isStageDataLocked) return;
+
+    if (field === "accountNo") {
+      setNroAccountNo(value);
+    } else if (field === "reAccountNo") {
+      setNroReAccountNo(value);
+    } else {
       setNroIfsc(value);
       setNroIfscDetails(details || null);
     }
@@ -939,25 +1256,32 @@ export default function ManualBankDetails() {
     value: string,
     details?: IFSCEntry | null,
   ) => {
-    if (field === "accountNo") setNreAccountNo(value);
-    else if (field === "reAccountNo") setNreReAccountNo(value);
-    else {
+    if (isStageDataLocked) return;
+
+    if (field === "accountNo") {
+      setNreAccountNo(value);
+    } else if (field === "reAccountNo") {
+      setNreReAccountNo(value);
+    } else {
       setNreIfsc(value);
       setNreIfscDetails(details || null);
     }
   };
 
   const nroAccountMismatch =
+    !isStageDataLocked &&
     showNroSection &&
     nroReAccountNo.length > 0 &&
     nroAccountNo !== nroReAccountNo;
 
   const nreAccountMismatch =
+    !isStageDataLocked &&
     showNreSection &&
     nreReAccountNo.length > 0 &&
     nreAccountNo !== nreReAccountNo;
 
   const accountsAreDuplicate =
+    !isStageDataLocked &&
     showBothSections &&
     nroAccountNo.length > 0 &&
     nreAccountNo.length > 0 &&
@@ -984,33 +1308,42 @@ export default function ManualBankDetails() {
       !nreFileUploaded ||
       !nreStatementDocumentId);
 
-  const isDisabled =
-    isNroInvalid ||
-    isNreInvalid ||
-    accountsAreDuplicate ||
-    (!showNroSection && !showNreSection);
+  const isDisabled = isStageDataLocked
+    ? false
+    : isNroInvalid ||
+      isNreInvalid ||
+      accountsAreDuplicate ||
+      (!showNroSection && !showNreSection);
 
-  const nroSection = (
+  const renderNroSection = () => (
     <BankSection
       title="Enter NRO (Savings Account) details"
       uploadSlot={
-        <FileUploadCard
-          title="Upload NRO Statement"
-          acceptedTypes={STATEMENT_TYPES}
-          maxSize={STATEMENT_MAX_SIZE}
-          acceptedLabel={STATEMENT_ACCEPTED_LABEL}
-          sizeErrorMessage={STATEMENT_SIZE_ERR}
-          typeErrorMessage={STATEMENT_TYPE_ERR}
-          cropImages
-          uploadFn={uploadNroStatement}
-          onFilesChange={handleNroFilesChange}
-        />
+        isStageDataLocked ? (
+          <LockedStatementPreview
+            title="Uploaded NRO Statement"
+            documentUrl={nroStatementPreviewUrl}
+          />
+        ) : (
+          <FileUploadCard
+            title="Upload NRO Statement"
+            acceptedTypes={STATEMENT_TYPES}
+            maxSize={STATEMENT_MAX_SIZE}
+            acceptedLabel={STATEMENT_ACCEPTED_LABEL}
+            sizeErrorMessage={STATEMENT_SIZE_ERR}
+            typeErrorMessage={STATEMENT_TYPE_ERR}
+            cropImages
+            uploadFn={uploadNroStatement}
+            onFilesChange={handleNroFilesChange}
+          />
+        )
       }
       accountNo={nroAccountNo}
       reAccountNo={nroReAccountNo}
       ifsc={nroIfsc}
       ifscDetails={nroIfscDetails}
       showAccount={nroShowAccount}
+      disabled={isStageDataLocked}
       errors={{
         accountMismatch: nroAccountMismatch,
         duplicateAccount: accountsAreDuplicate,
@@ -1020,27 +1353,35 @@ export default function ManualBankDetails() {
     />
   );
 
-  const nreSection = (
+  const renderNreSection = () => (
     <BankSection
       title="Enter Non PIS NRE (Savings Account) details"
       uploadSlot={
-        <FileUploadCard
-          title="Upload Non PIS NRE Statement"
-          acceptedTypes={STATEMENT_TYPES}
-          maxSize={STATEMENT_MAX_SIZE}
-          acceptedLabel={STATEMENT_ACCEPTED_LABEL}
-          sizeErrorMessage={STATEMENT_SIZE_ERR}
-          typeErrorMessage={STATEMENT_TYPE_ERR}
-          cropImages
-          uploadFn={uploadNreStatement}
-          onFilesChange={handleNreFilesChange}
-        />
+        isStageDataLocked ? (
+          <LockedStatementPreview
+            title="Uploaded Non PIS NRE Statement"
+            documentUrl={nreStatementPreviewUrl}
+          />
+        ) : (
+          <FileUploadCard
+            title="Upload Non PIS NRE Statement"
+            acceptedTypes={STATEMENT_TYPES}
+            maxSize={STATEMENT_MAX_SIZE}
+            acceptedLabel={STATEMENT_ACCEPTED_LABEL}
+            sizeErrorMessage={STATEMENT_SIZE_ERR}
+            typeErrorMessage={STATEMENT_TYPE_ERR}
+            cropImages
+            uploadFn={uploadNreStatement}
+            onFilesChange={handleNreFilesChange}
+          />
+        )
       }
       accountNo={nreAccountNo}
       reAccountNo={nreReAccountNo}
       ifsc={nreIfsc}
       ifscDetails={nreIfscDetails}
       showAccount={nreShowAccount}
+      disabled={isStageDataLocked}
       errors={{
         accountMismatch: nreAccountMismatch,
         duplicateAccount: accountsAreDuplicate,
@@ -1050,7 +1391,7 @@ export default function ManualBankDetails() {
     />
   );
 
-  const needHelpBtn = (
+  const renderNeedHelpBtn = () => (
     <button
       type="button"
       className={styles.needHelpBtn}
@@ -1079,12 +1420,15 @@ export default function ManualBankDetails() {
             >
               <BackArrow />
             </button>
-            {needHelpBtn}
+
+            {renderNeedHelpBtn()}
           </div>
+
           <div className={styles.mobileTitleBlock}>
             <h1 className={styles.mobileTitle}>
               Add your bank details manually
             </h1>
+
             <p className={styles.mobileSubtitle}>
               Enter bank account number and IFSC for bank verification
             </p>
@@ -1092,14 +1436,16 @@ export default function ManualBankDetails() {
         </div>
 
         <div className={styles.mobileCard}>
-          {showNroSection && nroSection}
-          {showNreSection && nreSection}
+          {showNroSection && renderNroSection()}
+          {showNreSection && renderNreSection()}
         </div>
 
         <div className={styles.mobileProceedArea}>
           <LoadingButton
             type="button"
-            className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
+            className={`${styles.mobileProceedBtn}${
+              isDisabled ? ` ${styles.btnDisabled}` : ""
+            }`}
             onClick={handleProceed}
             disabled={isDisabled}
             suppressHydrationWarning
@@ -1125,13 +1471,16 @@ export default function ManualBankDetails() {
             >
               <BackArrow />
             </button>
+
             <div className={styles.desktopTitleBlock}>
               <div className={styles.desktopTitleRow}>
                 <h1 className={styles.desktopCardTitle}>
                   Add your bank details manually
                 </h1>
-                {needHelpBtn}
+
+                {renderNeedHelpBtn()}
               </div>
+
               <p className={styles.desktopCardSubtitle}>
                 Enter bank account number and IFSC for bank verification
               </p>
@@ -1140,14 +1489,16 @@ export default function ManualBankDetails() {
 
           <div className={styles.desktopCardBody}>
             <div className={styles.desktopScrollArea}>
-              {showNroSection && nroSection}
-              {showNreSection && nreSection}
+              {showNroSection && renderNroSection()}
+              {showNreSection && renderNreSection()}
             </div>
 
             <div className={styles.desktopProceedWrapper}>
               <LoadingButton
                 type="button"
-                className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.btnDisabled}` : ""}`}
+                className={`${styles.desktopProceedBtn}${
+                  isDisabled ? ` ${styles.btnDisabled}` : ""
+                }`}
                 onClick={handleProceed}
                 disabled={isDisabled}
                 suppressHydrationWarning
@@ -1160,9 +1511,6 @@ export default function ManualBankDetails() {
       </section>
 
       {showModal && (
-        // Transient "Verifying details" progress overlay, no interactive
-        // content — a live status region (not a focus-trapping dialog) so
-        // screen readers announce progress without stranding keyboard users.
         <div
           className={styles.modalOverlay}
           role="status"
@@ -1174,15 +1522,11 @@ export default function ManualBankDetails() {
             <div className={styles.modalDash} aria-hidden="true" />
 
             <div className={styles.modalContent}>
-              <Image
-                src={publicPath("/verifying-animation.gif")}
-                alt=""
-                width={300}
-                height={75}
-                unoptimized
-                className={styles.modalAnimation}
-                aria-hidden="true"
-              />
+              {publicPath("/verifying-animation.gif")}
+              alt="" width={300}
+              height={75}
+              unoptimized className={styles.modalAnimation}
+              aria-hidden="true"
               <p id="verify-modal-title" className={styles.modalTitle}>
                 Verifying details
               </p>

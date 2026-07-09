@@ -9,11 +9,6 @@ import navigationService from "@/services/navigation.service";
 import styles from "./occup-details.module.scss";
 import { useSessionValue } from '@/hooks/useSessionValue';
 
-// OccupDetails — step 4: Occupation Details
-// Figma: 8TizndCcBb3VyE5CIJBEZe
-//   Desktop node 0-27578 · Mobile node 0-27476
-
-// Dummy values matching Figma — swap with API data when ready
 const OCCUPATION_OPTIONS = [
   "Public Sector",
   "Private Sector",
@@ -25,7 +20,6 @@ const OCCUPATION_OPTIONS = [
   "Retired",
   "Housewife",
   "Forex Dealer",
-  "Unemployed",
   "Others",
 ];
 

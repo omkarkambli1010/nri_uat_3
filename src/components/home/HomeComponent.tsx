@@ -85,85 +85,85 @@ const NRI_INFO_TABS: {
   intro?: string;
   points: { strong?: string; text?: string; sub?: string[] }[];
 }[] = [
-  {
-    label: "Eligibility Criteria",
-    intro: "To open an NRI Demat and Trading Account, you must:",
-    points: [
-      { text: "You have attained NRI status as per FEMA guidelines." },
-      {
-        text: "You have an NRE or NRO savings account with State Bank of India (SBI).",
-      },
-      { text: "You have a valid PAN card and complete KYC documentation." },
-    ],
-  },
-  {
-    label: "How to Get Started",
-    points: [
-      {
-        strong: "Fill the Online Form:",
-        text: "Start your journey by filling out a simple online application form.",
-      },
-      {
-        strong: "Submit KYC Documents:",
-        text: "Upload necessary documents such as passport, proof of NRI status, and bank details.",
-      },
-      {
-        strong: "PIS Permission:",
-        text: " Get assistance in obtaining RBI’s PIS approval for trading.",
-      },
-      {
-        strong: "Start Trading:",
-        text: "Once your account is activated, you’re ready to trade and invest in the Indian stock markets!",
-      },
-    ],
-  },
-  {
-    label: "KYC Documents required",
-    points: [
-      {
-        text: "Copy of Valid Passport (with relevant pages showing personal details and validity)",
-      },
-      {
-        text: "Valid visa or Resident / Work permit showing current residential status outside India",
-      },
-      {
-        text: "Proof of Overseas address (Tenancy Contract, Utility bills etc.)",
-      },
-      { text: "Indian address proof (as applicable)" },
-      { text: "Aadhar card (as applicable)" },
-      { text: "TIN (Tax Identification Number) Proof of Overseas country" },
-      { text: "Latest 3 months' SBI NRE/NRO Bank Account statement" },
-      { text: "Two recent passport-sized photographs" },
-    ],
-  },
-  {
-    label: "Important Points to Note",
-    points: [
-      {
-        text: "All KYC & Bank documents should be self-attested and notarized by authorized officials.",
-      },
-      {
-        text: "In-person verification with original seen & verified attestation is mandatory on your KYC documents",
-      },
-      {
-        strong: "For Face-to-Face Customers (When in India):",
-        text: " KYC documents must be verified in person with the original attestation by State Bank of India (SBI) or SBI Securities Limited (SSL) officials.",
-      },
-      {
-        strong: "For Non-Face-to-Face Customers (When Outside India):",
-        text: "KYC documents must be verified in person with the original attestation by any one of the following:",
-        sub: [
-          "SBI Overseas Branch officials (with their SS number)",
-          "Existing bankers",
-          "Authorized officials of overseas branches of Scheduled Commercial Banks registered in India",
-          "Notary Public, Court, Magistrate, Judge",
-          "Indian Embassy/Consulate General in the country where you reside (with relevant details of such officials)",
-          "KYC documents in any language other than English or Hindi must be translated into English by a certified translator/interpreter; or an official of the Embassy of the Country where the document is issued.",
-        ],
-      },
-    ],
-  },
-];
+    {
+      label: "Eligibility Criteria",
+      intro: "To open an NRI Demat and Trading Account, you must:",
+      points: [
+        { text: "You have attained NRI status as per FEMA guidelines." },
+        {
+          text: "You have an NRE or NRO savings account with State Bank of India (SBI).",
+        },
+        { text: "You have a valid PAN card and complete KYC documentation." },
+      ],
+    },
+    {
+      label: "How to Get Started",
+      points: [
+        {
+          strong: "Fill the Online Form:",
+          text: "Start your journey by filling out a simple online application form.",
+        },
+        {
+          strong: "Submit KYC Documents:",
+          text: "Upload necessary documents such as passport, proof of NRI status, and bank details.",
+        },
+        {
+          strong: "PIS Permission:",
+          text: " Get assistance in obtaining RBI’s PIS approval for trading.",
+        },
+        {
+          strong: "Start Trading:",
+          text: "Once your account is activated, you’re ready to trade and invest in the Indian stock markets!",
+        },
+      ],
+    },
+    {
+      label: "KYC Documents required",
+      points: [
+        {
+          text: "Copy of Valid Passport (with relevant pages showing personal details and validity)",
+        },
+        {
+          text: "Valid visa or Resident / Work permit showing current residential status outside India",
+        },
+        {
+          text: "Proof of Overseas address (Tenancy Contract, Utility bills etc.)",
+        },
+        { text: "Indian address proof (as applicable)" },
+        { text: "Aadhar card (as applicable)" },
+        { text: "TIN (Tax Identification Number) Proof of Overseas country" },
+        { text: "Latest 3 months' SBI NRE/NRO Bank Account statement" },
+        { text: "Two recent passport-sized photographs" },
+      ],
+    },
+    {
+      label: "Important Points to Note",
+      points: [
+        {
+          text: "All KYC & Bank documents should be self-attested and notarized by authorized officials.",
+        },
+        {
+          text: "In-person verification with original seen & verified attestation is mandatory on your KYC documents",
+        },
+        {
+          strong: "For Face-to-Face Customers (When in India):",
+          text: " KYC documents must be verified in person with the original attestation by State Bank of India (SBI) or SBI Securities Limited (SSL) officials.",
+        },
+        {
+          strong: "For Non-Face-to-Face Customers (When Outside India):",
+          text: "KYC documents must be verified in person with the original attestation by any one of the following:",
+          sub: [
+            "SBI Overseas Branch officials (with their SS number)",
+            "Existing bankers",
+            "Authorized officials of overseas branches of Scheduled Commercial Banks registered in India",
+            "Notary Public, Court, Magistrate, Judge",
+            "Indian Embassy/Consulate General in the country where you reside (with relevant details of such officials)",
+            "KYC documents in any language other than English or Hindi must be translated into English by a certified translator/interpreter; or an official of the Embassy of the Country where the document is issued.",
+          ],
+        },
+      ],
+    },
+  ];
 
 const FOOTER_LINKS = [
   { label: "Investor Charter", href: "https://www.sbisecurities.in/investor-charter" },
@@ -193,6 +193,21 @@ const FOOTER_LINKS = [
 export default function HomeComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // ── Landing-link params (iSmart assigned links) ───────────────────────────
+  // e.g. /diynri?RMCode=23395&Email=a%40b.com&Mobile=7400257053&CountryCode=91
+  //      &ApplicationType=Digital&IsmartId=ISM472&utm_source=Issmart&…
+  // Captured here so the form prefills and the register payload carries them.
+  // NOTE: searchParams.get("email") (lowercase) is the Google OAuth callback
+  // param — the landing link uses "Email", so only the exact key is read.
+  const urlRmCode = searchParams?.get("RMCode") ?? "";
+  // %40 → @ — searchParams normally percent-decodes already, but replace
+  // defensively in case the value arrives still encoded.
+  const urlEmail = (searchParams?.get("Email") ?? "").replace(/%40/gi, "@").trim();
+  const urlMobile = (searchParams?.get("Mobile") ?? "").replace(/\D/g, "");
+  const urlDialCode = (searchParams?.get("CountryCode") ?? "").replace(/\D/g, "");
+  const urlApplicationType = searchParams?.get("ApplicationType") ?? "";
+  const urlIsmartId = searchParams?.get("IsmartId") ?? "";
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   // Country code list — sourced entirely from the Country Master API
@@ -323,13 +338,24 @@ export default function HomeComponent() {
           }
         });
       },
-      // No negative bottom margin: thin, bottom-pinned elements (like the
-      // version bar) must still reveal once scrolled fully into view.
       { threshold: 0.08, rootMargin: "0px" },
     );
 
     sections.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (urlApplicationType) {
+      setAccountType(urlApplicationType === "Digital" ? "digital" : "semi-digital");
+    }
+    if (urlRmCode) {
+      setRmAssisted(true);
+      setEmployeeId(urlRmCode);
+    }
+    if (urlEmail && typeof window !== "undefined") {
+      sessionStorage.setItem("email", urlEmail);
+    }
   }, []);
 
   useEffect(() => {
@@ -375,15 +401,6 @@ export default function HomeComponent() {
     };
   }, []);
 
-  // ===== Mobile country code + number (API-driven, no third-party widget) =====
-  // The country list (names + dialling codes) comes entirely from the Country
-  // Master API via `countries`. Validation here is intentionally lightweight:
-  // a country must be picked and the national number must be plausible digits,
-  // with India's 6-9 first-digit / 10-digit rule enforced explicitly.
-
-  // Compute the E.164 number + validity for a given country / national input,
-  // then push it all into form state. Centralises what the old intl-tel-input
-  // "input"/"countrychange" handlers used to do.
   const applyPhone = (iso2: string, national: string) => {
     const country = countries.find((c) => c.iso2 === iso2);
     const code = country ? dialDigits(country.dialCode) : "";
@@ -448,12 +465,16 @@ export default function HomeComponent() {
     }
   };
 
-  // One-time prefill from session once the country list has loaded. Parses a
-  // stored "+<code><number>" or a bare national number (assumed India).
   useEffect(() => {
     if (prefilledRef.current || countries.length === 0) return;
+    const fromUrl = urlMobile
+      ? urlDialCode
+        ? `+${urlDialCode}${urlMobile}`
+        : urlMobile
+      : null;
     const saved =
-      typeof window !== "undefined" ? sessionStorage.getItem("mobile") : null;
+      fromUrl ??
+      (typeof window !== "undefined" ? sessionStorage.getItem("mobile") : null);
     if (!saved) return;
     prefilledRef.current = true;
 
@@ -461,7 +482,6 @@ export default function HomeComponent() {
     let national = saved.replace(/\D/g, "");
     if (saved.startsWith("+")) {
       const digits = saved.slice(1).replace(/\D/g, "");
-      // Longest matching dialling-code prefix wins (e.g. +1 vs +1-684).
       let best: typeof countries[number] | undefined;
       let bestLen = 0;
       for (const c of countries) {
@@ -525,29 +545,23 @@ export default function HomeComponent() {
   };
 
   const handleGetStarted = async () => {
-    // Block proceeding with an RM-assisted journey unless the RM code is valid.
     if (rmAssisted && !RM_CODE_REGEX.test(employeeId)) {
       setRmCodeError("Please enter a valid RM code.");
       return;
     }
-
     const isSemiDigital = accountType === "semi-digital";
-
-    // countryCode must be the Country Master's raw code ("IN/IND"), not the
-    // ISO-2 alone — that's what the register API expects.
     const selectedCountry = countries.find((c) => c.iso2 === selectedIso2);
-
-    // emailAddress and rmCode are optional: the backend rejects the literal "NA"
-    // (COMMON_002) but accepts null/absent. Email is collected later on the email
-    // screen (which re-registers), and rmCode is null unless RM-assisted.
     const payload: Record<string, string | null> = {
       mobileNumber: sendOtp.mobile,
       countryCode: selectedCountry?.countryCode ?? "",
       journeyType: isSemiDigital ? "NriSemiDigital" : "NroDigital",
       loginProvider: "Mobile",
-      rmCode: rmAssisted && employeeId ? employeeId : null,
+      rmCode: rmAssisted && employeeId ? employeeId : urlRmCode || null,
+      idempotencyKey: null,
       UtmSource: searchParams?.get("utm_source") || "NA",
       UtmCampaign: searchParams?.get("utm_campaign") || "NA",
+      UtmMedium: searchParams?.get("utm_medium") || "NA",
+      ISmartId: urlIsmartId || null,
     };
 
     console.log("Register payload:", payload);
@@ -562,9 +576,6 @@ export default function HomeComponent() {
 
       sessionStorage.setItem("mobile", sendOtp.mobile);
       sessionStorage.setItem("accountType", accountType);
-      // Persist the register payload so the email-home-textpage can re-register
-      // with the entered email address (fields like countryCode/rmCode aren't
-      // otherwise stored).
       sessionStorage.setItem("registerPayload", JSON.stringify(payload));
       if (response.applicationId) {
         sessionStorage.setItem("ApplicationId", response.applicationId);
@@ -579,10 +590,6 @@ export default function HomeComponent() {
 
       hideSpinner();
 
-      // ── Semi-Digital: bypass uiMetadata routing entirely.
-      // If the backend has already verified the email (verifiedEmail === true),
-      // store the emailAddress from the response and jump straight to the
-      // Email OTP screen. No mobile OTP toast for Semi-Digital.
       if (isSemiDigital) {
         if (response.verifiedEmail === true && response.emailAddress) {
           sessionStorage.setItem("email", response.emailAddress);
@@ -591,8 +598,6 @@ export default function HomeComponent() {
             router.push(`/${nextRoute}`);
           }
         } else {
-          // verifiedEmail is false / absent — fall back to uiMetadata route
-          // so the user can enter their email first.
           const nextRoute = parseRoute(response.uiMetadata);
           if (nextRoute) {
             router.push(`/${nextRoute}`);
@@ -601,7 +606,6 @@ export default function HomeComponent() {
         return;
       }
 
-      // ── Digital journey: route via uiMetadata as before.
       toastRef.current?.show({
         severity: "success",
         detail: "OTP sent successfully",
@@ -777,7 +781,7 @@ export default function HomeComponent() {
                         />
                         <span>
                           Semi-Digital Journey - NRE/NRO account{" "}
-                          <small>(Outside India / without Aadhar)</small>
+                          <small>(Outside India / without Aadhaar)</small>
                         </span>
                       </label>
                       <label className={styles.radioOption}>
@@ -792,7 +796,7 @@ export default function HomeComponent() {
                           Digital Journey - NRO Account
                           <br />
                           <small>
-                            ( Available only in India with Aadhar e-sign)
+                            ( Available only in India with Aadhaar e-sign)
                           </small>
                         </span>
                       </label>
@@ -968,7 +972,7 @@ export default function HomeComponent() {
           <div className="row">
             <div className={styles.align}>
               <h2 className="page-heading">
-               Why Choose SBI Securities?
+                Why Choose SBI Securities?
               </h2>
               <div className={styles.cardAlign}>
                 {WHY_DEMAT_CARDS.map((card) => (
@@ -1081,9 +1085,8 @@ export default function HomeComponent() {
                     id={`info-tab-${idx}`}
                     aria-selected={activeInfoTab === idx}
                     aria-controls={`info-panel-${idx}`}
-                    className={`${styles.infoTabBtn} ${
-                      activeInfoTab === idx ? styles.infoTabBtnActive : ""
-                    }`}
+                    className={`${styles.infoTabBtn} ${activeInfoTab === idx ? styles.infoTabBtnActive : ""
+                      }`}
                     onClick={() => setActiveInfoTab(idx)}
                   >
                     {tab.label}
@@ -1125,7 +1128,7 @@ export default function HomeComponent() {
       </section>
 
       {/* What is Demat Section */}
-      <section
+      {/* <section
         aria-label="What is a Demat Account"
         className={styles.dematSection}
       >
@@ -1155,7 +1158,7 @@ export default function HomeComponent() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       <Toast ref={toastRef} position="bottom-center" />
 

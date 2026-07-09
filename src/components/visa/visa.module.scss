@@ -999,8 +999,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   }
 }
 
-// Scrollable content area inside the desktop card body (Front+Back cards +
-// the details form). Stays above the fixed Proceed button row.
 .desktopScrollArea {
   display: flex;
   flex-direction: column;

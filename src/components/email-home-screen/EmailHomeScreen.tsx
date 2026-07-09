@@ -174,6 +174,7 @@ export default function EmailHomeScreen() {
     sessionStorage.removeItem("NameSubmitted");
     setTimeout(() => {
       router.push("/home");
+      hideSpinner();
     }, 200);
   };
 

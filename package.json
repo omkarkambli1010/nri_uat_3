@@ -1,6 +1,6 @@
 {
   "name": "onboarding-diy-pwa",
-  "version": "1.0.13",
+  "version": "1.0.36",
   "private": true,
   "scripts": {
     "bump-version": "node scripts/bump-version.mjs",

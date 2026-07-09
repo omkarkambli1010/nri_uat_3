@@ -7,8 +7,9 @@ import { useSpinner } from "@/components/spinner/Spinner";
 // import apiService from '@/services/api.service';
 import navigationService from "@/services/navigation.service";
 import styles from "./link-bank-account.module.scss";
-import LoadingButton from '@/components/ui/LoadingButton';
-import { useSessionValue } from '@/hooks/useSessionValue';
+import LoadingButton from "@/components/ui/LoadingButton";
+import { useSessionValue } from "@/hooks/useSessionValue";
+
 
 // LinkBankAccount — step 6: Bank Details (Select Bank Account Type)
 // Figma: MzSMJbkZfKDT6S8z3G0rVU
@@ -91,6 +92,9 @@ function CheckboxOption({
       <button
         type="button"
         className={styles.checkboxBtn}
+        // onClick={onToggle}
+        // aria-pressed={checked}
+        // aria-label={label}
         onClick={readOnly ? undefined : onToggle}
         aria-pressed={checked}
         aria-readonly={readOnly || undefined}
@@ -119,20 +123,19 @@ export default function LinkBankAccount() {
   // Both unchecked by default — any one must be checked to enable Proceed
   const [selected, setSelected] = useState<string[]>([]);
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   // BRD: the "Non PIS NRE" account option is only valid for the semi-digital
   // journey. For the (fully) digital journey, show NRO only.
+  // const isSemiDigital = useSessionValue("accountType") === "semi-digital";
   const accountType = useSessionValue('accountType');
   const isSemiDigital = accountType === 'semi-digital';
   const isDigital = accountType === 'digital';
+
   const accountTypes = isSemiDigital
     ? ACCOUNT_TYPES
-    : ACCOUNT_TYPES.filter(({ id }) => id !== 'nre');
+    : ACCOUNT_TYPES.filter(({ id }) => id !== "nre");
 
-  // Fully-digital journey offers only "NRO" — pre-check it and keep it locked
-  // (read-only) since it's the sole valid choice. Only applied once the journey
-  // resolves to 'digital' so a semi-digital user is never left with NRO seeded.
   useEffect(() => {
     if (isDigital) setSelected(['nro']);
   }, [isDigital]);
@@ -204,6 +207,26 @@ export default function LinkBankAccount() {
     }, 200);
   };
 
+  // const [selected, setSelected] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedAccountTypes = sessionStorage.getItem("SelectedAccountTypes");
+
+      if (savedAccountTypes) {
+        try {
+          const parsed = JSON.parse(savedAccountTypes);
+
+          if (Array.isArray(parsed)) {
+            setSelected(parsed);
+          }
+        } catch (error) {
+          console.error("Error parsing SelectedAccountTypes:", error);
+        }
+      }
+    }
+  }, []);
+
   // Disabled unless BOTH checkboxes are checked
   const isDisabled = selected.length < 1; //ACCOUNT_TYPES.length;
 
@@ -215,7 +238,6 @@ export default function LinkBankAccount() {
           label={label}
           checked={selected.includes(id)}
           onToggle={() => toggle(id)}
-          readOnly={isDigital && id === 'nro'}
         />
       ))}
     </div>

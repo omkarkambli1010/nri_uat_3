@@ -104,7 +104,8 @@ export default function MaritalStatus() {
       // (/aadhar/upload); full-digital users come from DigiLocker.
       const isSemiDigital =
         sessionStorage.getItem("accountType") === "semi-digital";
-      router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
+      // router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
+      router.push(isSemiDigital ? "/uploadProcess/1" : "/aadhar");
       hideSpinner();
     }, 200);
   };

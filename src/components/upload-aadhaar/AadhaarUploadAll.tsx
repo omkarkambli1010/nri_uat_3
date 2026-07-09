@@ -20,7 +20,7 @@ import { useSessionValue } from '@/hooks/useSessionValue';
 const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
 const MAX_SIZE = 5 * 1024 * 1024;
 const ACCEPTED_LABEL = 'PDF, JPG, JPEG, HEIC & PNG';
-const SIZE_ERR = 'File size exceeds 5MB. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+const SIZE_ERR = 'File size exceeds 5 MB. Please upload a smaller file.';
 const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
 
 const getFormNumber = () =>
