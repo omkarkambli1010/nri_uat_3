@@ -126,7 +126,10 @@ export default function EmailHomeOtpScreen() {
   const [maxResendReached, setMaxResendReached] = useState(false);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const emailRef = useRef("");
+  // Email is rendered on screen, so it must live in state — a ref update would
+  // not re-render, leaving the address blank until some other state change
+  // (the resend timer tick) happened to repaint it.
+  const [email, setEmail] = useState("");
   const mobileRef = useRef("");
 
   const utmSource = searchParams.get("utm_source") || "NA";
@@ -145,7 +148,7 @@ export default function EmailHomeOtpScreen() {
     if (typeof window !== "undefined") {
       // 'email' is set by HomeComponent for Semi-Digital (response.emailAddress)
       // or by email-home-textpage for the manual entry flow.
-      emailRef.current = sessionStorage.getItem("email") || "";
+      setEmail(sessionStorage.getItem("email") || "");
       mobileRef.current = sessionStorage.getItem("mobile") || "";
     }
     // The OTP is already sent during registration on the previous screen, so we
@@ -214,7 +217,7 @@ export default function EmailHomeOtpScreen() {
         "Email",
         hideSpinner,
         {
-          emailAddress: emailRef.current,
+          emailAddress: email,
         },
       );
       hideSpinner();
@@ -314,7 +317,7 @@ export default function EmailHomeOtpScreen() {
     <div className={styles.otpBody}>
       {/* Email address + Edit */}
       <div className={styles.emailRow}>
-        <span className={styles.emailAddress}>{emailRef.current}</span>
+        <span className={styles.emailAddress}>{email}</span>
         <button type="button" className={styles.editBtn} onClick={editEmailID}>
           <EditSvg />
           <span>Edit</span>

@@ -23,6 +23,24 @@ const dateToStr = (d: Date | null | undefined): string => {
   return `${y}-${m}-${day}`;
 };
 
+// PAN positional formatter — mirrors the Angular manual-entry logic:
+//   chars 0–4: letters only, 5–8: digits only, char 9: letter only → AAAAA1234A
+const formatPan = (raw: string): string => {
+  const value = raw.toUpperCase();
+  const part1 = value.substring(0, 5).replace(/[^A-Z]/g, "");
+  const part2 = value.substring(5, 9).replace(/\D/g, "");
+  const part3 = value.substring(9).replace(/[^A-Z]/g, "");
+  return part1 + part2 + part3;
+};
+
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const PAN_SPECIAL_CHARS = /[!@#$%^&*()\-+={}[\]:;"'<>,.?\/|\\]/;
+
+// Switch the on-screen keyboard to match the next PAN character:
+//   positions 0–4 → letters, 5–8 → digits, 9 → letter  (mirrors Angular getInputMode)
+const getPanInputMode = (value: string): "text" | "numeric" =>
+  value.length >= 5 && value.length < 9 ? "numeric" : "text";
+
 // UploadProcess — PAN Manual Entry (Enter PAN Card Details)
 // Figma: 1:4282 — form filled state (desktop)
 //        1:4567 — form + "Verifying your PAN details" overlay (desktop)
@@ -195,12 +213,30 @@ export default function UploadProcess() {
   const [pan, setPan] = useState("");
   const [name, setName] = useState("");
   const [dob, setDob] = useState("");
-  const [panError, setPanError] = useState("");
+  // PAN validations (mirrors Angular: panValidation / fourthCharValidation / specialCharValidation)
+  const [panInvalid, setPanInvalid] = useState(false);
+  const [panNotPersonal, setPanNotPersonal] = useState(false);
+  const [panSpecialChar, setPanSpecialChar] = useState(false);
   const [nameError, setNameError] = useState("");
   const [dobError, setDobError] = useState("");
   const [formNumber, setFormNumber] = useState("");
   const [showVerifying, setShowVerifying] = useState(false);
   const [showSamplePan, setShowSamplePan] = useState(false);
+
+  // DOB picker bounds — disable future dates and anyone under 18 in the
+  // calendar (must be a valid past date, 18+). minDate caps at 100 years.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dobMaxDate = new Date(
+    today.getFullYear() - 18,
+    today.getMonth(),
+    today.getDate(),
+  );
+  const dobMinDate = new Date(
+    today.getFullYear() - 100,
+    today.getMonth(),
+    today.getDate(),
+  );
 
   useEffect(() => {
     document.title = "PAN Details | SBI Securities";
@@ -233,16 +269,40 @@ export default function UploadProcess() {
     }
   };
 
+  const panHasError = panInvalid || panNotPersonal || panSpecialChar;
+
+  // Run the three PAN checks (only when we should surface errors — on blur or
+  // once the field is full at 10 chars), mirroring the Angular validateInput().
+  const runPanValidation = (value: string) => {
+    setPanInvalid(!PAN_PATTERN.test(value));
+    setPanNotPersonal(value.length >= 4 && value[3] !== "P");
+    setPanSpecialChar(PAN_SPECIAL_CHARS.test(value));
+  };
+
+  // Positionally format the PAN on every keystroke; surface validation once the
+  // field is complete (length 10) or forced (focus-out). Mirrors Angular onInput.
+  const handlePanInput = (raw: string, forceShow = false) => {
+    const formatted = formatPan(raw);
+    setPan(formatted);
+    if (forceShow || formatted.length === 10) {
+      runPanValidation(formatted);
+    }
+  };
+
   const validate = () => {
     let valid = true;
     if (!pan) {
-      setPanError("PAN is required");
-      valid = false;
-    } else if (!/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(pan)) {
-      setPanError("Invalid PAN format (e.g. ABCDE1234F)");
+      setPanInvalid(true);
       valid = false;
     } else {
-      setPanError("");
+      runPanValidation(pan);
+      if (
+        !PAN_PATTERN.test(pan) ||
+        pan[3] !== "P" ||
+        PAN_SPECIAL_CHARS.test(pan)
+      ) {
+        valid = false;
+      }
     }
 
     if (!name.trim()) {
@@ -415,19 +475,35 @@ export default function UploadProcess() {
               <input
                 id="mob-pan"
                 type="text"
+                inputMode={getPanInputMode(pan)}
+                autoCapitalize="characters"
                 maxLength={10}
                 value={pan}
-                onChange={(e) => {
-                  setPan(
-                    e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""),
-                  );
-                  setPanError("");
+                onChange={(e) => handlePanInput(e.target.value)}
+                onBlur={(e) => handlePanInput(e.target.value, true)}
+                onPaste={(e) => e.preventDefault()}
+                onKeyDown={(e) => {
+                  if (e.key.length === 1 && !/[A-Za-z0-9]/.test(e.key)) {
+                    e.preventDefault();
+                  }
                 }}
                 placeholder="e.g. ABCDE1234F"
-                className={`${styles.mobileInput}${panError ? ` ${styles.mobileInputError}` : ""}`}
+                className={`${styles.mobileInput}${panHasError ? ` ${styles.mobileInputError}` : ""}`}
                 suppressHydrationWarning
               />
-              {panError && <p className={styles.mobileErrorText}>{panError}</p>}
+              {panInvalid && (
+                <p className={styles.mobileErrorText}>*Please enter a valid PAN</p>
+              )}
+              {panNotPersonal && (
+                <p className={styles.mobileErrorText}>
+                  *We accept Personal PanCard Numbers Only
+                </p>
+              )}
+              {panSpecialChar && (
+                <p className={styles.mobileErrorText}>
+                  *Special Characters are not allow
+                </p>
+              )}
               <button
                 type="button"
                 className={styles.accordionToggle}
@@ -450,6 +526,10 @@ export default function UploadProcess() {
                 inputId="mob-dob"
                 value={strToDate(dob)}
                 onChange={(d) => { setDob(dateToStr(d)); setDobError(''); }}
+                autoPad
+                onError={(msg) => setDobError(msg ?? '')}
+                minDate={dobMinDate}
+                maxDate={dobMaxDate}
                 dateFormat="dd/mm/yy"
                 placeholder="DD/MM/YYYY"
                 showIcon
@@ -586,22 +666,36 @@ export default function UploadProcess() {
                     <input
                       id="desk-pan"
                       type="text"
+                      inputMode={getPanInputMode(pan)}
+                      autoCapitalize="characters"
                       maxLength={10}
                       value={pan}
-                      onChange={(e) => {
-                        setPan(
-                          e.target.value
-                            .toUpperCase()
-                            .replace(/[^A-Z0-9]/g, ""),
-                        );
-                        setPanError("");
+                      onChange={(e) => handlePanInput(e.target.value)}
+                      onBlur={(e) => handlePanInput(e.target.value, true)}
+                      onPaste={(e) => e.preventDefault()}
+                      onKeyDown={(e) => {
+                        if (e.key.length === 1 && !/[A-Za-z0-9]/.test(e.key)) {
+                          e.preventDefault();
+                        }
                       }}
                       placeholder="e.g. ABCDE1234F"
-                      className={`${styles.desktopInput}${panError ? ` ${styles.desktopInputError}` : ""}`}
+                      className={`${styles.desktopInput}${panHasError ? ` ${styles.desktopInputError}` : ""}`}
                       suppressHydrationWarning
                     />
-                    {panError && (
-                      <p className={styles.desktopErrorText}>{panError}</p>
+                    {panInvalid && (
+                      <p className={styles.desktopErrorText}>
+                        *Please enter a valid PAN
+                      </p>
+                    )}
+                    {panNotPersonal && (
+                      <p className={styles.desktopErrorText}>
+                        *We accept Personal PanCard Numbers Only
+                      </p>
+                    )}
+                    {panSpecialChar && (
+                      <p className={styles.desktopErrorText}>
+                        *Special Characters are not allow
+                      </p>
                     )}
                     <button
                       type="button"
@@ -630,6 +724,10 @@ export default function UploadProcess() {
                       inputId="desk-dob"
                       value={strToDate(dob)}
                       onChange={(d) => { setDob(dateToStr(d)); setDobError(''); }}
+                      autoPad
+                      onError={(msg) => setDobError(msg ?? '')}
+                      minDate={dobMinDate}
+                      maxDate={dobMaxDate}
                       dateFormat="dd/mm/yy"
                       placeholder="DD/MM/YYYY"
                       showIcon

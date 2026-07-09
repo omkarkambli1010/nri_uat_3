@@ -290,6 +290,50 @@ $pageBg: #f8f8f8;
   flex: 1;
 }
 
+// Country code + mobile number, side by side. The code select's trigger has a
+// 48px min-height by default; override it down to 40px so it lines up with the
+// other inputs.
+.codeSelect {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.phoneRow,
+.mobPhoneRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .codeSelect button {
+    min-height: 40px;
+    font-size: 14px;
+    padding: 0 10px;
+  }
+}
+
+// Desktop: keep the combined width in line with the other 250px fields.
+.phoneRow {
+  width: 250px;
+  max-width: 100%;
+
+  .input {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+// Mobile: fill the available width.
+.mobPhoneRow {
+  width: 100%;
+
+  .mobInput {
+    width: auto;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 // Constrains the PrimeReact Calendar to 250px to match other 250px inputs
 .deskCalendarWrap {
   width: 250px;

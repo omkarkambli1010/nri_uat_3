@@ -164,7 +164,7 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 
 .desktopCardBody {
   padding: 24px;
-  min-height: 520px;
+  min-height: clamp(300px, 60vh, 520px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

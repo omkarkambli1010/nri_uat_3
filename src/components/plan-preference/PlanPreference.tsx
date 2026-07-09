@@ -335,7 +335,9 @@ export default function PlanPreference() {
   // chosen depository. Rendered at the top of both the mobile and desktop views
   // (distinct radio-group names so the two copies don't collide).
   const renderDepositoryRadio = (idSuffix: string) => (
-    <div className={styles.depositoryRow} role="radiogroup" aria-label="Select depository">
+    <div className={styles.depositoryGroup}>
+      <p className={styles.depositoryTitle}>Select Repository:</p>
+      <div className={styles.depositoryRow} role="radiogroup" aria-label="Select depository">
       {(['NSDL', 'CDSL'] as const).map((dep) => (
         <label
           key={dep}
@@ -353,6 +355,7 @@ export default function PlanPreference() {
           <span className={styles.depositoryLabelText}>{dep}</span>
         </label>
       ))}
+      </div>
     </div>
   );
 
@@ -613,11 +616,17 @@ export default function PlanPreference() {
                 <Splide
                   options={{
                     perPage: 1,
+                    // Center the active card so the previous & next cards peek
+                    // in equally on both sides. The ~22% side padding is what
+                    // controls how much of the neighbours shows — increase it to
+                    // reveal more of the adjacent cards (towards half each).
+                    focus: 'center',
                     arrows: false,
                     pagination: true,
                     rewind: false,
                     gap: '12px',
-                    padding: { right: '40px' },
+                    padding: { left: '22%', right: '22%' },
+                    speed: 300, // smooth-but-quick slide between cards
                     start: selectedIndex ?? 0,
                   }}
                   aria-label="Plan options"

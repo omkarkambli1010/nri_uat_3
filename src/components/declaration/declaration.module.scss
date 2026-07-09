@@ -282,7 +282,7 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-direction: column;
   justify-content: space-between;
   gap: 32px;
-  min-height: 400px;
+  min-height: clamp(300px, 60vh, 400px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 .desktopProceedWrapper {

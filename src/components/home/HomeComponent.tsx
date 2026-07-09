@@ -885,7 +885,7 @@ export default function HomeComponent() {
                       </label>
                     </div>
                     {rmAssisted && (
-                      <div>
+                      <div style={{ marginTop: "0.75rem" }}>
                         <input
                           type="text"
                           className="form-control otp_field"

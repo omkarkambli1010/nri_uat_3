@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './foreign-address.module.scss';
@@ -145,6 +145,41 @@ type FieldKey =
   | 'docType' | 'docNumber' | 'expiryDate' | 'selCountry'
   | 'addrLine1' | 'city' | 'addrState' | 'pincode';
 
+// ── Reusable documents (e.g. from the OCI stage) ────────────────────────────
+// The FOREIGNADDRESS workflow response may carry `reusableDocuments`: proof
+// number / expiry / front-back documents captured on an earlier stage. Each
+// group's `sourceStage` is the exact document type uploaded there (e.g. "OCI").
+// We bind a group only when the selected Document Type matches its sourceStage,
+// so reused OCI data never populates a PIO selection (and vice-versa).
+interface ReusableDocEntry {
+  documentType?: string;
+  documentID?: string;
+  documentId?: string;
+  presignedUrl?: string;
+  preSignedUrl?: string;
+  url?: string;
+  documentSide?: string;
+}
+interface ReusableGroup {
+  sourceStage?: string;
+  bindWhenProofTypeContains?: string[];
+  proofNumber?: string;
+  expiryDate?: string | null;
+  documents?: ReusableDocEntry[];
+}
+
+// Snapshot of the originally-saved FOREIGNADDRESS prefill, so switching the
+// Document Type away and back restores the user's own saved proof.
+interface SavedProofSnapshot {
+  docType: string;
+  docNumber: string;
+  expiryDate: string;
+  frontInitial: UploadedFile | null;
+  backInitial: UploadedFile | null;
+  frontDocumentId: string;
+  backDocumentId: string;
+}
+
 export default function ForeignAddress() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
@@ -183,6 +218,13 @@ export default function ForeignAddress() {
   // the user hasn't re-picked that slot's file.
   const [frontDocumentId, setFrontDocumentId] = useState('');
   const [backDocumentId, setBackDocumentId] = useState('');
+
+  // Reusable documents carried over from an earlier stage (e.g. OCI), bound into
+  // this form when a matching Document Type (PIO / OCI) is selected.
+  const [reusableGroups, setReusableGroups] = useState<ReusableGroup[]>([]);
+  // The user's own saved proof, captured on prefill so it can be restored when
+  // the Document Type is switched back to the originally-saved one.
+  const savedSnapshotRef = useRef<SavedProofSnapshot | null>(null);
 
   // A freshly-picked file: a real File with bytes that isn't the byte-less
   // saved-document preview (those carry an id prefixed "saved-").
@@ -227,6 +269,15 @@ export default function ForeignAddress() {
       try {
         const res = await apiService.getForeignAddressWorkflow(applicationId);
         if (!alive) return;
+
+        // Reusable documents (e.g. from OCI) — bound on demand when a matching
+        // Document Type is selected (see handleDocTypeChange).
+        setReusableGroups(
+          Array.isArray(res?.reusableDocuments)
+            ? (res.reusableDocuments as ReusableGroup[])
+            : [],
+        );
+
         const d = res?.data as Record<string, unknown> | undefined;
         if (!d) return;
 
@@ -293,6 +344,17 @@ export default function ForeignAddress() {
         if (alive) {
           if (front) setFrontInitial(front);
           if (back) setBackInitial(back);
+          // Remember the user's own saved proof so it can be restored if they
+          // switch the Document Type away and back to the saved one.
+          savedSnapshotRef.current = {
+            docType: docTypeKey ?? '',
+            docNumber: str(d.proofNumber),
+            expiryDate: str(d.expiryDate).slice(0, 10),
+            frontInitial: front ?? null,
+            backInitial: back ?? null,
+            frontDocumentId: pickDocId(docs[0]),
+            backDocumentId: pickDocId(docs[1]),
+          };
         }
       } catch {
         // Non-fatal — the form just stays empty.
@@ -367,14 +429,95 @@ export default function ForeignAddress() {
 
   const markTouched = (k: FieldKey) => setTouched((t) => ({ ...t, [k]: true }));
 
-  // When the document type changes away from an OVD, drop any expiry value so a
-  // stale date isn't submitted for a non-expiring document.
+  // Find the reusable group whose SOURCE STAGE matches the selected Document
+  // Type. The reused data is the exact document uploaded on that stage (e.g.
+  // sourceStage "OCI" = an OCI card), so it binds only when the user picks that
+  // same type. Picking a different type (e.g. PIO) is a fresh entry, not a bind.
+  const reusableGroupFor = (docTypeKey: string): ReusableGroup | undefined => {
+    if (!docTypeKey) return undefined;
+    const key = docTypeKey.toUpperCase();
+    const label = proofTypeLabel(docTypeKey).toUpperCase();
+    return reusableGroups.find((g) => {
+      const src = (g.sourceStage ?? '').toUpperCase();
+      return src !== '' && (src === key || src === label);
+    });
+  };
+
+  // Bind a reusable group's proof number / expiry / front-back documents into
+  // the form. Document previews are seeded from their presigned URLs and the ids
+  // captured, so Proceed re-submits them by id (no re-upload needed).
+  const bindReusableGroup = async (docTypeKey: string, group: ReusableGroup) => {
+    setDocNumber(group.proofNumber ?? '');
+    setExpiryDate(
+      isOvd(docTypeKey) && group.expiryDate ? String(group.expiryDate).slice(0, 10) : '',
+    );
+
+    const docs = Array.isArray(group.documents) ? group.documents : [];
+    const sideOf = (doc: ReusableDocEntry) => (doc.documentSide ?? '').toLowerCase();
+    const front = docs.find((doc) => sideOf(doc) === 'front') ?? docs[0];
+    const back = docs.find((doc) => sideOf(doc) === 'back') ?? docs[1];
+    const idOf = (doc?: ReusableDocEntry) => String(doc?.documentID ?? doc?.documentId ?? '');
+    const urlOf = (doc?: ReusableDocEntry) =>
+      String(doc?.presignedUrl ?? doc?.preSignedUrl ?? doc?.url ?? '');
+
+    setFrontDocumentId(idOf(front));
+    setBackDocumentId(idOf(back));
+
+    const [f, b] = await Promise.all([
+      buildInitialFileFromUrl(urlOf(front), 'oci-front'),
+      buildInitialFileFromUrl(urlOf(back), 'oci-back'),
+    ]);
+    setFrontInitial(f);
+    setBackInitial(b);
+  };
+
+  // Restore the user's own saved proof captured on prefill.
+  const restoreSavedSnapshot = (snap: SavedProofSnapshot) => {
+    setDocNumber(snap.docNumber);
+    setExpiryDate(isOvd(snap.docType) ? snap.expiryDate : '');
+    setFrontDocumentId(snap.frontDocumentId);
+    setBackDocumentId(snap.backDocumentId);
+    setFrontInitial(snap.frontInitial);
+    setBackInitial(snap.backInitial);
+  };
+
+  // Clear proof number / expiry / documents so previously-bound data doesn't
+  // linger when switching to an unrelated Document Type.
+  const clearProofData = () => {
+    setDocNumber('');
+    setExpiryDate('');
+    setFrontDocumentId('');
+    setBackDocumentId('');
+    setFrontInitial(null);
+    setBackInitial(null);
+  };
+
+  // On Document Type change:
+  //   • the reused stage type (sourceStage match, e.g. OCI) → bind that data.
+  //   • the originally-saved type → restore the user's own saved proof.
+  //   • anything else → fresh entry: clear the proof-specific fields so a
+  //     previous type's number / expiry / documents don't carry over.
+  // Expiry is also dropped whenever a non-OVD type is chosen.
   const handleDocTypeChange = (value: string) => {
     setDocType(value);
     if (!isOvd(value)) {
       setExpiryDate('');
       setTouched((t) => ({ ...t, expiryDate: false }));
     }
+
+    const group = reusableGroupFor(value);
+    if (group) {
+      void bindReusableGroup(value, group);
+      return;
+    }
+
+    const snap = savedSnapshotRef.current;
+    if (snap && value && value === snap.docType) {
+      restoreSavedSnapshot(snap);
+      return;
+    }
+
+    clearProofData();
   };
 
   // Display label for the selected document type, used in the upload section
@@ -560,6 +703,10 @@ export default function ForeignAddress() {
           <div className={styles.fieldGroup}>
             <label className={styles.fieldLabel} htmlFor="mob-expiry">Document Expiry Date *</label>
             <DateField
+              // Remount when the document type changes so a programmatic expiry
+              // reset (e.g. binding PIO/OCI whose reused expiry is empty) is
+              // reflected — DateField otherwise ignores a value cleared to null.
+              key={`mob-expiry-${docType}`}
               inputId="mob-expiry"
               value={strToDate(expiryDate)}
               onChange={(d) => setExpiryDate(dateToStr(d))}
@@ -785,6 +932,9 @@ export default function ForeignAddress() {
                   <p className={styles.desktopLabel}>Document Expiry Date *</p>
                   <div className={styles.deskCalendarWrap}>
                     <DateField
+                      // Remount on document-type change so a programmatic expiry
+                      // reset (binding PIO/OCI with an empty reused expiry) shows.
+                      key={`desk-expiry-${docType}`}
                       inputId="desk-expiry"
                       value={strToDate(expiryDate)}
                       onChange={(d) => setExpiryDate(dateToStr(d))}

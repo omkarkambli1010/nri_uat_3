@@ -209,7 +209,7 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   padding: 24px;
   display: flex;
   flex-direction: column;
-  min-height: 520px;
+  min-height: clamp(300px, 60vh, 520px); // scale with viewport to avoid laptop white-space/scroll
   justify-content: space-between;
 }
 
@@ -306,6 +306,19 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   color: $text-dark-2;
   margin: 0;
   line-height: normal;
+}
+
+// Note above the statement upload — "ONLY SBI bank account details are accepted"
+.sbiNote {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #d32f2f;
+
+  strong {
+    color: #d32f2f;
+    font-weight: 600;
+  }
 }
 
 // Desktop: label + input side by side (flex-row)

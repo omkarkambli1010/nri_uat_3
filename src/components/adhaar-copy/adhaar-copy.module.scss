@@ -227,7 +227,7 @@ $info-border: #c3c7ed;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 520px;
+  min-height: clamp(300px, 60vh, 520px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

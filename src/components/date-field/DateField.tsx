@@ -20,6 +20,15 @@ import { Calendar, type CalendarProps } from 'primereact/calendar';
 type DateFieldProps = Omit<CalendarProps, 'value' | 'onChange' | 'ref'> & {
   value: Date | null;
   onChange: (value: Date | null) => void;
+  // Angular-style manual entry: single high digits auto-pad (day 4→04, month
+  // 2→02), separators are auto-inserted, day capped at 31 / month at 12, and
+  // Backspace over a "/" also removes the slash. When false (default) the field
+  // keeps the PrimeReact masked behaviour used elsewhere.
+  autoPad?: boolean;
+  // Fired (autoPad only) with a message when a typed day > 31 / month > 12 is
+  // rejected, and with null once valid input is entered — so the parent can
+  // render the message in a <span>.
+  onError?: (message: string | null) => void;
 };
 
 // Return a stable object reference for a date prop that only changes when the
@@ -39,10 +48,14 @@ function useStableDay(d: Date | null | undefined): Date | null | undefined {
   return ref.current;
 }
 
-export default function DateField({ value, onChange, ...rest }: DateFieldProps) {
+export default function DateField({ value, onChange, autoPad = false, onError, ...rest }: DateFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   // Holds a committed Date, an in-progress partial string, or null.
   const [model, setModel] = useState<Date | string | null>(value);
+
+  // Keep the latest onError without re-running the listener effect each render.
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
 
   // Pull min/max out of the passthrough props and stabilise their references.
   const { minDate, maxDate, ...calendarRest } = rest;
@@ -66,6 +79,27 @@ export default function DateField({ value, onChange, ...rest }: DateFieldProps) 
     }
   }, [value]);
 
+  // Parse a fully-typed "dd/mm/yyyy" string into a real Date (or null) and push
+  // it up to the parent + internal model. Used by the autoPad path.
+  const syncTypedDate = (str: string) => {
+    const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(str);
+    if (m) {
+      const day = +m[1];
+      const mon = +m[2];
+      const yr = +m[3];
+      const dt = new Date(yr, mon - 1, day);
+      const real =
+        dt.getDate() === day &&
+        dt.getMonth() === mon - 1 &&
+        dt.getFullYear() === yr;
+      setModel(real ? dt : str);
+      onChange(real ? dt : null);
+    } else {
+      setModel(str);
+      onChange(null);
+    }
+  };
+
   // Block out-of-range digits before the mask inserts them. keydown runs in the
   // capture phase so preventDefault() also suppresses the mask's keypress.
   useEffect(() => {
@@ -77,6 +111,82 @@ export default function DateField({ value, onChange, ...rest }: DateFieldProps) 
     // version's TS types, so set the attribute on the input directly.) Force a
     // numeric keyboard so manual entry works on Android/iOS.
     el.setAttribute("inputmode", "numeric");
+
+    // ── autoPad mode ── reformat the whole string on every input, mirroring the
+    // Angular handleDateInput/handleKeyDown logic (no PrimeReact mask).
+    if (autoPad) {
+      let prev = el.value;
+
+      const reformat = () => {
+        let value = el.value.replace(/\D/g, ""); // digits only
+        let out = "";
+
+        // Day (DD)
+        if (value.length >= 1) {
+          if (+value[0] >= 4 && value.length === 1) {
+            out += "0" + value[0]; // single digit 4–9 → 04–09
+            value = value.slice(1);
+          } else {
+            out += value.slice(0, 2);
+            value = value.slice(2);
+          }
+          if (parseInt(out, 10) > 31) {
+            el.value = prev; // reject days > 31
+            onErrorRef.current?.("Day cannot be greater than 31");
+            return;
+          }
+        }
+        if (out.length === 2 && value.length > 0) out += "/";
+
+        // Month (MM)
+        if (value.length >= 1) {
+          if (parseInt(value[0], 10) >= 2 && value.length === 1) {
+            value = "0" + value; // single digit 2–9 → 02–09
+          }
+          if (value.length >= 2) {
+            out += value.slice(0, 2);
+            value = value.slice(2);
+            if (parseInt(out.slice(3, 5), 10) > 12) {
+              el.value = prev; // reject months > 12
+              onErrorRef.current?.("Month cannot be greater than 12");
+              return;
+            }
+            if (value.length >= 1) out += "/";
+          }
+        }
+
+        // Year (YYYY)
+        if (value.length > 0) out += value.slice(0, 4);
+
+        el.value = out;
+        prev = out;
+        onErrorRef.current?.(null); // valid input — clear any day/month limit message
+        syncTypedDate(out);
+      };
+
+      const onInput = () => reformat();
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        if (e.key === "Backspace") {
+          // Also strip a trailing "/" so backspace deletes the separator too.
+          if (el.value.endsWith("/")) {
+            el.value = el.value.slice(0, -1);
+            prev = el.value;
+            e.preventDefault();
+            syncTypedDate(el.value);
+          }
+          return;
+        }
+        if (e.key.length === 1 && !/\d/.test(e.key)) e.preventDefault();
+      };
+
+      el.addEventListener("input", onInput);
+      el.addEventListener("keydown", onKeyDown, true);
+      return () => {
+        el.removeEventListener("input", onInput);
+        el.removeEventListener("keydown", onKeyDown, true);
+      };
+    }
 
     const onKeyDownCapture = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey || e.altKey) return; // allow shortcuts
@@ -110,7 +220,7 @@ export default function DateField({ value, onChange, ...rest }: DateFieldProps) 
 
     el.addEventListener('keydown', onKeyDownCapture, true);
     return () => el.removeEventListener('keydown', onKeyDownCapture, true);
-  }, []);
+  }, [autoPad]);
 
   return (
     <Calendar
@@ -119,10 +229,22 @@ export default function DateField({ value, onChange, ...rest }: DateFieldProps) 
       maxDate={stableMaxDate ?? undefined}
       value={model as Date}
       inputRef={inputRef}
-      mask="99/99/9999"
+      // autoPad drives its own formatting via the native input listener, so the
+      // fixed-width mask is dropped in that mode.
+      mask={autoPad ? undefined : "99/99/9999"}
       keepInvalid
       showOnFocus={false}
       onChange={(e) => {
+        // In autoPad mode, typing is handled by the native input listener; only
+        // adopt a Date coming from the picker here (ignore partial strings so we
+        // don't clobber the value the listener just formatted).
+        if (autoPad) {
+          if (e.value instanceof Date && !Number.isNaN(e.value.getTime())) {
+            setModel(e.value);
+            onChange(e.value);
+          }
+          return;
+        }
         setModel(e.value as Date | string);
         const v = e.value;
         onChange(v instanceof Date && !Number.isNaN(v.getTime()) ? v : null);

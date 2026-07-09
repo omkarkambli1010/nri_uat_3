@@ -250,7 +250,7 @@ $text-gray: #666666;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 500px;
+  min-height: clamp(300px, 60vh, 500px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 // Figma: flex col, gap-24, overflow-clip, h-461

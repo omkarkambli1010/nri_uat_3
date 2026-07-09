@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FileUploadConfig, UploadedFile } from './fileUpload.types';
 import { generateId, isDuplicateFile, isImageFile, isPdfPasswordProtected, unlockPdf, validateFile } from './fileUpload.utils';
+import { friendlyErrorMessage } from '@/utils/errorMessage';
 
 export function useFileUpload(config: FileUploadConfig) {
   const [files, setFiles] = useState<UploadedFile[]>(() => config.initialFiles ?? []);
@@ -63,11 +64,11 @@ export function useFileUpload(config: FileUploadConfig) {
             prev.map(f => (f.id === id ? { ...f, status: 'success', progress: 100 } : f))
           );
         })
-        .catch((err: Error) => {
+        .catch((err: unknown) => {
           setFiles(prev =>
             prev.map(f =>
               f.id === id
-                ? { ...f, status: 'error', errorMessage: err?.message ?? 'Upload failed' }
+                ? { ...f, status: 'error', errorMessage: friendlyErrorMessage(err, 'Upload failed') }
                 : f
             )
           );

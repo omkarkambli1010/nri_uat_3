@@ -9,6 +9,7 @@ import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import { buildFaqUrl } from "@/lib/faq-link";
 import { useCountries } from "@/components/country-select/useCountries";
+import CountryCodeSelect from "@/components/country-select/CountryCodeSelect";
 import styles from "./add-nominee.module.scss";
 
 // AddNominee — multi-state nominee form
@@ -55,6 +56,7 @@ interface Nominee {
   relationship: string;
   allocation: string;
   mobile: string;
+  mobileCountryIso2: string;
   email: string;
   dob: string;
   sameAsApplicant: boolean;
@@ -116,6 +118,7 @@ const blankNominee: Nominee = {
   relationship: "",
   allocation: "100",
   mobile: "",
+  mobileCountryIso2: "in",
   email: "",
   dob: "",
   sameAsApplicant: true,
@@ -481,13 +484,34 @@ export default function AddNominee() {
     updateCurrent("documentNumber", "");
   };
 
-  // The first digit of an Indian mobile number must be 6-9 — strip any leading
-  // 0-5 digits as the user types so a number starting with 0-5 can't be entered.
+  // Sanitize the typed mobile number for the currently-selected country.
+  //   India → first digit must be 6-9 (strip leading 0-5), max 10 digits.
+  //   Other → digits only, max 15 (E.164).
+  const sanitizeMobileFor = (value: string, iso2: string): string => {
+    const digits = value.replace(/[^0-9]/g, "");
+    return iso2 === "in"
+      ? digits.replace(/^[0-5]+/, "").slice(0, 10)
+      : digits.slice(0, 15);
+  };
+
   const sanitizeMobile = (value: string): string =>
-    value
-      .replace(/[^0-9]/g, "")
-      .replace(/^[0-5]+/, "")
-      .slice(0, 10);
+    sanitizeMobileFor(value, current.mobileCountryIso2);
+
+  // Country-code change — re-clamp any already-typed number to the new
+  // country's rules in the same update so the two stay consistent.
+  const handleMobileCountryChange = (iso2: string) => {
+    setCurrent((prev) => ({
+      ...prev,
+      mobileCountryIso2: iso2,
+      mobile: sanitizeMobileFor(prev.mobile, iso2),
+    }));
+    setErrors((prev) => {
+      if (!prev.mobile) return prev;
+      const next = { ...prev };
+      delete next.mobile;
+      return next;
+    });
+  };
 
   const isMinor = useMemo(() => {
     const age = computeAge(current.dob);
@@ -662,8 +686,12 @@ export default function AddNominee() {
     // ── Contact ────────────────────────────────────────────────────────────
     if (!current.mobile) {
       e.mobile = "Mobile number is required";
-    } else if (!mobileRe.test(current.mobile)) {
-      e.mobile = "Enter a valid 10-digit mobile number";
+    } else if (current.mobileCountryIso2 === "in") {
+      if (!mobileRe.test(current.mobile)) {
+        e.mobile = "Enter a valid 10-digit mobile number";
+      }
+    } else if (current.mobile.length < 6 || current.mobile.length > 15) {
+      e.mobile = "Enter a valid mobile number";
     }
 
     if (!current.email.trim()) {
@@ -1206,18 +1234,28 @@ export default function AddNominee() {
                   <div className={styles.row}>
                     <p className={styles.rowLabel}>Mobile Number</p>
                     <div className={styles.fieldStack}>
-                      <input
-                        className={`${styles.input} ${errCls("mobile")}`}
-                        placeholder="Enter Mobile Number"
-                        maxLength={10}
-                        value={current.mobile}
-                        onChange={(e) =>
-                          updateCurrent(
-                            "mobile",
-                            sanitizeMobile(e.target.value),
-                          )
-                        }
-                      />
+                      <div className={styles.phoneRow}>
+                        <div className={styles.codeSelect}>
+                          <CountryCodeSelect
+                            countries={COUNTRY_OPTIONS}
+                            value={current.mobileCountryIso2}
+                            onChange={handleMobileCountryChange}
+                          />
+                        </div>
+                        <input
+                          className={`${styles.input} ${errCls("mobile")}`}
+                          placeholder="Enter Mobile Number"
+                          inputMode="numeric"
+                          maxLength={current.mobileCountryIso2 === "in" ? 10 : 15}
+                          value={current.mobile}
+                          onChange={(e) =>
+                            updateCurrent(
+                              "mobile",
+                              sanitizeMobile(e.target.value),
+                            )
+                          }
+                        />
+                      </div>
                       {errMsg("mobile")}
                     </div>
                   </div>
@@ -1756,15 +1794,25 @@ export default function AddNominee() {
             </div>
             <div className={styles.mobField}>
               <label className={styles.mobLabel}>Mobile Number</label>
-              <input
-                className={`${styles.mobInput} ${errCls("mobile", true)}`}
-                placeholder="Enter Mobile Number"
-                maxLength={10}
-                value={current.mobile}
-                onChange={(e) =>
-                  updateCurrent("mobile", sanitizeMobile(e.target.value))
-                }
-              />
+              <div className={styles.mobPhoneRow}>
+                <div className={styles.codeSelect}>
+                  <CountryCodeSelect
+                    countries={COUNTRY_OPTIONS}
+                    value={current.mobileCountryIso2}
+                    onChange={handleMobileCountryChange}
+                  />
+                </div>
+                <input
+                  className={`${styles.mobInput} ${errCls("mobile", true)}`}
+                  placeholder="Enter Mobile Number"
+                  inputMode="numeric"
+                  maxLength={current.mobileCountryIso2 === "in" ? 10 : 15}
+                  value={current.mobile}
+                  onChange={(e) =>
+                    updateCurrent("mobile", sanitizeMobile(e.target.value))
+                  }
+                />
+              </div>
               {errMsg("mobile")}
             </div>
             <div className={styles.mobField}>

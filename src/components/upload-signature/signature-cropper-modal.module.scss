@@ -111,36 +111,38 @@
   flex-shrink: 0;
 }
 
-.rotateRow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-}
-
-.rotateBtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  color: #280071;
-  cursor: pointer;
-  transition: background 0.18s ease, border-color 0.18s ease;
-
-  &:hover:not(:disabled) {
-    background: #f3f1ff;
-    border-color: #280071;
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
+// Rotation controls — disabled (kept for future re-enabling alongside the
+// commented rotation code in SignatureCropperModal.tsx).
+// .rotateRow {
+//   display: flex;
+//   align-items: center;
+//   justify-content: center;
+//   gap: 12px;
+// }
+//
+// .rotateBtn {
+//   display: inline-flex;
+//   align-items: center;
+//   justify-content: center;
+//   width: 40px;
+//   height: 40px;
+//   background: #fff;
+//   border: 1px solid #d9d9d9;
+//   border-radius: 8px;
+//   color: #280071;
+//   cursor: pointer;
+//   transition: background 0.18s ease, border-color 0.18s ease;
+//
+//   &:hover:not(:disabled) {
+//     background: #f3f1ff;
+//     border-color: #280071;
+//   }
+//
+//   &:disabled {
+//     opacity: 0.5;
+//     cursor: not-allowed;
+//   }
+// }
 
 .cropArea {
   background: #f6f6f6;

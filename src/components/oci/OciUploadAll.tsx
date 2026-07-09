@@ -72,8 +72,12 @@ export default function OciUploadAll() {
 
   // Card type selected on /oci ("OCI" | "PIO"); drives the document-type prefix
   // and the section labels. Read from sessionStorage in the prefill effect.
+  // NOTE: a PIO card uses the "Pio…" document type here. Some backends instead
+  // expect "Poi…" (PoiFront/PoiBack) and reject "PioFront" with a 400. If that
+  // happens, switch to the commented "Poi" variant below.
   const [cardType, setCardType] = useState<'OCI' | 'PIO'>('OCI');
   const prefix = cardType === 'PIO' ? 'Pio' : 'Oci';
+  // const prefix = cardType === 'PIO' ? 'Poi' : 'Oci';
 
   // Previously-uploaded documents seeded into the cards so they show in the
   // dropzone preview (and are re-submitted on Proceed).
@@ -113,6 +117,7 @@ export default function OciUploadAll() {
           ? (res.documents as Record<string, unknown>[])
           : [];
         const p = savedCardType === 'PIO' ? 'Pio' : 'Oci';
+        // const p = savedCardType === 'PIO' ? 'Poi' : 'Oci'; // POI variant (see prefix note above)
         const urlFor = (suffix: string): string => {
           const hit = docs.find(
             (doc) => String(doc.documentType ?? '').toLowerCase() === `${p}${suffix}`.toLowerCase(),

@@ -159,11 +159,27 @@ $border-plan-hl: #bda7ff;
 
 // ─── Depository selector (NSDL / CDSL) ───────────────────────
 
+// Labelled depository group — stretches full width so the title sits on the
+// left even inside the center-aligned desktop card body.
+.depositoryGroup {
+  align-self: stretch;
+  width: 100%;
+}
+
+.depositoryTitle {
+  margin: 0;
+  padding: 8px 16px 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $text-dark;
+  text-align: left;
+}
+
 .depositoryRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px 16px 4px;
+  padding: 8px 16px 4px;
   flex-wrap: wrap;
 }
 
@@ -208,9 +224,12 @@ $border-plan-hl: #bda7ff;
   padding: 20px 0 8px;
   flex-shrink: 0;
 
-  // Splide track overrides
+  // Splide track overrides — only touch the vertical padding. The horizontal
+  // padding is set inline by Splide's `padding` option to create the peek of
+  // the previous/next cards, so it must NOT be clobbered here.
   :global(.splide__track) {
-    padding: 4px 0 12px !important;
+    padding-top: 4px !important;
+    padding-bottom: 12px !important;
   }
 
   // Equal-height slides so swiping between plans doesn't jump the layout.
@@ -218,9 +237,16 @@ $border-plan-hl: #bda7ff;
     align-items: stretch;
   }
 
+  // 3D depth on the side cards only — they are pushed back into the scene so
+  // they sit behind the flat, full-size centre (active) card.
   :global(.splide__slide) {
     height: auto;
     display: flex;
+    transform: perspective(900px) translateZ(-180px);
+  }
+
+  :global(.splide__slide.is-active) {
+    transform: none;
   }
 
   .slideCard {
@@ -708,12 +734,12 @@ $border-plan-hl: #bda7ff;
 }
 
 .desktopCardBody {
-  padding: 60px 0 48px;
+  padding: 24px 0 48px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  min-height: 582px;
+  min-height: clamp(300px, 60vh, 582px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 // ─── Desktop Plan Cards (Figma NRE-RI 0:49002) ───────────────

@@ -82,7 +82,7 @@
   align-items: center;
   justify-content: center;
   gap: 36px;
-  min-height: 476px;
+  min-height: clamp(300px, 60vh, 476px); // scale with viewport to avoid laptop white-space/scroll
 }
 
 // ── Signature pad container (desktop) ────────────────────────────────────────

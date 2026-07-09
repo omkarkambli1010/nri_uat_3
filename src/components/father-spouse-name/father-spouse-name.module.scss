@@ -6,7 +6,8 @@ $primary-color: #280071;
 // Mobile: flex:1, auto height, rounded-top-only corners
 .cardBody {
   background: #fff;
-  height: 533px;
+  // scale with viewport to avoid laptop white-space/scroll (cap at 533px on tall desktops)
+  height: clamp(300px, 60vh, 533px);
   padding: 24px;
   border-radius: 0 0 24px 24px;
   display: flex;

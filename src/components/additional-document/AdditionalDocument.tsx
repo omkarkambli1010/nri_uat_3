@@ -5,6 +5,7 @@ import { SignatureCropperModal } from '@/components/upload-signature/SignatureCr
 import { CameraCaptureModal } from '@/components/camera-capture/CameraCaptureModal';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 import { convertHeicToJpeg } from '@/components/file-upload/fileUpload.utils';
+import { friendlyErrorMessage } from '@/utils/errorMessage';
 import { additionalDocumentStore } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
 
@@ -206,7 +207,7 @@ export default function AdditionalDocument({ onClose, onProceed, onSkip, uploadF
       await uploadFn(file);
     } catch (e) {
       setUploading(false);
-      setErrorMsg((e as Error)?.message || 'Upload failed. Please try again.');
+      setErrorMsg(friendlyErrorMessage(e, 'Upload failed. Please try again.'));
       setDocState('error');
       return;
     }

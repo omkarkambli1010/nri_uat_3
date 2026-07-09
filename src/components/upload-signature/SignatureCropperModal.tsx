@@ -35,52 +35,60 @@ function XIcon() {
   );
 }
 
-function RotateLeftIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 4v6h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4.5 10a8 8 0 1 1-1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function RotateRightIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M20 4v6h-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M19.5 10a8 8 0 1 0 1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
+// ── Image rotation (disabled) ────────────────────────────────────────────────
+// The rotate-left / rotate-right controls were removed from the cropper because
+// the button row was misaligned. The implementation is kept here, commented
+// out, so it can be re-enabled in future. To restore, uncomment this block plus
+// the matching rotation state/effects, handlers and the `.rotateRow` JSX below,
+// swap the cropper's `src` back to `displaySrc`, and restore the `.rotateRow` /
+// `.rotateBtn` styles in signature-cropper-modal.module.scss.
+//
+// function RotateLeftIcon() {
+//   return (
+//     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+//       <path d="M4 4v6h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+//       <path d="M4.5 10a8 8 0 1 1-1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+//     </svg>
+//   );
+// }
+//
+// function RotateRightIcon() {
+//   return (
+//     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+//       <path d="M20 4v6h-6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+//       <path d="M19.5 10a8 8 0 1 0 1.3 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+//     </svg>
+//   );
+// }
+//
 // Renders the source image rotated by `deg` (a multiple of 90) onto a canvas and
 // returns it as a data URL, so the cropper always works on an already-upright
 // image and the crop coordinates + exported blob both include the rotation.
-function rotateImageToDataUrl(src: string, deg: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => {
-      const w = image.naturalWidth;
-      const h = image.naturalHeight;
-      const swap = Math.abs(deg % 180) === 90;
-      const canvas = document.createElement('canvas');
-      canvas.width = swap ? h : w;
-      canvas.height = swap ? w : h;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('No 2D context'));
-        return;
-      }
-      ctx.translate(canvas.width / 2, canvas.height / 2);
-      ctx.rotate((deg * Math.PI) / 180);
-      ctx.drawImage(image, -w / 2, -h / 2);
-      resolve(canvas.toDataURL('image/png'));
-    };
-    image.onerror = () => reject(new Error('Image load failed'));
-    image.src = src;
-  });
-}
+// function rotateImageToDataUrl(src: string, deg: number): Promise<string> {
+//   return new Promise((resolve, reject) => {
+//     const image = new Image();
+//     image.crossOrigin = 'anonymous';
+//     image.onload = () => {
+//       const w = image.naturalWidth;
+//       const h = image.naturalHeight;
+//       const swap = Math.abs(deg % 180) === 90;
+//       const canvas = document.createElement('canvas');
+//       canvas.width = swap ? h : w;
+//       canvas.height = swap ? w : h;
+//       const ctx = canvas.getContext('2d');
+//       if (!ctx) {
+//         reject(new Error('No 2D context'));
+//         return;
+//       }
+//       ctx.translate(canvas.width / 2, canvas.height / 2);
+//       ctx.rotate((deg * Math.PI) / 180);
+//       ctx.drawImage(image, -w / 2, -h / 2);
+//       resolve(canvas.toDataURL('image/png'));
+//     };
+//     image.onerror = () => reject(new Error('Image load failed'));
+//     image.src = src;
+//   });
+// }
 
 // Maps an output MIME type to its file extension. Falls back to 'png' for
 // unrecognised types.
@@ -122,38 +130,39 @@ export function SignatureCropperModal({
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
-  // Rotation applied to the image, in degrees (0/90/180/270). The rotated image
-  // is baked into `displaySrc`, which is what the cropper renders and crops.
-  const [rotation, setRotation] = useState(0);
+  // Rotation applied to the image, in degrees (0/90/180/270). Disabled — kept
+  // commented for future re-enabling (see the "Image rotation (disabled)" block
+  // above).
+  // const [rotation, setRotation] = useState(0);
   // Only non-zero rotations are baked into a data URL and held here. The 0° case
   // is derived straight from `src` during render (see `displaySrc`), so the
   // image never briefly renders an empty src while this effect settles.
-  const [rotatedSrc, setRotatedSrc] = useState('');
+  // const [rotatedSrc, setRotatedSrc] = useState('');
 
   useEffect(() => {
     if (!open) {
       setCrop(undefined);
       setCompletedCrop(undefined);
       setExporting(false);
-      setRotation(0);
-      setRotatedSrc('');
+      // setRotation(0);
+      // setRotatedSrc('');
     }
   }, [open]);
 
   // Bake a non-zero rotation into a data URL so both the crop selection and the
   // exported blob reflect it. Changing the shown src reloads the <img>, which
-  // reseeds the crop.
-  useEffect(() => {
-    if (!open || rotation % 360 === 0) {
-      setRotatedSrc('');
-      return;
-    }
-    let cancelled = false;
-    rotateImageToDataUrl(src, rotation)
-      .then((url) => { if (!cancelled) setRotatedSrc(url); })
-      .catch(() => { if (!cancelled) setRotatedSrc(''); });
-    return () => { cancelled = true; };
-  }, [open, src, rotation]);
+  // reseeds the crop. Disabled — see the rotation block above.
+  // useEffect(() => {
+  //   if (!open || rotation % 360 === 0) {
+  //     setRotatedSrc('');
+  //     return;
+  //   }
+  //   let cancelled = false;
+  //   rotateImageToDataUrl(src, rotation)
+  //     .then((url) => { if (!cancelled) setRotatedSrc(url); })
+  //     .catch(() => { if (!cancelled) setRotatedSrc(''); });
+  //   return () => { cancelled = true; };
+  // }, [open, src, rotation]);
 
   useEffect(() => {
     if (!open) return;
@@ -224,14 +233,16 @@ export function SignatureCropperModal({
     );
   }, [completedCrop, fileName, onConfirm, outputType, outputQuality]);
 
-  const rotateLeft = () => setRotation((r) => (r + 270) % 360);
-  const rotateRight = () => setRotation((r) => (r + 90) % 360);
+  // Rotation handlers — disabled (kept for future re-enabling).
+  // const rotateLeft = () => setRotation((r) => (r + 270) % 360);
+  // const rotateRight = () => setRotation((r) => (r + 90) % 360);
 
   if (!open) return null;
 
   // At 0° use the original src directly; otherwise the rotated data URL once
   // it's ready (falling back to the original while it's being generated).
-  const displaySrc = rotation % 360 === 0 ? src : rotatedSrc || src;
+  // Disabled — the cropper renders `src` directly while rotation is off.
+  // const displaySrc = rotation % 360 === 0 ? src : rotatedSrc || src;
 
   const cardClass = isDesktop ? styles.deskCard : styles.mobSheet;
   const overlayClass = isDesktop ? styles.overlay : styles.overlayMob;
@@ -266,6 +277,10 @@ export function SignatureCropperModal({
           </button>
         </div>
 
+        {/* Rotation controls — disabled (kept for future re-enabling). To
+            restore, uncomment this block and swap `src` back to `displaySrc`
+            on the <img> below. */}
+        {/*
         <div className={styles.rotateRow}>
           <button
             type="button"
@@ -286,9 +301,10 @@ export function SignatureCropperModal({
             <RotateRightIcon />
           </button>
         </div>
+        */}
 
         <div className={styles.cropArea}>
-          {displaySrc && (
+          {src && (
             <ReactCrop
               crop={crop}
               onChange={(_, percentCrop) => setCrop(percentCrop)}
@@ -299,7 +315,7 @@ export function SignatureCropperModal({
             >
               <img
                 ref={imgRef}
-                src={displaySrc}
+                src={src}
                 alt="Image to crop"
                 onLoad={onImageLoad}
                 className={styles.cropImage}

@@ -299,7 +299,7 @@ export default function FatherSpouseName() {
                     {/* Field row: label + input */}
                     <div className={styles.fieldRow}>
                       <label htmlFor="Father" className={styles.fieldLabel}>
-                        Father/Spouse Name *
+                        Father/Spouse Name
                       </label>
                       <div className={styles.fieldInputWrapper}>
                         <input

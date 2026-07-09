@@ -1325,17 +1325,22 @@ export default function ManualBankDetails() {
             documentUrl={nroStatementPreviewUrl}
           />
         ) : (
-          <FileUploadCard
-            title="Upload NRO Statement"
-            acceptedTypes={STATEMENT_TYPES}
-            maxSize={STATEMENT_MAX_SIZE}
-            acceptedLabel={STATEMENT_ACCEPTED_LABEL}
-            sizeErrorMessage={STATEMENT_SIZE_ERR}
-            typeErrorMessage={STATEMENT_TYPE_ERR}
-            cropImages
-            uploadFn={uploadNroStatement}
-            onFilesChange={handleNroFilesChange}
-          />
+          <>
+            <p className={styles.sbiNote}>
+              <strong>Note:</strong> ONLY SBI bank account details are accepted
+            </p>
+            <FileUploadCard
+              title="Upload NRO Statement"
+              acceptedTypes={STATEMENT_TYPES}
+              maxSize={STATEMENT_MAX_SIZE}
+              acceptedLabel={STATEMENT_ACCEPTED_LABEL}
+              sizeErrorMessage={STATEMENT_SIZE_ERR}
+              typeErrorMessage={STATEMENT_TYPE_ERR}
+              cropImages
+              uploadFn={uploadNroStatement}
+              onFilesChange={handleNroFilesChange}
+            />
+          </>
         )
       }
       accountNo={nroAccountNo}
