@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import DateField from '@/components/date-field/DateField';
 import styles from './foreign-address.module.scss';
@@ -25,6 +25,17 @@ const dateToStr = (d: Date | null | undefined): string => {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+};
+
+// Start of the day `months` months after `from`, clamping day-of-month overflow.
+// Plain JS rolls 30 Nov + 3 months over to 2 Mar (via "30 Feb"); this clamps to
+// the last real day of the target month (28 or 29 Feb) instead.
+const addMonthsClamped = (from: Date, months: number): Date => {
+  const shifted = from.getMonth() + months;
+  const year = from.getFullYear() + Math.floor(shifted / 12);
+  const month = ((shifted % 12) + 12) % 12;
+  const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+  return new Date(year, month, Math.min(from.getDate(), lastDayOfMonth));
 };
 
 // ForeignAddress — Enter Foreign Address form
@@ -253,6 +264,16 @@ export default function ForeignAddress() {
 
   const showExpiry = isOvd(docType);
 
+  // Document Expiry Date must be at least 3 months away: every earlier date —
+  // including today and every past date — is disabled in the picker and rejected
+  // on submit. No upper bound.
+  const minExpiryDate = useMemo(() => addMonthsClamped(new Date(), 3), []);
+  // Compared as 'YYYY-MM-DD' strings so the check is a plain calendar-day
+  // comparison, immune to the UTC-midnight parse in strToDate shifting the day
+  // for users in negative UTC offsets.
+  const minExpiryStr = dateToStr(minExpiryDate);
+  const minExpiryDisplay = minExpiryStr.split('-').reverse().join('/'); // DD/MM/YYYY
+
   // Prefill the form from the saved FOREIGNADDRESS stage (POST …/get/workflow/
   // stagewisedate { stagename: "FOREIGNADDRESS" }) so a revisit shows the
   // previously-entered address. Document uploads are not prefilled — the user
@@ -394,9 +415,14 @@ export default function ForeignAddress() {
       e.docNumber = 'Please enter Address Proof number';
     }
 
-    // Expiry only applies to OVD documents.
-    if (showExpiry && !expiryDate) {
-      e.expiryDate = 'Please Select Expiry date';
+    // Expiry only applies to OVD documents. The picker disables anything before
+    // minExpiryDate, but a date can still be typed by hand — so bound it here too.
+    if (showExpiry) {
+      if (!expiryDate) {
+        e.expiryDate = 'Please Select Expiry date';
+      } else if (expiryDate < minExpiryStr) {
+        e.expiryDate = `Document must be valid for at least 3 more months (on or after ${minExpiryDisplay})`;
+      }
     }
 
     if (!selCountry) {
@@ -710,6 +736,7 @@ export default function ForeignAddress() {
               inputId="mob-expiry"
               value={strToDate(expiryDate)}
               onChange={(d) => setExpiryDate(dateToStr(d))}
+              minDate={minExpiryDate}
               dateFormat="dd/mm/yy"
               placeholder="DD/MM/YYYY"
               showIcon
@@ -938,6 +965,7 @@ export default function ForeignAddress() {
                       inputId="desk-expiry"
                       value={strToDate(expiryDate)}
                       onChange={(d) => setExpiryDate(dateToStr(d))}
+                      minDate={minExpiryDate}
                       dateFormat="dd/mm/yy"
                       placeholder="DD/MM/YYYY"
                       showIcon
