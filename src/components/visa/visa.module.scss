@@ -195,21 +195,8 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   margin: 0;
 }
 
-// Past-date variant for the PrimeReact Calendar — overrides border + text
-// to use the Figma "sell" colour (#fa4c67). Applied via :global so it lands
-// on the calendar's internal `.p-inputtext` element regardless of CSS-module
-// scoping.
-.expiredCalendar {
-  :global(.p-inputtext) {
-    border-color: #fa4c67 !important;
-    color: #fa4c67 !important;
-    font-weight: 600 !important;
-  }
-
-  :global(.p-datepicker-trigger) {
-    border-color: #fa4c67 !important;
-  }
-}
+// The past-date variant for the PrimeReact Calendar now lives in globals.scss
+// as `.p-prime-cal-expired`, alongside the other `.p-prime-cal` state modifiers.
 
 // ── Fixed bottom area — single button ──────────────────────────────────────
 .mobileProceedArea {

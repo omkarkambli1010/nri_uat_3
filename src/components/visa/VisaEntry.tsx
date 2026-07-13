@@ -134,7 +134,7 @@ export default function VisaEntry() {
           touchUI
           minDate={minVisaExpiry()}
           panelClassName="p-prime-cal-sm"
-          className={`p-prime-cal${tooSoon ? ` ${styles.expiredCalendar}` : ''}`}
+          className={`p-prime-cal${tooSoon ? ' p-prime-cal-expired' : ''}`}
         />
         {tooSoon && (
           <div className={styles.expiryErrorRow} role="alert">

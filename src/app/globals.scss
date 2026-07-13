@@ -2169,6 +2169,16 @@ section {
       color: #666;
     }
   }
+
+  // The input and the icon button are two halves of one control, so the
+  // trigger's border has to pick up the focus colour too — otherwise only the
+  // left half highlights. Invalid states keep their own border while focused.
+  &:focus-within:not(.p-prime-cal-error):not(.p-prime-cal-expired) {
+    .p-inputtext,
+    .p-datepicker-trigger {
+      border-color: #280071 !important;
+    }
+  }
 }
 
 // 48px height variant — for mobile-sized inputs (UploadProcess DOB, BpSso DOB)
@@ -2197,6 +2207,23 @@ section {
 
   .p-datepicker-trigger {
     border-color: #dc3545 !important;
+    border-left: none !important;
+  }
+}
+
+// Past/too-soon date state (VisaEntry) — Figma "sell" colour. Lives here rather
+// than in visa.module.scss so it shares the specificity of the focus rule above
+// and keeps its border when the field is focused.
+.p-prime-cal-expired {
+  .p-inputtext {
+    border-color: #fa4c67 !important;
+    border-right: none !important;
+    color: #fa4c67 !important;
+    font-weight: 600 !important;
+  }
+
+  .p-datepicker-trigger {
+    border-color: #fa4c67 !important;
     border-left: none !important;
   }
 }
