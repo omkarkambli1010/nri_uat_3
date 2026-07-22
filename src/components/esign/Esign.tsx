@@ -273,9 +273,8 @@ export default function Esign() {
         aria-label="E-Sign"
         style={{
           background: "#f8f8f8",
-          height: "calc(100vh - 90px)",
+          minHeight: "calc(100vh - 90px)",
           padding: 0,
-          overflow: "hidden",
         }}
       >
         <div className={styles.deskCard}>
@@ -307,7 +306,7 @@ export default function Esign() {
           </div>
 
           <div className={styles.deskBody}>
-            <div className={styles.deskBodyScroll} data-lenis-prevent>
+            <div className={styles.deskBodyScroll}>
               <p className={styles.consentText}>{CONSENT_TEXT}</p>
 
               {illustration}
@@ -335,11 +334,10 @@ export default function Esign() {
       aria-label="E-Sign"
       style={{
         background: "#f8f8f8",
-        height: "calc(100vh - 90px)",
+        minHeight: "calc(100vh - 90px)",
         padding: 0,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
       }}
     >
       <div className={styles.mobGrayHeader}>
@@ -371,7 +369,7 @@ export default function Esign() {
         </div>
       </div>
 
-      <div className={styles.mobCard} data-lenis-prevent>
+      <div className={styles.mobCard}>
         <p className={styles.consentText}>{CONSENT_TEXT}</p>
 
         {illustration}
