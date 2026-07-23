@@ -216,7 +216,7 @@ export default function Rpd() {
       clearInterval(rpdWebHookIntervalRef.current);
     showSpinner();
     setTimeout(() => {
-      router.push("/personalDetailsForm/6");
+      router.push("/manual-bankdetails");
       hideSpinner();
     }, 200);
   };

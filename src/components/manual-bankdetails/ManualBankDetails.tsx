@@ -22,6 +22,7 @@ import apiService, { BankMasterIFSCResponse } from "@/services/api.service";
 import { DOCUMENT_TYPES } from "@/constants/document-types";
 import { toast } from "@/services/toast.service";
 import { getBankStageData } from "../manual-bankinfo/ManualBankInfo";
+import { useSessionValue } from "@/hooks/useSessionValue";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -90,6 +91,13 @@ const STATEMENT_SIZE_ERR =
 
 const STATEMENT_TYPE_ERR =
   "Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.";
+
+// "Select Bank Account Type" options (merged from the former LinkBankAccount
+// step). NRO is always available; Non PIS NRE only on the semi-digital journey.
+const ACCOUNT_TYPES: { id: SelectedAccountType; label: string }[] = [
+  { id: "nro", label: "NRO (Savings Account)" },
+  { id: "nre", label: "Non PIS NRE (Savings Account)" },
+];
 
 // ── SVG Icons ─────────────────────────────────────────────────────────────────
 
@@ -198,6 +206,59 @@ function AlertIcon() {
       />
       <circle cx="8" cy="11" r="0.75" fill="#dc2626" />
     </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="10" viewBox="0 0 12 10" fill="none" aria-hidden="true">
+      <path
+        d="M1 5L4.5 8.5L11 1.5"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// ── "Select Bank Account Type" checkbox ───────────────────────────────────────
+
+function CheckboxOption({
+  label,
+  checked,
+  onToggle,
+  readOnly = false,
+}: {
+  label: string;
+  checked: boolean;
+  onToggle: () => void;
+  readOnly?: boolean;
+}) {
+  return (
+    <div className={styles.checkboxItem}>
+      <button
+        type="button"
+        className={styles.checkboxBtn}
+        onClick={readOnly ? undefined : onToggle}
+        aria-pressed={checked}
+        aria-readonly={readOnly || undefined}
+        aria-label={label}
+        style={readOnly ? { cursor: "default" } : undefined}
+      >
+        <div
+          className={`${styles.checkboxBox}${checked ? ` ${styles.checkboxBoxChecked}` : ""}`}
+        >
+          {checked && <CheckIcon />}
+        </div>
+      </button>
+      <span
+        className={`${styles.checkboxLabel}${checked ? ` ${styles.checkboxLabelChecked}` : ""}`}
+      >
+        {label}
+      </span>
+    </div>
   );
 }
 
@@ -757,9 +818,20 @@ export default function ManualBankDetails() {
 
   const modalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Bank-account-type selection (merged from the former LinkBankAccount step).
+  // Starts empty — the user picks a type (or it is prefilled/forced below).
   const [selectedAccountTypes, setSelectedAccountTypes] = useState<
     SelectedAccountType[]
-  >(["nre", "nro"]);
+  >([]);
+
+  // BRD: the "Non PIS NRE" option is only valid on the semi-digital journey; the
+  // digital journey uses NRO only (auto-selected, no NRE checkbox).
+  const accountType = useSessionValue("accountType");
+  const isSemiDigital = accountType === "semi-digital";
+  const isDigital = accountType === "digital";
+  const accountTypeOptions = isSemiDigital
+    ? ACCOUNT_TYPES
+    : ACCOUNT_TYPES.filter(({ id }) => id !== "nre");
 
   const [nroStatementFiles, setNroStatementFiles] = useState<UploadedFile[]>(
     [],
@@ -826,11 +898,41 @@ export default function ManualBankDetails() {
     }
   };
 
+  // Prefill the checkbox selection from a prior visit (SelectedAccountTypes).
+  // When nothing is saved, the selection stays empty so the user picks a type.
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    setSelectedAccountTypes(getSelectedAccountTypesFromSession());
+    const raw = window.sessionStorage.getItem("SelectedAccountTypes");
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+
+      const normalized = parsed
+        .map((item) => String(item).toLowerCase())
+        .filter(
+          (item): item is SelectedAccountType =>
+            item === "nre" || item === "nro",
+        );
+
+      if (normalized.length) {
+        setSelectedAccountTypes(Array.from(new Set(normalized)));
+      }
+    } catch {
+      // Ignore a malformed session value — the user selects fresh.
+    }
   }, []);
+
+  // Digital journey: force NRO only (no NRE option) and persist it downstream.
+  useEffect(() => {
+    if (!isDigital) return;
+    setSelectedAccountTypes(["nro"]);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("SelectedAccountTypes", JSON.stringify(["nro"]));
+    }
+  }, [isDigital]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1039,9 +1141,28 @@ export default function ManualBankDetails() {
     showSpinner();
 
     setTimeout(() => {
-      router.push("/personalDetailsForm/6");
+      router.push("/personalDetailsForm/5");
       hideSpinner();
     }, 200);
+  };
+
+  // Toggle a bank-account-type checkbox and mirror the selection to sessionStorage
+  // (the downstream ManualBankInfo screen reads SelectedAccountTypes). Locked once
+  // saved stage data has bound the sections.
+  const toggleAccountType = (id: SelectedAccountType) => {
+    if (isStageDataLocked) return;
+    setSelectedAccountTypes((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem(
+          "SelectedAccountTypes",
+          JSON.stringify(next),
+        );
+      }
+      return next;
+    });
   };
 
   const getApplicationId = () => {
@@ -1396,6 +1517,23 @@ export default function ManualBankDetails() {
     />
   );
 
+  const renderAccountTypeSelection = () => (
+    <>
+      <p className={styles.sectionLabel}>Select Bank Account Type</p>
+      <div className={styles.checkboxGroup}>
+        {accountTypeOptions.map(({ id, label }) => (
+          <CheckboxOption
+            key={id}
+            label={label}
+            checked={selectedAccountTypes.includes(id)}
+            onToggle={() => toggleAccountType(id)}
+            readOnly={isStageDataLocked}
+          />
+        ))}
+      </div>
+    </>
+  );
+
   const renderNeedHelpBtn = () => (
     <button
       type="button"
@@ -1441,6 +1579,7 @@ export default function ManualBankDetails() {
         </div>
 
         <div className={styles.mobileCard}>
+          {renderAccountTypeSelection()}
           {showNroSection && renderNroSection()}
           {showNreSection && renderNreSection()}
         </div>
@@ -1494,6 +1633,7 @@ export default function ManualBankDetails() {
 
           <div className={styles.desktopCardBody}>
             <div className={styles.desktopScrollArea}>
+              {renderAccountTypeSelection()}
               {showNroSection && renderNroSection()}
               {showNreSection && renderNreSection()}
             </div>

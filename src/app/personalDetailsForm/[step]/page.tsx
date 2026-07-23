@@ -5,10 +5,10 @@ import TradingExp from '@/components/trading-exp/TradingExp';
 import AnnualIncome from '@/components/annual-income/AnnualIncome';
 import OccupDetails from '@/components/occup-details/OccupDetails';
 import FatherSpouseName from '@/components/father-spouse-name/FatherSpouseName';
-import LinkBankAccount from '@/components/link-bank-account/LinkBankAccount';
 
 // Dynamic step routing for /personalDetailsForm/[step]
-// Step 1: Marital Status, 2: Trading Exp, 3: Annual Income, 4: Occupation, 5: Father/Spouse Name, 6: Link Bank Account
+// Step 1: Marital Status, 2: Trading Exp, 3: Annual Income, 4: Occupation, 5: Father/Spouse Name
+// (Step 6 "Link Bank Account" was merged into /manual-bankdetails.)
 
 interface Props {
   params: Promise<{ step: string }>;
@@ -24,7 +24,6 @@ export default async function PersonalDetailsFormPage({ params }: Props) {
     '3': <AnnualIncome />,
     '4': <OccupDetails />,
     '5': <FatherSpouseName />,
-    '6': <LinkBankAccount />,
   };
 
   return (

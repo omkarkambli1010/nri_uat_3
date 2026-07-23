@@ -842,7 +842,7 @@ export default function Declaration() {
       }, 200);
     } else {
       setTimeout(() => {
-        router.push("/personalDetailsForm/6");
+        router.push("/manual-bankdetails");
         hideSpinner();
       }, 200);
     }

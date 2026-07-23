@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
 import VisaEntry from '@/components/visa/VisaEntry';
 
-// Route: /visa — entry screen (Figma 0:119049 / 0:119133).
-// Upload routes to /visa/upload with the picked expiry as a query param.
+// Route: /visa — merged screen (Figma 0:119049 / 0:119133): visa expiry +
+// Front/Back/Additional uploads, submitted together via POST /visa.
 
 export default function VisaPage() {
   return (

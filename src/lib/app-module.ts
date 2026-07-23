@@ -18,7 +18,7 @@
 //   AnnualIncomeComponent       → src/components/annual-income/AnnualIncome.tsx
 //   OccupDetailsComponent       → src/components/occup-details/OccupDetails.tsx
 //   FatherSpouseNameComponent   → src/components/father-spouse-name/FatherSpouseName.tsx
-//   LinkBankAccountComponent    → src/components/link-bank-account/LinkBankAccount.tsx
+//   (LinkBankAccount merged into src/components/manual-bankdetails/ManualBankDetails.tsx)
 //   RpdComponent                → src/components/rpd/Rpd.tsx
 //   DeclarationComponent        → src/components/declaration/Declaration.tsx
 //   PlanPreferenceComponent     → src/components/plan-preference/PlanPreference.tsx

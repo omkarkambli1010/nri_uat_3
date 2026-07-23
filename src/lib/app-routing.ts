@@ -20,8 +20,7 @@
 // 'personalDetailsForm/3'            → src/app/personalDetailsForm/3/page.tsx
 // 'personalDetailsForm/4'            → src/app/personalDetailsForm/4/page.tsx
 // 'personalDetailsForm/5'            → src/app/personalDetailsForm/5/page.tsx
-// 'personalDetailsForm/6'            → src/app/personalDetailsForm/6/page.tsx
-// 'manual-bankdetails'               → src/app/manual-bankdetails/page.tsx
+// 'manual-bankdetails'               → src/app/manual-bankdetails/page.tsx (bank-account-type select + details, single page; former personalDetailsForm/6 merged here)
 // 'manual-document-screen'           → src/app/manual-document-screen/page.tsx
 // 'planprocess/1'                    → src/app/planprocess/1/page.tsx
 // 'planprocess/2'                    → src/app/planprocess/2/page.tsx
@@ -43,13 +42,11 @@
 // 'faq'                              → src/app/faq/page.tsx
 // 'passportUpload/details'           → src/app/passportUpload/details/page.tsx
 // 'passportUpload/upload'            → src/app/passportUpload/upload/page.tsx
-// 'oci'                              → src/app/oci/page.tsx
-// 'oci/upload'                       → src/app/oci/upload/page.tsx
+// 'oci'                              → src/app/oci/page.tsx (details + upload, single page)
 // 'fatca'                            → src/app/fatca/page.tsx
 // 'fatca/document'                   → src/app/fatca/document/page.tsx
 // 'fatca/upload'                     → src/app/fatca/upload/page.tsx
-// 'visa'                             → src/app/visa/page.tsx
-// 'visa/upload'                      → src/app/visa/upload/page.tsx
+// 'visa'                             → src/app/visa/page.tsx (expiry + upload, single page)
 // 'permanent-address-details'        → src/app/permanent-address-details/page.tsx
 // 'foreignAddress'                   → src/app/foreignAddress/page.tsx (fields + upload, single page)
 // 'permanentAddress'                 → src/app/permanentAddress/page.tsx (fields + upload, single page)
