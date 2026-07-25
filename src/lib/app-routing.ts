@@ -20,7 +20,8 @@
 // 'personalDetailsForm/3'            → src/app/personalDetailsForm/3/page.tsx
 // 'personalDetailsForm/4'            → src/app/personalDetailsForm/4/page.tsx
 // 'personalDetailsForm/5'            → src/app/personalDetailsForm/5/page.tsx
-// 'manual-bankdetails'               → src/app/manual-bankdetails/page.tsx (bank-account-type select + details, single page; former personalDetailsForm/6 merged here)
+// 'personalDetailsForm/6'            → src/app/personalDetailsForm/6/page.tsx
+// 'manual-bankdetails'               → src/app/manual-bankdetails/page.tsx
 // 'manual-document-screen'           → src/app/manual-document-screen/page.tsx
 // 'planprocess/1'                    → src/app/planprocess/1/page.tsx
 // 'planprocess/2'                    → src/app/planprocess/2/page.tsx
