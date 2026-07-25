@@ -16,6 +16,20 @@ import { publicPath } from "@/utils/publicPath";
 import { APP_VERSION } from "@/lib/version";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import SectionNavigation, {
+  type Section,
+} from "@/components/SectionNavigation/SectionNavigation";
+
+// Rail entries for the marketing sections below. Each id must match a
+// <section id> in the markup; adding a section here adds an indicator.
+const HOME_SECTIONS: Section[] = [
+  { id: "overview", label: "Overview" },
+  { id: "invest-in-india", label: "Invest in India" },
+  { id: "why-sbi", label: "Why SBI" },
+  { id: "key-features", label: "Key features" },
+  { id: "account-info", label: "Account info" },
+  { id: "need-help", label: "Need help" },
+];
 
 // Home component — equivalent to Angular HomeComponent
 // Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
@@ -676,10 +690,18 @@ export default function HomeComponent() {
 
   return (
     <div className={styles.homeRoot} ref={homeRef}>
+      {/* Dark marks: this page is light-themed. */}
+      <SectionNavigation
+        sections={HOME_SECTIONS}
+        tone="onLight"
+        ariaLabel="Page sections"
+      />
+
       {/* Banner Section */}
       <section
+        id="overview"
         aria-label="Open Demat and Trading Account"
-        className={`${styles.banner} banner`}
+        className={`${styles.banner} banner ${styles.navTarget}`}
       >
         {/* Decorative circles */}
         <div className={styles.decorCirclePink} aria-hidden="true" />
@@ -937,8 +959,9 @@ export default function HomeComponent() {
 
       {/* Invest in India Intro Section */}
       <section
+        id="invest-in-india"
         aria-label="Invest in India from Anywhere in the World"
-        className={styles.investIntro}
+        className={`${styles.investIntro} ${styles.navTarget}`}
       >
         <div className="container">
           <div className="row">
@@ -965,8 +988,9 @@ export default function HomeComponent() {
 
       {/* Why Open Demat Section */}
       <section
+        id="why-sbi"
         aria-label="Why Open Demat Account With SBI Securities"
-        className={styles.whyOpenDemat}
+        className={`${styles.whyOpenDemat} ${styles.navTarget}`}
       >
         <div className="container">
           <div className="row">
@@ -1002,8 +1026,9 @@ export default function HomeComponent() {
 
       {/* Key Features Section */}
       <section
+        id="key-features"
         aria-label="Key Features of NRI Demat & Trading Account"
-        className={styles.whyOpenDemat}
+        className={`${styles.whyOpenDemat} ${styles.navTarget}`}
       >
         <div className="container">
           <div className="row">
@@ -1063,8 +1088,9 @@ export default function HomeComponent() {
 
       {/* NRI Account Info Tabs Section */}
       <section
+        id="account-info"
         aria-label="NRI Account Information"
-        className={styles.infoTabsSection}
+        className={`${styles.infoTabsSection} ${styles.navTarget}`}
       >
         <div className="container">
           <div className="row">
@@ -1202,8 +1228,9 @@ export default function HomeComponent() {
 
       {/* Need Help Section */}
       <section
+        id="need-help"
         aria-label="Need Help"
-        className={styles.needHelpSection}
+        className={`${styles.needHelpSection} ${styles.navTarget}`}
       >
         <div className="container">
           {/* <p className={styles.needHelpProceed}>

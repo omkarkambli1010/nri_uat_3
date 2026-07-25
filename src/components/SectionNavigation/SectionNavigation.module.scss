@@ -1,0 +1,186 @@
+// SectionNavigation — fixed right-rail section indicator.
+//
+// Specificity note: the hover rules below are scoped with :not(.linkActive)
+// so they are *mutually exclusive* with the active rule rather than competing
+// with it. Relying on source order or specificity here is how these components
+// usually end up with an active state that flickers on hover.
+
+.nav {
+  // ---- tokens -------------------------------------------------------------
+  // Scale factors are unitless on purpose: `calc()` cannot divide two lengths,
+  // so the line has one fixed width and we scale it.
+  --sn-line-width: 48px;
+  --sn-thickness: 3px;
+
+  --sn-scale-inactive: 0.42; // ~20px
+  --sn-scale-peek: 0.62; // ~30px, when the rail is hovered
+  --sn-scale-hover: 0.8; // ~38px, the line under the cursor
+  --sn-scale-active: 1; // 48px
+
+  --sn-color-inactive: rgb(255 255 255 / 55%);
+  --sn-color-hover: rgb(255 255 255 / 80%);
+  --sn-color-active: #fff;
+
+  // Only the active line glows. It carries the "you are here" signal, so it is
+  // the one place worth spending contrast; the idle lines stay quiet.
+  --sn-glow: 0 0 14px rgb(255 255 255 / 45%);
+
+  // A long, decelerating curve — the motion should settle, not snap.
+  --sn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sn-duration: 420ms;
+
+  position: fixed;
+  top: 50%;
+  right: clamp(0.75rem, 2.5vw, 2.5rem);
+  z-index: 50;
+  transform: translateY(-50%);
+}
+
+// Tone is a property of the BACKGROUND this rail sits on, which the page author
+// knows and the OS does not. Keying this off `prefers-color-scheme` was wrong:
+// a light page viewed on a dark-mode OS would render white marks on white.
+// The default above suits a dark backdrop; `tone="onLight"` flips it.
+.onLight {
+  --sn-color-inactive: rgb(15 23 42 / 45%);
+  --sn-color-hover: rgb(15 23 42 / 75%);
+  --sn-color-active: #0f172a;
+
+  // A white halo would vanish on a light page; a soft dark one separates the
+  // active line from the background just as well.
+  --sn-glow: 0 0 10px rgb(15 23 42 / 30%);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  margin: 0;
+  padding: 0;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+
+  // Generous invisible hit area around a 2px visual — the target should be
+  // comfortable to hit without making the mark heavier.
+  min-height: 32px;
+  padding: 0.375rem 0;
+
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+
+  --sn-scale: var(--sn-scale-inactive);
+  --sn-color: var(--sn-color-inactive);
+  --sn-shadow: none;
+}
+
+.line {
+  display: block;
+  flex: none;
+  width: var(--sn-line-width);
+  height: var(--sn-thickness);
+  border-radius: 999px;
+  background-color: var(--sn-color);
+  box-shadow: var(--sn-shadow);
+
+  // Right origin keeps every line flush to the rail as it grows.
+  transform: scaleX(var(--sn-scale));
+  transform-origin: right center;
+  transition:
+    transform var(--sn-duration) var(--sn-ease),
+    background-color var(--sn-duration) var(--sn-ease),
+    box-shadow var(--sn-duration) var(--sn-ease);
+  will-change: transform;
+}
+
+.label {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  line-height: 1;
+  color: var(--sn-color-active);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+
+  opacity: 0;
+  transform: translateX(0.375rem);
+  transition:
+    opacity var(--sn-duration) var(--sn-ease),
+    transform var(--sn-duration) var(--sn-ease);
+}
+
+// ---- states ---------------------------------------------------------------
+
+// Hovering anywhere on the rail lifts every inactive line slightly, so the
+// whole control reads as one interactive object rather than five loose marks.
+.nav:hover .link:not(.linkActive) {
+  --sn-scale: var(--sn-scale-peek);
+  --sn-color: var(--sn-color-hover);
+}
+
+.link:not(.linkActive):hover,
+.link:not(.linkActive):focus-visible {
+  --sn-scale: var(--sn-scale-hover);
+  --sn-color: var(--sn-color-active);
+}
+
+.linkActive {
+  --sn-scale: var(--sn-scale-active);
+  --sn-color: var(--sn-color-active);
+  --sn-shadow: var(--sn-glow);
+}
+
+.link:hover .label,
+.link:focus-visible .label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.link:focus-visible {
+  border-radius: 6px;
+  outline: 2px solid var(--sn-color-active);
+  outline-offset: 6px;
+}
+
+// ---- responsive -----------------------------------------------------------
+
+@media (width <= 768px) {
+  .nav {
+    --sn-line-width: 36px;
+    --sn-thickness: 3px;
+  }
+
+  .link {
+    gap: 0.5rem;
+    min-height: 28px;
+  }
+}
+
+// Touch devices have no hover, and a persistent label would just crowd a small
+// screen. Keep the indicator, drop the reveal.
+@media (hover: none) {
+  .label {
+    display: none;
+  }
+}
+
+// ---- accessibility --------------------------------------------------------
+
+@media (prefers-reduced-motion: reduce) {
+  .line,
+  .label {
+    transition-duration: 1ms;
+  }
+}
