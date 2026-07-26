@@ -74,14 +74,6 @@ function IconBackArrow() {
   );
 }
 
-function IconCaretDown() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M4 6l4 4 4-4" stroke="#2B2B2B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
 type Previews = { front: UploadedFile | null; back: UploadedFile | null };
 
 export default function OciUpload() {
@@ -275,22 +267,25 @@ export default function OciUpload() {
   // ── Document Type + Card No. fields — same JSX on mobile + desktop ───────────
   const docTypeField = (idSuffix: 'mob' | 'desk') => (
     <>
-      <label className={styles.fieldLabel} htmlFor={`${idSuffix}-doc-type`}>Document Type *</label>
-      <div className={styles.fieldInputWrap}>
-        <select
-          id={`${idSuffix}-doc-type`}
-          className={`${styles.fieldSelect}${docType === '' ? ` ${styles.placeholder}` : ''}`}
-          value={docType}
-          onChange={(e) => handleDocTypeChange(e.target.value as DocType)}
-        >
-          <option value="" disabled hidden>Select</option>
-          {DOC_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-        <span className={styles.fieldSelectCaret} aria-hidden="true">
-          <IconCaretDown />
-        </span>
+      {/* Not a <label htmlFor>: a radio group has no single input to point at,
+          so the caption is a plain <p> and the group carries the accessible name. */}
+      <p className={styles.fieldLabel}>Document Type *</p>
+      <div className={styles.radioGroup} role="radiogroup" aria-label="Document Type">
+        {DOC_OPTIONS.map((o) => (
+          <label key={o.value} className={styles.radioOption}>
+            <input
+              type="radio"
+              // Scoped per copy — the mobile and desktop fields are both in the
+              // DOM (CSS hides one), and a shared name would make all four
+              // inputs a single native radio group.
+              name={`${idSuffix}-doc-type`}
+              value={o.value}
+              checked={docType === o.value}
+              onChange={() => handleDocTypeChange(o.value)}
+            />
+            <span>{o.label}</span>
+          </label>
+        ))}
       </div>
     </>
   );
