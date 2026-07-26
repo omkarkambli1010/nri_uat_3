@@ -5,7 +5,7 @@
   "scripts": {
     "bump-version": "node scripts/bump-version.mjs",
     "assemble-standalone": "node scripts/assemble-standalone.mjs",
-    "dev": "cross-env NEXT_PUBLIC_ENV=development NODE_OPTIONS=\"--insecure-http-parser --use-system-ca\" next dev",
+    "dev": "node scripts/dev.mjs",
     "build": "cross-env NEXT_PUBLIC_ENV=development next build",
     "build:uat": "npm run bump-version && cross-env NEXT_PUBLIC_ENV=uat next build && npm run assemble-standalone",
     "build:prod": "npm run bump-version && cross-env NEXT_PUBLIC_ENV=production next build && npm run assemble-standalone",
