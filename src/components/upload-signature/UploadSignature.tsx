@@ -283,7 +283,7 @@ export default function UploadSignature() {
     navigationService.setRouter(router, hideSpinner);
   }, [router, hideSpinner]);
 
-  // Fetch the saved SIGNATURE stage on load (POST …/get/workflow/stagewisedate
+  // Fetch the saved SIGNATURE stage on load (POST …/get/workflow/stagewisedata
   // { stagename: "SIGNATURE" }). Holds the real documentId in a ref (for
   // proceed()), and — on a revisit — binds the previously saved signature from
   // its presigned URL: the bytes are fetched into a Blob so the preview shows

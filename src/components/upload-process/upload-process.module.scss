@@ -267,7 +267,8 @@ $text-gray: #666666;
 .desktopFormRow {
   display: flex;
   align-items: flex-start;
-  gap: 24px;
+  // gap: 24px;
+  gap: 100px;
 }
 
 .desktopFormRowCenter {
@@ -356,11 +357,10 @@ $text-gray: #666666;
   }
 }
 
-// Figma: 14px Regular #280071
 .accordionToggleText {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
-  color: $primary;
+  color: $text-dark;
 }
 
 // ── PAN card Splide carousel ──────────────────────────────────────────────────
@@ -504,7 +504,8 @@ $text-gray: #666666;
 // Mobile: security banner area sits between scrollable card and button footer
 .mobileSecurityArea {
   background: $bg-page;
-  padding: 12px 16px 0;
+  // padding: 12px 16px 0;
+  padding: 16px 0;
   flex-shrink: 0;
 }
 
@@ -513,6 +514,7 @@ $text-gray: #666666;
   display: flex;
   flex-direction: column;
   gap: 32px;
+  margin-top: 20px;
 }
 
 // ── Desktop proceed ───────────────────────────────────────────────────────────

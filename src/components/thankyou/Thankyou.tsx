@@ -186,7 +186,7 @@ export default function Thankyou() {
 
     try {
       const response = await apiService.postNri(
-        `applications/${applicationId}/get/workflow/stagewisedate`,
+        `applications/${applicationId}/get/workflow/stagewisedata`,
         {
           stagename: "thankyou",
           idempotencyKey: "",

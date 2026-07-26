@@ -376,10 +376,10 @@ export default function AdhaarCopy() {
             </div>
 
             <div className={styles.contentBottom}>
-              <p className={styles.securityText}>
+              {/* <p className={styles.securityText}>
                 <ShieldIcon />
                 Your PAN details are safe and secure with us.
-              </p>
+              </p> */}
               <LoadingButton
                 type="button"
                 className={styles.proceedBtn}

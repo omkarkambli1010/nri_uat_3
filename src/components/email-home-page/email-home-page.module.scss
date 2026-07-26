@@ -264,10 +264,6 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 20px;
   border-bottom-left-radius: 24px;
   border-bottom-right-radius: 24px;
-  // Scale the body height with the viewport so the space between the email
-  // row and "Send OTP" shrinks on shorter laptop/tablet screens (avoids the
-  // extra white space that forced a vertical scroll), while staying capped
-  // at 500px on tall desktops.
   min-height: clamp(300px, 60vh, 500px);
 }
 

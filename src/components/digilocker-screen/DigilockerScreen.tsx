@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { toast } from '@/services/toast.service';
-import { useSpinner } from '@/components/spinner/Spinner';
-import apiService from '@/services/api.service';
-import moengagesdkService from '@/services/moengagesdk.service';
-import styles from './digilocker-screen.module.scss';
+import { useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
+import { toast } from "@/services/toast.service";
+import { useSpinner } from "@/components/spinner/Spinner";
+import apiService from "@/services/api.service";
+import moengagesdkService from "@/services/moengagesdk.service";
+import styles from "./digilocker-screen.module.scss";
 import { publicPath } from "@/utils/publicPath";
-import LoadingButton from '@/components/ui/LoadingButton';
+import LoadingButton from "@/components/ui/LoadingButton";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // DigilockerScreen — Aadhaar & PAN verification via DigiLocker
 // Figma: ExXo1tRiZv7Zcb9DGMnyiI
@@ -18,9 +19,27 @@ import LoadingButton from '@/components/ui/LoadingButton';
 
 function BackArrow() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M19 12H5" stroke="#2B2B2B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 19L5 12L12 5" stroke="#2B2B2B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M19 12H5"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 19L5 12L12 5"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -29,10 +48,10 @@ export default function DigilockerScreen() {
   const router = useRouter();
   const pathname = usePathname();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
-  const [nameSubmitted, setNameSubmitted] = useState('');
+  const [nameSubmitted, setNameSubmitted] = useState("");
 
   useEffect(() => {
-    document.title = 'Digilocker Screen - Onboarding-DIY-PWA';
+    document.title = "Digilocker Screen - Onboarding-DIY-PWA";
     getDigilockerName();
   }, []);
 
@@ -41,12 +60,14 @@ export default function DigilockerScreen() {
   // workflow data (stagename: "PAN").
   const getDigilockerName = async () => {
     const applicationId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+      typeof window !== "undefined"
+        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        : "";
     if (!applicationId) return;
     try {
       const response = await apiService.getPanWorkflow(applicationId);
       if (response?.status === true && response?.data) {
-        setNameSubmitted(response.data.itdName ?? '');
+        setNameSubmitted(response.data.itdName ?? "");
       }
     } catch {
       // silently fail — the prompt simply omits the name
@@ -55,13 +76,15 @@ export default function DigilockerScreen() {
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
-  }
+  };
 
   const redirectDigiLocker = async () => {
     const applicationId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+      typeof window !== "undefined"
+        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        : "";
     if (!applicationId) {
-      toast.error('Your session has expired, please start again.');
+      toast.error("Your session has expired, please start again.");
       return;
     }
     showSpinner();
@@ -72,7 +95,7 @@ export default function DigilockerScreen() {
         window.location.href = String(res.oAuthUrl); // keep spinner up during redirect
         return;
       }
-      toast.error('Could not start DigiLocker verification. Please try again.');
+      toast.error("Could not start DigiLocker verification. Please try again.");
       hideSpinner();
     } catch {
       // apiService.handleError already surfaced the backend message.
@@ -81,22 +104,36 @@ export default function DigilockerScreen() {
   };
 
   // BRD: the back button returns to the Permanent Address Details page.
-  const handleBack = () => router.push('/permanent-address-details');
+  // const handleBack = () => router.push('/permanent-address-details');
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("DIGILOCKER", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
+  };
 
   return (
     <>
       {/* ═══ MOBILE ════════════════════════════════════════════════════════════
           Figma 1-5158 — Onboarding-Mob-PANMANUAL-Verification-Success (360px)
       ════════════════════════════════════════════════════════════════════════ */}
-      <div className={styles.mobilePage} aria-label="DigiLocker Aadhaar and PAN Verification">
-
+      <div
+        className={styles.mobilePage}
+        aria-label="DigiLocker Aadhaar and PAN Verification"
+      >
         {/* Gray header: back + DigiLocker logo row + title */}
         {/* Figma: gap-8 between sections, flex-col */}
         <div className={styles.mobileHeader}>
           <button
             type="button"
             className={styles.mobileBackBtn}
-            onClick={handleBack}
+            onClick={goBack}
             aria-label="Go back"
           >
             <BackArrow />
@@ -127,17 +164,18 @@ export default function DigilockerScreen() {
 
         {/* White card — rounded-top-24, shadow, flex-1 */}
         <div className={styles.mobileCard}>
-
           {/* Aadhaar section — centered, gap-8 */}
           {/* Figma: 12px text, 226×143 image, 12px gray hint */}
           <div className={styles.contentSection}>
             <p className={styles.enterAadhaarText}>
-              Enter Aadhaar number or VID for{' '}
+              Enter Aadhaar number or VID for{" "}
               <strong>&apos;{nameSubmitted}&apos;</strong>
             </p>
             <div className={styles.aadhaarImageWrap}>
               <Image
-                src={publicPath("/assets/images/diy/aadhar_card_sample_img.png")}
+                src={publicPath(
+                  "/assets/images/diy/aadhar_card_sample_img.png",
+                )}
                 alt="Sample Aadhaar card"
                 width={226}
                 height={143}
@@ -145,7 +183,8 @@ export default function DigilockerScreen() {
               />
             </div>
             <p className={styles.otpHintText}>
-              In the next step, OTP will be sent to your Aadhaar linked Mobile number
+              In the next step, OTP will be sent to your Aadhaar linked Mobile
+              number
             </p>
           </div>
 
@@ -157,7 +196,9 @@ export default function DigilockerScreen() {
             </p>
             <div className={styles.gifWrap}>
               <Image
-                src={publicPath("/assets/images/diy/digilocker_toogle_video.gif")}
+                src={publicPath(
+                  "/assets/images/diy/digilocker_toogle_video.gif",
+                )}
                 alt="DigiLocker document selection guide"
                 width={312}
                 height={82}
@@ -169,32 +210,36 @@ export default function DigilockerScreen() {
               Create a 6-digit M-PIN (for new DigiLocker users)
             </p>
           </div>
-
         </div>
 
         {/* Sticky bottom button — pb-16, w-328, h-48, bg #280071 */}
         <div className={styles.mobileProceedArea}>
-          <LoadingButton type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
+          <LoadingButton
+            type="button"
+            className={styles.proceedBtn}
+            onClick={redirectDigiLocker}
+          >
             Verify with Digilocker
           </LoadingButton>
         </div>
-
       </div>
 
       {/* ═══ DESKTOP ═══════════════════════════════════════════════════════════
           Figma 1-5263 — Onboarding-Web-PANMANUAL-Verification-Filled (1440px)
           Card: 800px wide, 680px tall, rounded-24, border #d9d9d9, shadow
       ════════════════════════════════════════════════════════════════════════ */}
-      <div className={styles.desktopPage} aria-label="DigiLocker Aadhaar and PAN Verification">
+      <div
+        className={styles.desktopPage}
+        aria-label="DigiLocker Aadhaar and PAN Verification"
+      >
         <div className={styles.desktopCard}>
-
           {/* Card header — p-24, border-bottom 0.5px #d9d9d9 */}
           {/* Figma: [back-arrow] [digilocker-logo + title] [Need Help?] */}
           <div className={styles.desktopCardHeader}>
             <button
               type="button"
               className={styles.desktopBackBtn}
-              onClick={handleBack}
+              onClick={goBack}
               aria-label="Go back"
             >
               <BackArrow />
@@ -225,17 +270,18 @@ export default function DigilockerScreen() {
 
           {/* Card body — flex-col, items-center */}
           <div className={styles.desktopCardBody}>
-
             {/* Aadhaar section — centered, gap-8 */}
             {/* Figma: 14px text, 226×143 image (border, rounded-16), 12px gray hint */}
             <div className={styles.desktopContentSection}>
               <p className={styles.enterAadhaarText}>
-                Enter Aadhaar number or VID for{' '}
+                Enter Aadhaar number or VID for{" "}
                 <strong>&apos;{nameSubmitted}&apos;</strong>
               </p>
               <div className={styles.aadhaarImageWrap}>
                 <Image
-                  src={publicPath("/assets/images/diy/aadhar_card_sample_img.png")}
+                  src={publicPath(
+                    "/assets/images/diy/aadhar_card_sample_img.png",
+                  )}
                   alt="Sample Aadhaar card"
                   width={226}
                   height={143}
@@ -243,7 +289,8 @@ export default function DigilockerScreen() {
                 />
               </div>
               <p className={styles.otpHintText}>
-                In the next step, OTP will be sent to your Aadhaar linked Mobile number
+                In the next step, OTP will be sent to your Aadhaar linked Mobile
+                number
               </p>
             </div>
 
@@ -255,7 +302,9 @@ export default function DigilockerScreen() {
               </p>
               <div className={styles.gifWrap}>
                 <Image
-                  src={publicPath("/assets/images/diy/digilocker_toogle_video.gif")}
+                  src={publicPath(
+                    "/assets/images/diy/digilocker_toogle_video.gif",
+                  )}
                   alt="DigiLocker document selection guide"
                   width={358}
                   height={94}
@@ -270,11 +319,14 @@ export default function DigilockerScreen() {
 
             {/* CTA — centered, w-350, h-56, bg #280071 */}
             <div className={styles.desktopProceedWrapper}>
-              <LoadingButton type="button" className={styles.proceedBtn} onClick={redirectDigiLocker}>
+              <LoadingButton
+                type="button"
+                className={styles.proceedBtn}
+                onClick={redirectDigiLocker}
+              >
                 Verify with Digilocker
               </LoadingButton>
             </div>
-
           </div>
         </div>
       </div>

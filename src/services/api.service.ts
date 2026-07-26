@@ -323,7 +323,7 @@ class APIService {
     } catch (error) {
       console.log(error)
       this.removeModal();
-      throw error; //this.handleError(error, hideSpinner);
+      throw error;
     }
   }
 
@@ -863,6 +863,38 @@ class APIService {
     }
   }
 
+  // ─── Aadhaar ──────────────────────────────────────────────────────────────
+
+  async uploadAadhaar(
+    applicationId: string,
+    frontFile: File,
+    backFile: File,
+    onProgress?: (p: number) => void,
+    hideSpinner?: () => void,
+  ): Promise<any> {
+    const url = `${this.nriapi}applications/${applicationId}/Aadharupload`;
+
+    const form = new FormData();
+    form.append("Documenttype1", "aadhar_front");
+    form.append("FrontFile", frontFile);
+    form.append("Documenttype2", "aadhar_back");
+    form.append("BackFile", backFile);
+    form.append("IdempotencyKey", "");
+
+    try {
+      const response = await axios.post(url, form, {
+        headers: { accept: "*/*" },
+        onUploadProgress: (e) => {
+          if (onProgress && e.total) onProgress((e.loaded / e.total) * 100);
+        },
+      });
+      return response.data;
+    } catch (error) {
+      return this.handleError(error, hideSpinner);
+    }
+  }
+
+
   async digilockerCallback(
     applicationId: string,
     code: string,
@@ -886,7 +918,7 @@ class APIService {
   ): Promise<any> {
     try {
       return await this.postNri(
-        `applications/${applicationId}/get/workflow/stagewisedate`,
+        `applications/${applicationId}/get/workflow/stagewisedata`,
         {
           stagename,
           idempotencyKey: '',
@@ -922,6 +954,24 @@ class APIService {
       return this.handleError(error, hideSpinner);
     }
   }
+
+
+  // Passport — advance the workflow after front/back upload + detail confirmation.
+async proceedPassport(
+  applicationId: string,
+  hideSpinner?: () => void,
+): Promise<any> {
+  const url = `${this.nriapi}applications/${applicationId}/passport/proceed`;
+  try {
+    const response = await axios.post(url, "", {
+      headers: { accept: "*/*" },
+    });
+    return response.data;
+  } catch (error) {
+    return this.handleError(error, hideSpinner);
+  }
+}
+
 
   async getDigilockerWorkflow(
     applicationId: string,
@@ -1009,7 +1059,6 @@ class APIService {
     return this.getWorkflowStageData(applicationId, "PASSPORT", hideSpinner);
   }
 
-  // Permanent (Indian) address — stage name is "INDIANADDRESS".
   async getPermanentAddressWorkflow(
     applicationId: string,
     hideSpinner?: () => void,

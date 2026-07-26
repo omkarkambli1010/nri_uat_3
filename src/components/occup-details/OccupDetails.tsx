@@ -7,7 +7,8 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./occup-details.module.scss";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 const OCCUPATION_OPTIONS = [
   "Public Sector",
@@ -67,7 +68,7 @@ export default function OccupDetails() {
   // const [selectedOccupation, setSelectedOccupation] = useState('');
   // const [guid, setGuid] = useState('');
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -130,58 +131,67 @@ export default function OccupDetails() {
   //   } catch { hideSpinner(); }
   // };
 
-    const getOccupationData = async () => {
-      const applicationId =
-        typeof window !== "undefined"
-          ? sessionStorage.getItem("ApplicationId")
-          : null;
-  
-      if (!applicationId) return;
-  
-      showSpinner();
-  
-      try {
-        const response = await apiService.getPersonalDetailsWorkflow(
-          applicationId,
-          hideSpinner,
-        );
-        console.log("Trading Exp Workflow Response:", response);
-  
-        const savedOccupDetails =
-          response?.data?.occupation ?? response?.occupation ?? "";
-  
-        if (savedOccupDetails && OCCUPATION_OPTIONS.includes(savedOccupDetails)) {
-          setSelected(savedOccupDetails);
-        }
-      } catch (error: any) {
-        const errorData = error?.response?.data;
-      } finally {
-        hideSpinner();
-      }
-    };
+  const getOccupationData = async () => {
+    const applicationId =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("ApplicationId")
+        : null;
 
+    if (!applicationId) return;
 
-  const goBack = () => {
     showSpinner();
-    setTimeout(() => {
-      router.push("/personalDetailsForm/3");
+
+    try {
+      const response = await apiService.getPersonalDetailsWorkflow(
+        applicationId,
+        hideSpinner,
+      );
+      console.log("Trading Exp Workflow Response:", response);
+
+      const savedOccupDetails =
+        response?.data?.occupation ?? response?.occupation ?? "";
+
+      if (savedOccupDetails && OCCUPATION_OPTIONS.includes(savedOccupDetails)) {
+        setSelected(savedOccupDetails);
+      }
+    } catch (error: any) {
+      const errorData = error?.response?.data;
+    } finally {
       hideSpinner();
-    }, 200);
+    }
+  };
+
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push("/personalDetailsForm/3");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS4", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const handleSelect = async (option: string) => {
     setSelected(option);
 
-    const applicationId =
-      sessionStorage.getItem("ApplicationId") ??
-      "";
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
       return;
     }
 
-    const reqData = {      
+    const reqData = {
       occupation: option,
       stageCodes: "PERSONAL_DETAILS4",
       idempotencyKey: "",

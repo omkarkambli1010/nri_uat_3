@@ -1,68 +1,78 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSpinner } from '@/components/spinner/Spinner';
-import { FileUploadCard } from '@/components/file-upload/FileUploadCard';
-import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
-import apiService from '@/services/api.service';
-import navigationService from '@/services/navigation.service';
-import styles from './aadhaar-upload.module.scss';
-import LoadingButton from '@/components/ui/LoadingButton';
-import { useSessionValue } from '@/hooks/useSessionValue';
-
-// AadhaarUploadAll — all-in-one Aadhaar Front + Back upload (passport-upload
-// style). Reached from /aadhar. Two FileUploadCard sections, each wired to the
-// real uploadDocument/upload API via `uploadFn`. Both sides must upload
-// successfully before Proceed advances the workflow (navigateToNextStep).
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSpinner } from "@/components/spinner/Spinner";
+import { FileUploadCard } from "@/components/file-upload/FileUploadCard";
+import type { UploadedFile } from "@/components/file-upload/fileUpload.types";
+import apiService from "@/services/api.service";
+import navigationService from "@/services/navigation.service";
+import styles from "./aadhaar-upload.module.scss";
+import LoadingButton from "@/components/ui/LoadingButton";
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
+import { toast } from "@/services/toast.service";
 
 // ── Upload constraints ──────────────────────────────────────────────────────
-const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic', 'image/heif'];
+const ACCEPTED_TYPES = [
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/heic",
+  "image/heif",
+];
 const MAX_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_LABEL = 'PDF, JPG, JPEG, HEIC & PNG';
-const SIZE_ERR = 'File size exceeds 5 MB. Please upload a smaller file.';
-const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
+const ACCEPTED_LABEL = "PDF, JPG, JPEG, HEIC & PNG";
+const SIZE_ERR = "File size exceeds 5 MB. Please upload a smaller file.";
+const TYPE_ERR =
+  "Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.";
 
-const getFormNumber = () =>
-  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+const getApplicationId = () =>
+  typeof window !== "undefined"
+    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    : "";
+const resolveNextRoute = (response: any): string | null => {
+  const raw = response?.nextStageurl;
+  if (raw) {
+    try {
+      const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+      const route = parsed?.route;
+      if (typeof route === "string" && route.trim()) {
+        return route.startsWith("/") ? route : `/${route}`;
+      }
+    } catch {}
+  }
 
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(new Error('Could not read file'));
-    reader.readAsDataURL(file);
-  });
+  const m = /^PERSONAL_DETAILS(\d+)$/i.exec(response?.nextStage ?? "");
+  if (m) return `/personalDetailsForm/${m[1]}`;
 
-// Builds an uploadFn for FileUploadCard that posts the picked (cropped) file to
-// the real upload API. Rejecting the promise marks the card's upload as failed.
-const makeUploadFn =
-  (docType: 'AADHARFRONT' | 'AADHARBACK') =>
-  async (file: File, onProgress: (p: number) => void) => {
-    onProgress(10);
-    const base64 = await fileToBase64(file);
-    onProgress(45);
-    const reqData = {
-      formNumber: getFormNumber(),
-      flag: 'docBase64String',
-      docType,
-      base64String: base64,
-    };
-    const response = await apiService.postRequest('api/v1/uploadDocument/upload', reqData);
-    if (response?.status !== true) {
-      throw new Error(response?.message || 'Upload failed');
-    }
-    onProgress(100);
-  };
-
-const uploadFront = makeUploadFn('AADHARFRONT');
-const uploadBack = makeUploadFn('AADHARBACK');
+  return null;
+};
 
 function IconBackArrow() {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M19 12H5" stroke="#2B2B2B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 19L5 12L12 5" stroke="#2B2B2B" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M19 12H5"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M12 19L5 12L12 5"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }
@@ -71,34 +81,108 @@ export default function AadhaarUploadAll() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
-  const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
-  const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
+  const [frontFile, setFrontFile] = useState<File | null>(null);
+  const [backFile, setBackFile] = useState<File | null>(null);
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
+  const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
+
+  const [submitting, setSubmitting] = useState(false);
+
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
   }, [router, hideSpinner]);
 
-  const frontUploaded = frontFiles.some((f) => f.status === 'success');
-  const backUploaded  = backFiles.some((f) => f.status === 'success');
+  const captureFront = useCallback(
+    async (file: File, onProgress: (p: number) => void) => {
+      setFrontFile(file);
+      onProgress(100);
+    },
+    [],
+  );
 
-  const isDisabled = !frontUploaded || !backUploaded;
+  const captureBack = useCallback(
+    async (file: File, onProgress: (p: number) => void) => {
+      setBackFile(file);
+      onProgress(100);
+    },
+    [],
+  );
 
-  const handleBack = () => {
-    showSpinner();
-    setTimeout(() => { router.push('/aadhar'); hideSpinner(); }, 200);
+  const handleFrontFilesChange = useCallback((files: UploadedFile[]) => {
+    setFrontFiles(files);
+    if (!files.some((f) => f.status === "success")) setFrontFile(null);
+  }, []);
+
+  const handleBackFilesChange = useCallback((files: UploadedFile[]) => {
+    setBackFiles(files);
+    if (!files.some((f) => f.status === "success")) setBackFile(null);
+  }, []);
+
+  const frontReady =
+    !!frontFile && frontFiles.some((f) => f.status === "success");
+  const backReady = !!backFile && backFiles.some((f) => f.status === "success");
+
+  const isDisabled = !frontReady || !backReady || submitting;
+
+  // const handleBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => { router.push('/aadhar'); hideSpinner(); }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("AADHAR_UPLOAD", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
-  // Both sides already uploaded via their own uploadFn — Proceed advances the
-  // workflow. The additional document is optional and never blocks Proceed.
-  const handleProceed = () => {
-    if (isDisabled) return;
+  const handleProceed = async () => {
+    if (isDisabled || !frontFile || !backFile) return;
+
+    setSubmitting(true);
     showSpinner();
-    setTimeout(() => { navigationService.navigateToNextStep(); hideSpinner(); }, 200);
+    try {
+      const response = await apiService.uploadAadhaar(
+        getApplicationId(),
+        frontFile,
+        backFile,
+        undefined,
+        hideSpinner,
+      );
+
+      if (response?.status === true) {
+        const route = resolveNextRoute(response);
+        if (route) {
+          router.push(route);
+        } else {
+          navigationService.navigateToNextStep();
+        }
+      } else {
+        toast.error(
+          response?.rejectionReason ||
+            response?.message ||
+            "Aadhaar upload failed. Please try again.",
+          { position: "bottom-center", autoClose: 3500 },
+        );
+        hideSpinner();
+      }
+    } catch {
+      // apiService.handleError already showed a toast + called hideSpinner.
+    } finally {
+      setSubmitting(false);
+      hideSpinner();
+    }
   };
 
-  const showBack = rejectStatus !== 'R';
+  const showBack = rejectStatus !== "R";
 
   const frontSection = (
     <div className={styles.section}>
@@ -110,8 +194,8 @@ export default function AadhaarUploadAll() {
         sizeErrorMessage={SIZE_ERR}
         typeErrorMessage={TYPE_ERR}
         cropImages
-        uploadFn={uploadFront}
-        onFilesChange={setFrontFiles}
+        uploadFn={captureFront}
+        onFilesChange={handleFrontFilesChange}
       />
     </div>
   );
@@ -126,23 +210,8 @@ export default function AadhaarUploadAll() {
         sizeErrorMessage={SIZE_ERR}
         typeErrorMessage={TYPE_ERR}
         cropImages
-        uploadFn={uploadBack}
-        onFilesChange={setBackFiles}
-      />
-    </div>
-  );
-
-  // ── Additional document — optional, inline (mirrors the Visa layout) ─────────
-  const additionalSection = (
-    <div className={styles.section}>
-      <p className={styles.sectionTitle}>Upload Additional Document</p>
-      <FileUploadCard
-        acceptedTypes={ACCEPTED_TYPES}
-        maxSize={MAX_SIZE}
-        acceptedLabel={ACCEPTED_LABEL}
-        sizeErrorMessage={SIZE_ERR}
-        typeErrorMessage={TYPE_ERR}
-        cropImages
+        uploadFn={captureBack}
+        onFilesChange={handleBackFilesChange}
       />
     </div>
   );
@@ -151,12 +220,16 @@ export default function AadhaarUploadAll() {
     <>
       {/* ═══ MOBILE LAYOUT ════════════════════════════════════════════════════ */}
       <div className={styles.mobilePage} aria-label="Upload Aadhaar">
-
         <div className={styles.mobileHeader}>
           <div className={styles.mobileHeaderInner}>
             {showBack && (
               <div className={styles.mobileTopRow}>
-                <button type="button" className={styles.mobileBackBtn} onClick={handleBack} aria-label="Go back">
+                <button
+                  type="button"
+                  className={styles.mobileBackBtn}
+                  onClick={goBack}
+                  aria-label="Go back"
+                >
                   <IconBackArrow />
                 </button>
               </div>
@@ -173,13 +246,12 @@ export default function AadhaarUploadAll() {
         <div className={styles.mobileCard}>
           {frontSection}
           {backSection}
-          {additionalSection}
         </div>
 
         <div className={styles.mobileProceedArea}>
           <LoadingButton
             type="button"
-            className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ''}`}
+            className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ""}`}
             onClick={handleProceed}
             disabled={isDisabled}
             aria-disabled={isDisabled}
@@ -187,16 +259,19 @@ export default function AadhaarUploadAll() {
             Proceed
           </LoadingButton>
         </div>
-
       </div>
 
       {/* ═══ DESKTOP LAYOUT ═══════════════════════════════════════════════════ */}
       <div className={styles.desktopPage} aria-label="Upload Aadhaar">
         <div className={styles.desktopCard}>
-
           <div className={styles.desktopCardHeader}>
             {showBack && (
-              <button type="button" className={styles.desktopBackBtn} onClick={handleBack} aria-label="Go back">
+              <button
+                type="button"
+                className={styles.desktopBackBtn}
+                onClick={goBack}
+                aria-label="Go back"
+              >
                 <IconBackArrow />
               </button>
             )}
@@ -212,13 +287,12 @@ export default function AadhaarUploadAll() {
             <div className={styles.desktopContentArea}>
               {frontSection}
               {backSection}
-              {additionalSection}
             </div>
 
             <div className={styles.desktopProceedWrapper}>
               <LoadingButton
                 type="button"
-                className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ''}`}
+                className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ""}`}
                 onClick={handleProceed}
                 disabled={isDisabled}
                 aria-disabled={isDisabled}
@@ -227,10 +301,8 @@ export default function AadhaarUploadAll() {
               </LoadingButton>
             </div>
           </div>
-
         </div>
       </div>
     </>
   );
 }
- 

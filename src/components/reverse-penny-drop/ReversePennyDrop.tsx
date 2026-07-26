@@ -444,7 +444,7 @@ export default function ReversePennyDrop() {
       clearInterval(rpdWebHookIntervalRef.current);
     showSpinner();
     setTimeout(() => {
-      router.push("/manual-bankdetails");
+      router.push("/personalDetailsForm/6");
       hideSpinner();
     }, 200);
   };

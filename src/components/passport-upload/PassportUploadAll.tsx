@@ -80,9 +80,6 @@ function validateDetails(d: PassportDetails, isIndian: boolean): FieldErrors {
     } else if (dob >= today) {
       errs.dob = 'Invalid Date of Birth. Must be a valid past date and age must be at least 18 years.';
     } else {
-      // Calendar-based age so that turning exactly 18 today counts as 18+.
-      // (The previous /365.25 approximation rejected people on their 18th
-      // birthday because leap years make 18 years slightly under 365.25*18 days.)
       let age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
@@ -278,8 +275,6 @@ export default function PassportUploadAll() {
   const router       = useRouter();
   const searchParams = useSearchParams();
 
-  // Seeded from the ?type= query param, then overridden by the saved PASSPORT
-  // stage (data.passportType) once the prefill applies.
   const [passportType, setPassportType] = useState(searchParams.get('type') ?? 'Indian');
   const isIndian     = passportType === 'Indian';
 
@@ -291,16 +286,12 @@ export default function PassportUploadAll() {
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles,  setBackFiles]  = useState<UploadedFile[]>([]);
 
-  // Previously-uploaded passport images seeded into the cards on revisit.
   const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
   const [backInitial,  setBackInitial]  = useState<UploadedFile | null>(null);
 
-  // Saved PASSPORT stage payload, fetched once; the details are applied once the
-  // country list has loaded (so nationality resolves to a dropdown option).
   const [savedData, setSavedData] = useState<Record<string, unknown> | null>(null);
   const prefilledRef = useRef(false);
 
-  // Gate the upload cards on the prefill so they mount once already-bound.
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const [prefillDone, setPrefillDone] = useState(false);
 
@@ -317,14 +308,9 @@ export default function PassportUploadAll() {
   const [frontEditMode,  setFrontEditMode]  = useState(false);
   const [detailsFetched, setDetailsFetched] = useState(false);
   const [savingDetails,  setSavingDetails]  = useState(false);
-  // True once the user manually edits any OCR-filled field. Submit only
-  // validates (and can block) when the details have actually been touched —
-  // untouched OCR data is trusted and allowed through.
   const [detailsEdited,  setDetailsEdited]  = useState(false);
-
-  // Stores the uiMetadata route from the most recent upload response.
-  // Used by handleProceed to navigate correctly instead of hardcoding '/esign'.
   const [uploadRoute, setUploadRoute] = useState<string | null>(null);
+  const [proceeding, setProceeding] = useState(false);
 
   const applyPassportDetails = (raw: unknown) => {
     const r = (raw ?? {}) as Record<string, unknown>;
@@ -371,11 +357,6 @@ export default function PassportUploadAll() {
         applicationId, field, file, passportType, onProgress,
       );
       onProgress(100);
-
-      // Store the uiMetadata route from the upload response so Proceed
-      // can navigate to the correct next screen (e.g. foreignAddress).
-      // Both FrontFile and BackFile uploads may carry uiMetadata; the last
-      // successful upload wins (typically BackFile is uploaded last).
       if (res?.uiMetadata) {
         const route = routeFromUiMetadata(res.uiMetadata);
         if (route) setUploadRoute(route);
@@ -400,7 +381,6 @@ export default function PassportUploadAll() {
     setNationality(v => v || 'India');
     setGender(v => v || 'Male');
     setPlaceOfIssue(v => v || 'Mumbai');
-    // Auto-filled mock data is untouched by definition.
     setDetailsEdited(false);
   };
 
@@ -452,7 +432,7 @@ export default function PassportUploadAll() {
         const chosenType = searchParams.get('type') ?? '';
         const savedType = d ? String(d.passportType ?? '') : '';
         if (chosenType && savedType && savedType !== chosenType) {
-          return; // skip binding savedData and the front/back previews
+          return;
         }
 
         if (d) setSavedData(d);
@@ -474,7 +454,6 @@ export default function PassportUploadAll() {
         if (front) setFrontInitial(front);
         if (back) setBackInitial(back);
       } catch {
-        // Non-fatal — the cards just stay empty.
       } finally {
         if (alive) setPrefillDone(true);
       }
@@ -483,19 +462,14 @@ export default function PassportUploadAll() {
     return () => {
       alive = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Apply the fetched details once the country list has loaded (so nationality
-  // resolves to a dropdown option). Guarded so it applies once and the previews
-  // enable the Edit pencil + Proceed gate.
   useEffect(() => {
     if (!savedData || countriesLoading || prefilledRef.current) return;
     prefilledRef.current = true;
 
     const d = savedData;
     const str = (v: unknown): string => (v == null ? '' : String(v));
-    // passportNumber arrives as { value, type } on this stage.
     const pnoRaw = d.passportNumber;
     const pno =
       pnoRaw && typeof pnoRaw === 'object'
@@ -512,22 +486,17 @@ export default function PassportUploadAll() {
     if (str(d.gender)) setGender(str(d.gender));
     if (str(d.issuingCountry)) setPlaceOfIssue(str(d.issuingCountry));
 
-    // Stage data is trusted (not user-edited) and unlocks the Edit pencil.
     setDetailsFetched(true);
     setDetailsEdited(false);
     setErrors({});
   }, [savedData, countriesLoading]);
 
-  // Hide the loader once the prefill (fetch + previews) has settled.
   useEffect(() => {
     if (prefillDone) hideSpinner();
     return () => hideSpinner();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillDone]);
 
   const isDisabled =
-    // Disabled while the details are being edited — re-enabled only on Save
-    // (which clears frontEditMode), so the user can't proceed with unsaved edits.
     frontEditMode ||
     !frontUploaded || !backUploaded ||
     !fullName.trim() || !dob || !passportNumber.trim() ||
@@ -541,22 +510,13 @@ export default function PassportUploadAll() {
 
   const handleBack = () => router.push('/passportUpload/details');
 
-  // FIX: route via uiMetadata from the upload response.
-  // The upload API returns { uiMetadata: '{"route":"foreignAddress"}', ... }
-  // which is stored in uploadRoute. Falls back to '/esign' only if the
-  // upload never returned a uiMetadata route.
-  const handleProceed = () => {
-    // Block proceeding while the details are still being edited — the edits are
-    // only persisted to the backend on Save, so an open edit form means there
-    // are unsaved changes that would otherwise be lost.
+  const handleProceed = async () => {
+    if (proceeding) return;
+
     if (frontEditMode) {
       toast.error('Please save your edited details before proceeding.');
       return;
     }
-
-    // Only validate when the user has actually edited the OCR-filled details.
-    // Untouched OCR data is trusted and proceeds straight through — validation
-    // errors are meant to surface only when the user changes a value.
     if (detailsEdited) {
       const current: PassportDetails = {
         fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender, placeOfIssue,
@@ -568,7 +528,27 @@ export default function PassportUploadAll() {
         return;
       }
     }
-    router.push(uploadRoute ?? '/esign');
+
+    const applicationId = getApplicationId();
+    if (!applicationId) {
+      toast.error('Your session has expired, please start again.');
+      return;
+    }
+    setProceeding(true);
+    showSpinner();
+    try {
+      const res = await apiService.proceedPassport(applicationId);
+      if (res?.status !== true) {
+        toast.error(res?.rejectionReason || res?.message || 'Unable to proceed. Please try again.');
+        return;
+      }
+      const route = routeFromUiMetadata(res?.uiMetadata);
+      router.push(route ?? uploadRoute ?? '/foreignAddress');
+    } catch {
+    } finally {
+      setProceeding(false);
+      hideSpinner();
+    }
   };
 
   const handleFrontEditToggle = async () => {
@@ -600,17 +580,14 @@ export default function PassportUploadAll() {
         holderName: fullName, dob, passportNumber,
         issueDate, expiryDate, nationality, gender, placeOfIssue,
       });
-      // updatePassport may also carry a uiMetadata route — honour it.
       if (res?.uiMetadata) {
         const route = routeFromUiMetadata(res.uiMetadata);
         if (route) setUploadRoute(route);
       }
       toast.success(res?.message ?? 'Details updated successfully');
       setFrontEditMode(false);
-      // Saved values are now validated + persisted — treat as clean again.
       setDetailsEdited(false);
     } catch {
-      // apiService.handleError already surfaced the backend message.
     } finally {
       setSavingDetails(false);
     }
@@ -823,16 +800,22 @@ export default function PassportUploadAll() {
         uploadFn={makeUploadFn('FrontFile')}
         onFilesChange={setFrontFiles}
       />
-      {/* Edit / Save toggle sits directly beside the details so it's clear
-          which content is editable. */}
-      <SectionHeader
-        title="Verify Details"
-        editing={frontEditMode}
-        onToggle={handleFrontEditToggle}
-        disabled={!detailsFetched}
-        saving={savingDetails}
-      />
-      {frontEditMode ? renderEditFields('front') : readOnlyFields}
+      {/* Verify Details — only shown once the passport front has uploaded
+          successfully (or was prefilled from a saved passport on revisit). */}
+      {(frontUploaded || detailsFetched) && (
+        <>
+          {/* Edit / Save toggle sits directly beside the details so it's clear
+              which content is editable. */}
+          <SectionHeader
+            title="Verify Details"
+            editing={frontEditMode}
+            onToggle={handleFrontEditToggle}
+            disabled={!detailsFetched}
+            saving={savingDetails}
+          />
+          {frontEditMode ? renderEditFields('front') : readOnlyFields}
+        </>
+      )}
     </div>
   );
 
@@ -884,12 +867,12 @@ export default function PassportUploadAll() {
         <div className={styles.mobileProceedArea}>
           <LoadingButton
             type="button"
-            className={`${styles.mobileProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
+            className={`${styles.mobileProceedBtn}${isDisabled || proceeding ? ` ${styles.proceedBtnDisabled}` : ''}`}
             onClick={handleProceed}
-            disabled={isDisabled}
-            aria-disabled={isDisabled}
+            disabled={isDisabled || proceeding}
+            aria-disabled={isDisabled || proceeding}
           >
-            Proceed
+            {proceeding ? 'Proceeding' : 'Proceed'}
           </LoadingButton>
         </div>
       </div>
@@ -917,12 +900,12 @@ export default function PassportUploadAll() {
             <div className={styles.desktopProceedWrapper}>
               <LoadingButton
                 type="button"
-                className={`${styles.desktopProceedBtn}${isDisabled ? ` ${styles.proceedBtnDisabled}` : ''}`}
+                className={`${styles.desktopProceedBtn}${isDisabled || proceeding ? ` ${styles.proceedBtnDisabled}` : ''}`}
                 onClick={handleProceed}
-                disabled={isDisabled}
-                aria-disabled={isDisabled}
+                disabled={isDisabled || proceeding}
+                aria-disabled={isDisabled || proceeding}
               >
-                Proceed
+                {proceeding ? 'Proceeding' : 'Proceed'}
               </LoadingButton>
             </div>
           </div>

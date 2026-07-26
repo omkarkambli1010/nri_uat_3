@@ -7,7 +7,8 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./personal-details-form.module.scss";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // PersonalDetailsForm — step 1: Gender selection
 // Figma: 8TizndCcBb3VyE5CIJBEZe
@@ -62,7 +63,7 @@ export default function PersonalDetailsForm() {
   // const [selectedMarital, setSelectedMarital] = useState('');
   // const [guid, setGuid] = useState('');
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   // ─── Fetch saved PERSONAL workflow data on mount ───────────────────────
   const getPersonalDetailsData = async () => {
@@ -81,8 +82,7 @@ export default function PersonalDetailsForm() {
         hideSpinner,
       );
       console.log("Trading Exp Workflow Response:", response);
-      const savedGender =
-        response?.data?.gender ?? response?.gender ?? "";
+      const savedGender = response?.data?.gender ?? response?.gender ?? "";
 
       if (savedGender && GENDER_OPTIONS.includes(savedGender)) {
         setSelected(savedGender);
@@ -98,12 +98,16 @@ export default function PersonalDetailsForm() {
     getPersonalDetailsData();
   }, []);
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push("/personalDetailsForm/0");
-      hideSpinner();
-    }, 200);
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS1", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   // const handleSelect = (option: string) => {

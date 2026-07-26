@@ -1,16 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef } from 'react';
-import { usePathname, useRouter } from 'next/navigation';
-import { useSpinner } from '@/components/spinner/Spinner';
-import { toast } from '@/services/toast.service';
-import apiService from '@/services/api.service';
-import navigationService from '@/services/navigation.service';
-import LoadingButton from '@/components/ui/LoadingButton';
-import styles from './upload-pan.module.scss';
+import { useState, useEffect, useRef } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useSpinner } from "@/components/spinner/Spinner";
+import { toast } from "@/services/toast.service";
+import apiService from "@/services/api.service";
+import navigationService from "@/services/navigation.service";
+import LoadingButton from "@/components/ui/LoadingButton";
+import styles from "./upload-pan.module.scss";
 import { publicPath } from "@/utils/publicPath";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
 import { buttonKeyProps } from "@/utils/a11y";
+import dynamicBackService from "@/services/back-navigation.service";
 // UploadPan — Upload PAN card image when name mismatch detected
 // Equivalent to Angular UploadPanComponent
 
@@ -18,12 +19,12 @@ export default function UploadPan() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const pathname = usePathname();
-  const [imagePreview, setImagePreview] = useState('');
-  const [imageBase64, setImageBase64] = useState('');
+  const [imagePreview, setImagePreview] = useState("");
+  const [imageBase64, setImageBase64] = useState("");
   const [isProceedDisabled, setIsProceedDisabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -33,17 +34,26 @@ export default function UploadPan() {
   const getPanData = async () => {
     showSpinner();
     const reqData = {
-      flag: 'PANUPLOAD',
-      formnumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+      flag: "PANUPLOAD",
+      formnumber:
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("ApplicationId")
+          : "",
     };
     try {
-      const response = await apiService.postRequest('api/v1/WorkflowDetails/getworkflowdata', reqData, hideSpinner);
+      const response = await apiService.postRequest(
+        "api/v1/WorkflowDetails/getworkflowdata",
+        reqData,
+        hideSpinner,
+      );
       if (response?.status === true && response?.data?.[0]?.Image) {
         setImagePreview(response.data[0].Image);
         setIsProceedDisabled(false);
       }
       hideSpinner();
-    } catch { hideSpinner(); }
+    } catch {
+      hideSpinner();
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,33 +69,66 @@ export default function UploadPan() {
     reader.readAsDataURL(file);
   };
 
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PAN_UPLOAD", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
+  };
+
   const uploadPan = async () => {
     if (!imageBase64 && !imagePreview) {
-      toast.warning('Please upload a PAN card image.', { position: 'bottom-center', autoClose: 2000 });
+      toast.warning("Please upload a PAN card image.", {
+        position: "bottom-center",
+        autoClose: 2000,
+      });
       return;
     }
     showSpinner();
     const reqData = {
-      formNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
-      flag: 'docBase64String',
-      docType: 'PAN',
+      formNumber:
+        typeof window !== "undefined"
+          ? sessionStorage.getItem("ApplicationId")
+          : "",
+      flag: "docBase64String",
+      docType: "PAN",
       base64String: imageBase64 || imagePreview,
     };
     try {
-      const response = await apiService.postRequest('api/v1/uploadDocument/upload', reqData, hideSpinner);
+      const response = await apiService.postRequest(
+        "api/v1/uploadDocument/upload",
+        reqData,
+        hideSpinner,
+      );
       if (response?.status === true) {
-        toast.success('PAN uploaded successfully!', { position: 'bottom-center', autoClose: 2000 });
-        setTimeout(() => { navigationService.navigateToNextStep(); hideSpinner(); }, 200);
+        toast.success("PAN uploaded successfully!", {
+          position: "bottom-center",
+          autoClose: 2000,
+        });
+        setTimeout(() => {
+          navigationService.navigateToNextStep();
+          hideSpinner();
+        }, 200);
       } else {
-        toast.error(response?.message || 'Upload failed', { position: 'bottom-center', autoClose: 3000 });
+        toast.error(response?.message || "Upload failed", {
+          position: "bottom-center",
+          autoClose: 3000,
+        });
         hideSpinner();
       }
-    } catch { hideSpinner(); }
+    } catch {
+      hideSpinner();
+    }
   };
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
-  }
+  };
 
   return (
     <section aria-label="Upload PAN Card" className="pan_details_form">
@@ -100,10 +143,18 @@ export default function UploadPan() {
                       <h5>Upload PAN Card</h5>
                     </div>
                     <div>
-                      <div className="help_btn" style={{ cursor: 'pointer' }} {...buttonKeyProps(openFaq)}>Need Help?</div>
+                      <div
+                        className="help_btn"
+                        style={{ cursor: "pointer" }}
+                        {...buttonKeyProps(openFaq)}
+                      >
+                        Need Help?
+                      </div>
                     </div>
                   </div>
-                  <p className="sub_title">Upload a clear image of your PAN card</p>
+                  <p className="sub_title">
+                    Upload a clear image of your PAN card
+                  </p>
                 </div>
               </div>
             </div>
@@ -115,10 +166,18 @@ export default function UploadPan() {
                     <div className="help_faq_css">
                       <div className="heading">
                         <h5>Upload PAN Card</h5>
-                        <p className="sub_title">Upload a clear image of your PAN card</p>
+                        <p className="sub_title">
+                          Upload a clear image of your PAN card
+                        </p>
                       </div>
                       <div>
-                        <div className="help_btn" style={{ cursor: 'pointer' }} {...buttonKeyProps(openFaq)}>Need Help?</div>
+                        <div
+                          className="help_btn"
+                          style={{ cursor: "pointer" }}
+                          {...buttonKeyProps(openFaq)}
+                        >
+                          Need Help?
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -129,23 +188,42 @@ export default function UploadPan() {
                   <div
                     className="upload_box"
                     aria-label="Upload PAN card image"
-                    style={{ cursor: 'pointer', border: '2px dashed #ccc', borderRadius: 8, padding: 24, textAlign: 'center' }}
+                    style={{
+                      cursor: "pointer",
+                      border: "2px dashed #ccc",
+                      borderRadius: 8,
+                      padding: 24,
+                      textAlign: "center",
+                    }}
                     {...buttonKeyProps(() => fileInputRef.current?.click())}
                   >
                     {imagePreview ? (
-                      <img src={imagePreview} alt="PAN card preview" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 8 }} />
+                      <img
+                        src={imagePreview}
+                        alt="PAN card preview"
+                        style={{
+                          maxWidth: "100%",
+                          maxHeight: 300,
+                          borderRadius: 8,
+                        }}
+                      />
                     ) : (
                       <div>
-                        <img src={publicPath("/assets/images/diy/upload-icon.png")} alt="Upload" />
+                        <img
+                          src={publicPath("/assets/images/diy/upload-icon.png")}
+                          alt="Upload"
+                        />
                         <p>Click to upload your PAN card</p>
-                        <p style={{ fontSize: 12, color: '#999' }}>Supported formats: JPG, PNG, PDF</p>
+                        <p style={{ fontSize: 12, color: "#999" }}>
+                          Supported formats: JPG, PNG, PDF
+                        </p>
                       </div>
                     )}
                     <input
                       ref={fileInputRef}
                       type="file"
                       accept="image/*,application/pdf"
-                      style={{ display: 'none' }}
+                      style={{ display: "none" }}
                       onChange={handleFileChange}
                     />
                   </div>
@@ -153,12 +231,24 @@ export default function UploadPan() {
               </div>
 
               <div className="stickybtn_desk desktop_css">
-                <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</LoadingButton>
+                <LoadingButton
+                  className="btn btn_cls"
+                  disabled={isProceedDisabled}
+                  onClick={uploadPan}
+                >
+                  Proceed
+                </LoadingButton>
               </div>
             </form>
           </div>
           <div className="stickybtn mobile_css">
-            <LoadingButton className="btn btn_cls" disabled={isProceedDisabled} onClick={uploadPan}>Proceed</LoadingButton>
+            <LoadingButton
+              className="btn btn_cls"
+              disabled={isProceedDisabled}
+              onClick={uploadPan}
+            >
+              Proceed
+            </LoadingButton>
           </div>
         </div>
       </div>

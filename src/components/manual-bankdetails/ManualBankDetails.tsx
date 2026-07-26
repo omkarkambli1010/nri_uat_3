@@ -9,21 +9,18 @@ import {
   useRef,
   useState,
 } from "react";
-import LoadingButton from "@/components/ui/LoadingButton";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import LoadingButton from "@/components/ui/LoadingButton";
 import { useSpinner } from "@/components/spinner/Spinner";
-import navigationService from "@/services/navigation.service";
 import { FileUploadCard } from "@/components/file-upload/FileUploadCard";
 import type { UploadedFile } from "@/components/file-upload/fileUpload.types";
-import styles from "./manual-bankdetails.module.scss";
-import { publicPath } from "@/utils/publicPath";
+import navigationService from "@/services/navigation.service";
 import apiService, { BankMasterIFSCResponse } from "@/services/api.service";
-import { DOCUMENT_TYPES } from "@/constants/document-types";
 import { toast } from "@/services/toast.service";
+import { publicPath } from "@/utils/publicPath";
 import { getBankStageData } from "../manual-bankinfo/ManualBankInfo";
-
-// ── Constants ─────────────────────────────────────────────────────────────────
+import styles from "./manual-bankdetails.module.scss";
 
 interface IFSCEntry {
   code: string;
@@ -48,6 +45,7 @@ interface StageDocument {
   documentID?: string;
   documentId?: string;
   presignedUrl?: string;
+  preSignedURL?: string;
   documentSide?: string | null;
 }
 
@@ -73,6 +71,15 @@ interface StageBankData {
   updatedAt?: string;
 }
 
+interface ManualBankRequest {
+  accountNumber: string;
+  ifscCode: string;
+  holderName: string;
+  accountType: "Nro" | "NreNonPis";
+  documentId: string;
+  idempotencyKey: string;
+}
+
 const STATEMENT_TYPES = [
   "application/pdf",
   "image/jpeg",
@@ -80,18 +87,65 @@ const STATEMENT_TYPES = [
   "image/heic",
   "image/heif",
 ];
-
-const STATEMENT_MAX_SIZE = 5 * 1024 * 1024; // 5 MB
-
+const STATEMENT_MAX_SIZE = 5 * 1024 * 1024;
 const STATEMENT_ACCEPTED_LABEL = "PDF, JPG, JPEG, HEIC & PNG";
-
 const STATEMENT_SIZE_ERR =
   "File size exceeds 5MB. Please upload PDF, JPG, JPEG, HEIC, PNG only.";
-
 const STATEMENT_TYPE_ERR =
   "Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.";
 
-// ── SVG Icons ─────────────────────────────────────────────────────────────────
+const cleanPresignedUrl = (url?: string): string =>
+  String(url || "")
+    .replace(/&amp;amp;amp;/g, "&")
+    .replace(/&amp;amp;/g, "&")
+    .replace(/&amp;/g, "&");
+
+const getFileNameFromUrl = (url: string, fallbackName: string): string => {
+  if (!url) return fallbackName;
+
+  try {
+    const parsedUrl = new URL(url);
+    const fileName = parsedUrl.pathname.split("/").pop();
+    return fileName ? decodeURIComponent(fileName) : fallbackName;
+  } catch {
+    const fileName = url.split("?")[0].split("/").pop();
+    return fileName ? decodeURIComponent(fileName) : fallbackName;
+  }
+};
+
+const getDocumentMimeType = (url: string): string => {
+  const normalizedUrl = url.toLowerCase().split("?")[0];
+
+  if (normalizedUrl.endsWith(".pdf")) return "application/pdf";
+  if (normalizedUrl.endsWith(".jpg") || normalizedUrl.endsWith(".jpeg")) {
+    return "image/jpeg";
+  }
+  if (normalizedUrl.endsWith(".png")) return "image/png";
+  if (normalizedUrl.endsWith(".heic")) return "image/heic";
+  if (normalizedUrl.endsWith(".heif")) return "image/heif";
+
+  return "application/octet-stream";
+};
+
+const createStageUploadedFile = (
+  documentId: string,
+  documentUrl: string,
+  fallbackName: string,
+): UploadedFile => {
+  const fileName = getFileNameFromUrl(documentUrl, fallbackName);
+  const mimeType = getDocumentMimeType(documentUrl);
+
+  return {
+    id: documentId,
+    file: new File([], fileName, {
+      type: mimeType,
+      lastModified: Date.now(),
+    }),
+    status: "success",
+    progress: 100,
+    previewUrl: documentUrl,
+  };
+};
 
 function BackArrow() {
   return (
@@ -201,146 +255,121 @@ function AlertIcon() {
   );
 }
 
-// ── Locked Uploaded Document Preview ──────────────────────────────────────────
-
-interface LockedStatementPreviewProps {
-  title: string;
-  documentUrl: string;
-}
-
-function LockedStatementPreview({
-  title,
-  documentUrl,
-}: LockedStatementPreviewProps) {
-  const cleanUrl = documentUrl || "";
-  const lowerUrl = cleanUrl.toLowerCase();
-
-  const isImage =
-    lowerUrl.includes(".png") ||
-    lowerUrl.includes(".jpg") ||
-    lowerUrl.includes(".jpeg") ||
-    lowerUrl.includes(".webp");
-
-  const isPdf = lowerUrl.includes(".pdf");
-
-  return (
-    <div>
-      <p className={styles.sectionTitle}>{title}</p>
-
-      <div className={styles.addressBox}>
-        {cleanUrl ? (
-          isImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={cleanUrl} alt={title || "Statement preview"} />
-          ) : (
-            <a href={cleanUrl} target="_blank" rel="noopener noreferrer">
-              {isPdf ? "View uploaded statement" : "View uploaded document"}
-            </a>
-          )
-        ) : (
-          <p className={styles.addressText}>Uploaded document available</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ── IFSC Autocomplete ─────────────────────────────────────────────────────────
-
 interface IFSCSelectProps {
   value: string;
-  disabled?: boolean;
   onChange: (code: string, details?: IFSCEntry | null) => void;
 }
 
-function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
+function IFSCSelect({ value, onChange }: IFSCSelectProps) {
   const [inputText, setInputText] = useState(value);
+  const [selectedCode, setSelectedCode] = useState(value.trim().toUpperCase());
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const [results, setResults] = useState<IFSCEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState("");
-
   const optionRefs = useRef<(HTMLLIElement | null)[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
   const uid = useId();
+  const lastEmittedRef = useRef(value.trim().toUpperCase());
+
+  const emitChange = (code: string, details?: IFSCEntry | null) => {
+    lastEmittedRef.current = code;
+    onChange(code, details);
+  };
 
   useEffect(() => {
-    setInputText(value);
+    const normalized = value.trim().toUpperCase();
+    if (normalized === lastEmittedRef.current) return;
+    lastEmittedRef.current = normalized;
+    setInputText(normalized);
+    setSelectedCode(normalized);
   }, [value]);
 
   useEffect(() => {
-    if (isOpen && inputRef.current) {
-      const rect = inputRef.current.getBoundingClientRect();
+    if (!isOpen || !inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    setDropdownPos({
+      top: rect.bottom + 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleScroll = () => {
+      if (!inputRef.current) return;
+      const rect = inputRef.current.getBoundingClientRect();
       setDropdownPos({
         top: rect.bottom + 4,
         left: rect.left,
         width: rect.width,
       });
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleScroll = () => {
-      if (inputRef.current) {
-        const rect = inputRef.current.getBoundingClientRect();
-
-        setDropdownPos({
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width,
-        });
-      }
     };
-
     window.addEventListener("scroll", handleScroll, true);
-
     return () => window.removeEventListener("scroll", handleScroll, true);
   }, [isOpen]);
 
   const mapApiResponseToIFSCEntry = (
     data: BankMasterIFSCResponse,
-  ): IFSCEntry => {
-    return {
-      code: data.ifscCode,
-      branch:
-        data.branchName?.trim() ||
-        data.address?.trim() ||
-        data.bankName?.trim() ||
-        "Branch details not available",
-      bankName: data.bankName,
-      address: data.address,
-      micrNo: data.micrNo,
-      bbmCd: data.bbmCd,
-    };
-  };
+  ): IFSCEntry => ({
+    code: data.ifscCode.trim().toUpperCase(),
+    branch:
+      data.branchName?.trim() ||
+      data.address?.trim() ||
+      data.bankName?.trim() ||
+      "Branch details not available",
+    bankName: data.bankName,
+    address: data.address,
+    micrNo: data.micrNo,
+    bbmCd: data.bbmCd,
+  });
 
-  const requestIdRef = useRef(0);
+  const handleSelect = (item: IFSCEntry) => {
+    const code = item.code.trim().toUpperCase();
+    setInputText(code);
+    setSelectedCode(code);
+    emitChange(code, item);
+    setIsOpen(false);
+    setActiveIndex(-1);
+  };
 
   const fetchIFSCDetails = async (ifscCode: string) => {
     const requestId = ++requestIdRef.current;
+
     try {
       setIsLoading(true);
       setApiError("");
-      setResults([]);
 
       const list = await apiService.searchBankMasterByIfsc(ifscCode);
-      if (requestId !== requestIdRef.current) return; // stale response
+      if (requestId !== requestIdRef.current) return;
+      if (!list.length) throw new Error("No IFSC details found");
 
-      if (!list.length) {
-        throw new Error("No IFSC details found");
+      const uniqueResults = Array.from(
+        new Map(
+          list.map(mapApiResponseToIFSCEntry).map((item) => [item.code, item]),
+        ).values(),
+      );
+
+      if (!uniqueResults.length) throw new Error("No IFSC details found");
+
+      setResults(uniqueResults);
+      const exact = uniqueResults.find((item) => item.code === ifscCode);
+
+      if (exact) {
+        handleSelect(exact);
+        return;
       }
 
-      setResults(list.map(mapApiResponseToIFSCEntry));
       setIsOpen(true);
       setActiveIndex(0);
     } catch {
-      if (requestId !== requestIdRef.current) return; // stale response
+      if (requestId !== requestIdRef.current) return;
       setResults([]);
+      setActiveIndex(-1);
       setApiError("No matching IFSC code found");
     } finally {
       if (requestId === requestIdRef.current) setIsLoading(false);
@@ -348,35 +377,25 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
   };
 
   useEffect(() => {
-    if (disabled) return;
+    const query = inputText.trim().toUpperCase();
 
-    const q = inputText.trim().toUpperCase();
-
-    if (q.length <= 1) {
-      setResults([]);
-      setApiError("");
+    if (query.length <= 1 || query === selectedCode) {
+      if (query.length <= 1) {
+        setResults([]);
+        setApiError("");
+      }
       return;
     }
 
-    const timer = setTimeout(() => {
-      fetchIFSCDetails(q);
-    }, 400);
-
+    const timer = setTimeout(() => void fetchIFSCDetails(query), 400);
     return () => clearTimeout(timer);
-  }, [inputText, disabled]);
+  }, [inputText, selectedCode]);
 
-  const handleSelect = (item: IFSCEntry) => {
-    setInputText(item.code);
-    onChange(item.code, item);
-    setIsOpen(false);
-    setActiveIndex(-1);
-  };
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const raw = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
     setInputText(raw);
-    onChange("", null);
+    setSelectedCode("");
+    emitChange("", null);
     setIsOpen(true);
     setActiveIndex(-1);
 
@@ -386,82 +405,35 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (!isOpen && (e.key === "ArrowDown" || e.key === "Enter")) {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen && (event.key === "ArrowDown" || event.key === "Enter")) {
       setIsOpen(true);
       return;
     }
 
-    switch (e.key) {
-      case "ArrowDown": {
-        e.preventDefault();
-
-        setActiveIndex((prev) => {
-          const next = Math.min(prev + 1, results.length - 1);
-
-          setTimeout(() => {
-            optionRefs.current[next]?.scrollIntoView({
-              block: "nearest",
-              behavior: "smooth",
-            });
-          }, 0);
-
-          return next;
-        });
-
-        break;
-      }
-
-      case "ArrowUp": {
-        e.preventDefault();
-
-        setActiveIndex((prev) => {
-          const p = Math.max(prev - 1, 0);
-
-          setTimeout(() => {
-            optionRefs.current[p]?.scrollIntoView({
-              block: "nearest",
-              behavior: "smooth",
-            });
-          }, 0);
-
-          return p;
-        });
-
-        break;
-      }
-
-      case "Enter": {
-        e.preventDefault();
-
-        if (activeIndex >= 0 && results[activeIndex]) {
-          handleSelect(results[activeIndex]);
-        }
-
-        break;
-      }
-
-      case "Escape": {
-        setIsOpen(false);
-        setActiveIndex(-1);
-        break;
-      }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((previous) => Math.min(previous + 1, results.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((previous) => Math.max(previous - 1, 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      if (activeIndex >= 0 && results[activeIndex])
+        handleSelect(results[activeIndex]);
+    } else if (event.key === "Escape") {
+      setIsOpen(false);
+      setActiveIndex(-1);
     }
   };
 
   const handleBlur = () => {
     setTimeout(() => {
       setIsOpen(false);
-
-      const exact = results.find((c) => c.code === inputText);
-
-      if (exact) {
-        onChange(exact.code, exact);
-      } else if (!value) {
-        setInputText("");
-      } else {
-        setInputText(value);
-      }
+      const exact = results.find(
+        (item) => item.code === inputText.trim().toUpperCase(),
+      );
+      if (exact) handleSelect(exact);
     }, 160);
   };
 
@@ -476,12 +448,9 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
         placeholder="Search IFSC code"
         value={inputText}
         onChange={handleInputChange}
-        onFocus={() => {
-          if (!disabled) setIsOpen(true);
-        }}
+        onFocus={() => setIsOpen(true)}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        disabled={disabled}
         autoComplete="off"
         maxLength={15}
         role="combobox"
@@ -506,7 +475,7 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
         </svg>
       </span>
 
-      {isOpen && !disabled && (
+      {isOpen && (
         <ul
           id={listboxId}
           className={styles.ifscDropdown}
@@ -517,8 +486,8 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
             left: `${dropdownPos.left}px`,
             width: `${dropdownPos.width}px`,
           }}
-          onWheel={(e) => e.stopPropagation()}
-          onTouchMove={(e) => e.stopPropagation()}
+          onWheel={(event) => event.stopPropagation()}
+          onTouchMove={(event) => event.stopPropagation()}
         >
           {isLoading ? (
             <li
@@ -553,20 +522,20 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
               Searching IFSC details...
             </li>
           ) : (
-            results.map((item, i) => (
+            results.map((item, index) => (
               <li
-                key={item.code}
-                id={`${uid}-opt-${i}`}
-                ref={(el) => {
-                  optionRefs.current[i] = el;
+                key={`${item.code}-${index}`}
+                id={`${uid}-opt-${index}`}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
                 }}
                 className={`${styles.ifscOption}${
-                  i === activeIndex ? ` ${styles.ifscOptionActive}` : ""
+                  index === activeIndex ? ` ${styles.ifscOptionActive}` : ""
                 }`}
                 role="option"
-                aria-selected={i === activeIndex}
-                onMouseDown={(e) => {
-                  e.preventDefault();
+                aria-selected={index === activeIndex}
+                onMouseDown={(event) => {
+                  event.preventDefault();
                   handleSelect(item);
                 }}
               >
@@ -584,8 +553,6 @@ function IFSCSelect({ value, disabled = false, onChange }: IFSCSelectProps) {
   );
 }
 
-// ── Bank Section ──────────────────────────────────────────────────────────────
-
 interface BankSectionErrors {
   accountMismatch: boolean;
   duplicateAccount: boolean;
@@ -600,7 +567,6 @@ interface BankSectionProps {
   ifscDetails: IFSCEntry | null;
   showAccount: boolean;
   errors: BankSectionErrors;
-  disabled?: boolean;
   onChange: (
     field: "accountNo" | "reAccountNo" | "ifsc",
     value: string,
@@ -618,19 +584,16 @@ function BankSection({
   ifscDetails,
   showAccount,
   errors,
-  disabled = false,
   onChange,
   onToggleShow,
 }: BankSectionProps) {
   return (
     <div className={styles.bankSection}>
       {uploadSlot}
-
       <p className={styles.sectionTitle}>{title}</p>
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Enter your Account No.</label>
-
         <div className={styles.inputCol}>
           <div className={styles.inputWrapper}>
             <input
@@ -641,20 +604,17 @@ function BankSection({
               }`}
               placeholder="e.g. 00112233445566"
               value={accountNo}
-              onChange={(e) =>
-                onChange("accountNo", e.target.value.replace(/[^0-9]/g, ""))
+              onChange={(event) =>
+                onChange("accountNo", event.target.value.replace(/[^0-9]/g, ""))
               }
-              disabled={disabled}
               maxLength={20}
               aria-invalid={errors.duplicateAccount}
               suppressHydrationWarning
             />
-
             <button
               type="button"
               className={styles.eyeBtn}
               onClick={onToggleShow}
-              disabled={disabled}
               aria-label={
                 showAccount ? "Hide account number" : "Show account number"
               }
@@ -663,7 +623,6 @@ function BankSection({
               {showAccount ? <EyeOpenIcon /> : <EyeClosedIcon />}
             </button>
           </div>
-
           {errors.duplicateAccount && (
             <p className={styles.fieldError} role="alert">
               <AlertIcon />
@@ -675,7 +634,6 @@ function BankSection({
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Re-enter your Account No.</label>
-
         <div className={styles.inputCol}>
           <div className={styles.inputWrapper}>
             <input
@@ -686,17 +644,18 @@ function BankSection({
               }`}
               placeholder="e.g. 00112233445566"
               value={reAccountNo}
-              onChange={(e) =>
-                onChange("reAccountNo", e.target.value.replace(/[^0-9]/g, ""))
+              onChange={(event) =>
+                onChange(
+                  "reAccountNo",
+                  event.target.value.replace(/[^0-9]/g, ""),
+                )
               }
-              onPaste={(e) => e.preventDefault()}
-              disabled={disabled}
+              onPaste={(event) => event.preventDefault()}
               maxLength={20}
               aria-invalid={errors.accountMismatch}
               suppressHydrationWarning
             />
           </div>
-
           {errors.accountMismatch && (
             <p className={styles.fieldError} role="alert">
               <AlertIcon />
@@ -708,12 +667,10 @@ function BankSection({
 
       <div className={styles.fieldGroup}>
         <label className={styles.fieldLabel}>Enter IFSC Code</label>
-
         <div className={styles.inputCol}>
           <IFSCSelect
             value={ifsc}
-            disabled={disabled}
-            onChange={(v, details) => onChange("ifsc", v, details)}
+            onChange={(code, details) => onChange("ifsc", code, details)}
           />
         </div>
       </div>
@@ -724,13 +681,11 @@ function BankSection({
             <p className={styles.addressText}>
               {ifscDetails.bankName || "Bank details not available"}
             </p>
-
             <p className={styles.addressText}>
               {ifscDetails.address ||
                 ifscDetails.branch ||
                 "Branch address not available"}
             </p>
-
             {ifscDetails.micrNo && (
               <p className={styles.addressText}>MICR: {ifscDetails.micrNo}</p>
             )}
@@ -745,15 +700,13 @@ function BankSection({
   );
 }
 
-// ── Main Component ─────────────────────────────────────────────────────────────
-
 export default function ManualBankDetails() {
   const router = useRouter();
   const pathname = usePathname();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   const [showModal, setShowModal] = useState(false);
-  const [isStageDataLocked, setIsStageDataLocked] = useState(false);
+  const [isStageDataLoading, setIsStageDataLoading] = useState(true);
 
   const modalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -764,14 +717,11 @@ export default function ManualBankDetails() {
   const [nroStatementFiles, setNroStatementFiles] = useState<UploadedFile[]>(
     [],
   );
-
   const [nreStatementFiles, setNreStatementFiles] = useState<UploadedFile[]>(
     [],
   );
-
   const [nroStatementDocumentId, setNroStatementDocumentId] = useState("");
   const [nreStatementDocumentId, setNreStatementDocumentId] = useState("");
-
   const [nroStatementPreviewUrl, setNroStatementPreviewUrl] = useState("");
   const [nreStatementPreviewUrl, setNreStatementPreviewUrl] = useState("");
 
@@ -800,15 +750,11 @@ export default function ManualBankDetails() {
   const getSelectedAccountTypesFromSession = (): SelectedAccountType[] => {
     if (typeof window === "undefined") return ["nre", "nro"];
 
-    const rawSelectedAccountTypes = window.sessionStorage.getItem(
-      "SelectedAccountTypes",
-    );
-
-    if (!rawSelectedAccountTypes) return ["nre", "nro"];
+    const raw = window.sessionStorage.getItem("SelectedAccountTypes");
+    if (!raw) return ["nre", "nro"];
 
     try {
-      const parsed = JSON.parse(rawSelectedAccountTypes);
-
+      const parsed = JSON.parse(raw);
       if (!Array.isArray(parsed)) return ["nre", "nro"];
 
       const normalized = parsed
@@ -818,17 +764,14 @@ export default function ManualBankDetails() {
             item === "nre" || item === "nro",
         );
 
-      const uniqueTypes = Array.from(new Set(normalized));
-
-      return uniqueTypes.length > 0 ? uniqueTypes : ["nre", "nro"];
+      const unique = Array.from(new Set(normalized));
+      return unique.length ? unique : ["nre", "nro"];
     } catch {
       return ["nre", "nro"];
     }
   };
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
     setSelectedAccountTypes(getSelectedAccountTypesFromSession());
   }, []);
 
@@ -837,190 +780,180 @@ export default function ManualBankDetails() {
 
     const applicationId = window.sessionStorage.getItem("ApplicationId") || "";
 
+    if (!applicationId) {
+      setIsStageDataLoading(false);
+      return;
+    }
+
     let cancelled = false;
 
     const normalizeAccountType = (
       accountType?: string,
     ): SelectedAccountType | null => {
-      const type = String(accountType || "").toLowerCase();
+      const type = String(accountType || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ");
 
-      if (type.includes("nro") || type.includes("Nro")) return "nro";
+      if (type.includes("nro")) return "nro";
       if (
         type.includes("nre") ||
-        type.includes("Nre") ||
-        type.includes("Non PIS NRE")
-      )
+        type.includes("non pis nre") ||
+        type.includes("nrenonpis")
+      ) {
         return "nre";
+      }
 
       return null;
     };
 
-    const cleanPresignedUrl = (url?: string) => {
-      return String(url || "")
-        .replace(/&amp;amp;amp;/g, "&")
-        .replace(/&amp;amp;/g, "&")
-        .replace(/&amp;/g, "&");
-    };
-
-    const getDocumentsFromResponse = (response: any): StageDocument[] => {
+    const getDocuments = (response: any): StageDocument[] => {
       if (Array.isArray(response?.documents)) return response.documents;
       if (Array.isArray(response?.data?.documents))
         return response.data.documents;
-
       return [];
     };
 
-    const getBankRecordsFromResponse = (response: any): StageBankData[] => {
+    const getBankRecords = (response: any): StageBankData[] => {
       const data = response?.data;
-
       if (Array.isArray(data)) return data;
       if (Array.isArray(data?.bankDetails)) return data.bankDetails;
       if (Array.isArray(data?.bankDetail)) return data.bankDetail;
       if (Array.isArray(data?.banks)) return data.banks;
-      if (data) return [data];
-
+      if (data && !Array.isArray(data?.documents)) return [data];
       return [];
     };
 
-    const findDocumentForAccountType = (
+    const findDocument = (
       documents: StageDocument[],
       type: SelectedAccountType,
-      fallbackDocumentId?: string,
+      fallbackId?: string,
     ) => {
-      const byType = documents.find((doc) => {
-        const documentType = String(doc.documentType || "").toLowerCase();
-
-        if (type === "nro") {
-          return documentType.includes("nro");
-        }
-
-        return documentType.includes("nre");
+      const byType = documents.find((document) => {
+        const documentType = String(document.documentType || "").toLowerCase();
+        return type === "nro"
+          ? documentType.includes("nro")
+          : documentType.includes("nre");
       });
 
       if (byType) return byType;
 
-      return documents.find((doc) => {
-        const docId = doc.documentID || doc.documentId || "";
-        return !!fallbackDocumentId && docId === fallbackDocumentId;
-      });
+      return documents.find(
+        (document) =>
+          Boolean(fallbackId) &&
+          (document.documentID || document.documentId) === fallbackId,
+      );
     };
 
-    const findBankRecordForAccountType = (
-      bankRecords: StageBankData[],
-      type: SelectedAccountType,
-    ) => {
-      const exactRecord = bankRecords.find((record) => {
-        const accountType = normalizeAccountType(record.accountType);
-        return accountType === type;
-      });
+    const mapIfsc = (bank: StageBankData): IFSCEntry => ({
+      code: String(bank.ifscCode || "")
+        .trim()
+        .toUpperCase(),
+      branch:
+        bank.branchName || bank.branchaddress || "Branch details not available",
+      bankName: bank.bankName || "",
+      address: bank.branchaddress || "",
+      micrNo: bank.micrcode || "",
+      bbmCd: bank.branchcode || "",
+    });
 
-      if (exactRecord) return exactRecord;
-
-      /*
-        Backend currently returns only one data object even when session has
-        both ["nro","nre"]. To keep both selected account sections locked and
-        bound, use available bank data as fallback for the missing account type.
-        Documents are still matched account-wise from the documents array.
-      */
-      return bankRecords[0];
-    };
-
-    const mapStageIfscDetails = (bankData: StageBankData): IFSCEntry => {
-      return {
-        code: bankData.ifscCode || "",
-        branch:
-          bankData.branchName ||
-          bankData.branchaddress ||
-          "Branch details not available",
-        bankName: bankData.bankName || "",
-        address: bankData.branchaddress || "",
-        micrNo: bankData.micrcode || "",
-        bbmCd: bankData.branchcode || "",
-      };
-    };
-
-    const bindStageBankData = (
-      bankData: StageBankData,
+    const bind = (
+      bank: StageBankData,
       type: SelectedAccountType,
       documents: StageDocument[],
     ) => {
-      const matchedDocument = findDocumentForAccountType(
-        documents,
-        type,
-        bankData.documentId,
-      );
-
+      const document = findDocument(documents, type, bank.documentId);
       const documentId =
-        matchedDocument?.documentID ||
-        matchedDocument?.documentId ||
-        bankData.documentId ||
-        "";
-
-      const documentUrl = cleanPresignedUrl(matchedDocument?.presignedUrl);
-
-      const mappedIfscDetails = mapStageIfscDetails(bankData);
+        document?.documentID || document?.documentId || bank.documentId || "";
+      const documentUrl = cleanPresignedUrl(
+        document?.presignedUrl || document?.preSignedURL,
+      );
+      const normalizedIfsc = String(bank.ifscCode || "")
+        .trim()
+        .toUpperCase();
+      const ifscDetails = mapIfsc(bank);
 
       if (type === "nro") {
-        setNroAccountNo(bankData.accountNumber || "");
-        setNroReAccountNo(bankData.accountNumber || "");
-        setNroIfsc(bankData.ifscCode || "");
-        setNroIfscDetails(mappedIfscDetails);
+        setNroAccountNo(bank.accountNumber || "");
+        setNroReAccountNo(bank.accountNumber || "");
+        setNroIfsc(normalizedIfsc);
+        setNroIfscDetails(ifscDetails);
         setNroStatementDocumentId(documentId);
         setNroStatementPreviewUrl(documentUrl);
+
+        setNroStatementFiles(
+          documentId && documentUrl
+            ? [
+                createStageUploadedFile(
+                  documentId,
+                  documentUrl,
+                  "NRO-Bank-Statement",
+                ),
+              ]
+            : [],
+        );
+
+        return;
       }
 
-      if (type === "nre") {
-        setNreAccountNo(bankData.accountNumber || "");
-        setNreReAccountNo(bankData.accountNumber || "");
-        setNreIfsc(bankData.ifscCode || "");
-        setNreIfscDetails(mappedIfscDetails);
-        setNreStatementDocumentId(documentId);
-        setNreStatementPreviewUrl(documentUrl);
-      }
+      setNreAccountNo(bank.accountNumber || "");
+      setNreReAccountNo(bank.accountNumber || "");
+      setNreIfsc(normalizedIfsc);
+      setNreIfscDetails(ifscDetails);
+      setNreStatementDocumentId(documentId);
+      setNreStatementPreviewUrl(documentUrl);
+
+      setNreStatementFiles(
+        documentId && documentUrl
+          ? [
+              createStageUploadedFile(
+                documentId,
+                documentUrl,
+                "Non-PIS-NRE-Bank-Statement",
+              ),
+            ]
+          : [],
+      );
     };
 
-    const fetchBankStageData = async () => {
+    const fetchStageData = async () => {
       showSpinner();
 
       try {
-        const response: any = await getBankStageData(
-          applicationId,
-          hideSpinner,
-        );
+        const response: any = await getBankStageData(applicationId);
+        if (cancelled || response?.status !== true) return;
 
-        if (cancelled) return;
+        const accountTypes = getSelectedAccountTypesFromSession();
+        const documents = getDocuments(response);
+        const records = getBankRecords(response);
 
-        if (response?.status === true && response?.data) {
-          const sessionAccountTypes = getSelectedAccountTypesFromSession();
-          const documents = getDocumentsFromResponse(response);
-          const bankRecords = getBankRecordsFromResponse(response);
+        setSelectedAccountTypes(accountTypes);
 
-          if (bankRecords.length > 0) {
-            setSelectedAccountTypes(sessionAccountTypes);
+        accountTypes.forEach((type) => {
+          const record = records.find(
+            (item) =>
+              normalizeAccountType(item.accountType || item.bankaccounttype) ===
+              type,
+          );
 
-            sessionAccountTypes.forEach((type) => {
-              const bankRecord = findBankRecordForAccountType(
-                bankRecords,
-                type,
-              );
-
-              if (!bankRecord) return;
-
-              bindStageBankData(bankRecord, type, documents);
-            });
-
-            setIsStageDataLocked(true);
-          }
-        }
+          if (record) bind(record, type, documents);
+        });
       } catch (error: any) {
-        const errorData = error?.response?.data;
-        console.log("Bank Stage Data Error:", errorData);
+        console.log("Bank Stage Data Error:", error?.response?.data || error);
       } finally {
-        hideSpinner();
+        if (!cancelled) {
+          setIsStageDataLoading(false);
+        }
+        requestAnimationFrame(() => {
+          if (!cancelled) {
+            hideSpinner();
+          }
+        });
       }
     };
 
-    fetchBankStageData();
+    void fetchStageData();
 
     return () => {
       cancelled = true;
@@ -1031,31 +964,15 @@ export default function ManualBankDetails() {
   const showNreSection = selectedAccountTypes.includes("nre");
   const showBothSections = showNroSection && showNreSection;
 
-  const openFaq = () => {
-    router.push(`/faq?from=${pathname}`);
-  };
-
-  const goBack = () => {
-    showSpinner();
-
-    setTimeout(() => {
-      router.push("/personalDetailsForm/6");
-      hideSpinner();
-    }, 200);
-  };
-
-  const getApplicationId = () => {
-    return typeof window !== "undefined"
+  const getApplicationId = () =>
+    typeof window !== "undefined"
       ? window.sessionStorage.getItem("ApplicationId") || ""
       : "";
-  };
 
   const uploadNroStatement = async (
     file: File,
-    onProgress: (p: number) => void,
+    onProgress: (progress: number) => void,
   ): Promise<void> => {
-    if (isStageDataLocked) return;
-
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -1063,7 +980,6 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
-
       return;
     }
 
@@ -1072,7 +988,7 @@ export default function ManualBankDetails() {
     const response: UploadDocumentResponse = await apiService.uploadNriDocument(
       {
         applicationId,
-        documentType: DOCUMENT_TYPES.BANK_NRO,
+        documentType: "BankStatement_NRO",
         file,
       },
       hideSpinner,
@@ -1083,15 +999,16 @@ export default function ManualBankDetails() {
     }
 
     setNroStatementDocumentId(response.documentId);
+    if (response.preSignedURL) {
+      setNroStatementPreviewUrl(cleanPresignedUrl(response.preSignedURL));
+    }
     onProgress(100);
   };
 
   const uploadNreStatement = async (
     file: File,
-    onProgress: (p: number) => void,
+    onProgress: (progress: number) => void,
   ): Promise<void> => {
-    if (isStageDataLocked) return;
-
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -1099,7 +1016,6 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
-
       return;
     }
 
@@ -1108,7 +1024,7 @@ export default function ManualBankDetails() {
     const response: UploadDocumentResponse = await apiService.uploadNriDocument(
       {
         applicationId,
-        documentType: DOCUMENT_TYPES.BANK_NRE,
+        documentType: "BankStatement_NonPIS_NRE",
         file,
       },
       hideSpinner,
@@ -1119,15 +1035,16 @@ export default function ManualBankDetails() {
     }
 
     setNreStatementDocumentId(response.documentId);
+    if (response.preSignedURL) {
+      setNreStatementPreviewUrl(cleanPresignedUrl(response.preSignedURL));
+    }
     onProgress(100);
   };
 
   const handleNroFilesChange = (files: UploadedFile[]) => {
-    if (isStageDataLocked) return;
-
     setNroStatementFiles(files);
 
-    const hasSuccessFile = files.some((f) => f.status === "success");
+    const hasSuccessFile = files.some((file) => file.status === "success");
 
     if (!hasSuccessFile) {
       setNroStatementDocumentId("");
@@ -1135,11 +1052,9 @@ export default function ManualBankDetails() {
   };
 
   const handleNreFilesChange = (files: UploadedFile[]) => {
-    if (isStageDataLocked) return;
-
     setNreStatementFiles(files);
 
-    const hasSuccessFile = files.some((f) => f.status === "success");
+    const hasSuccessFile = files.some((file) => file.status === "success");
 
     if (!hasSuccessFile) {
       setNreStatementDocumentId("");
@@ -1147,8 +1062,6 @@ export default function ManualBankDetails() {
   };
 
   const submitManualBankDetails = async () => {
-    if (isStageDataLocked) return;
-
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -1156,71 +1069,48 @@ export default function ManualBankDetails() {
         position: "bottom-center",
         autoClose: 3000,
       });
-
-      return;
+      throw new Error("Application ID not found");
     }
 
-    const path = `applications/${applicationId}/bank/manual`;
-
-    const requests: Promise<any>[] = [];
+    const bankDetails: ManualBankRequest[] = [];
 
     if (showNroSection) {
-      requests.push(
-        apiService.postNri(
-          path,
-          {
-            accountNumber: nroAccountNo,
-            ifscCode: nroIfsc,
-            holderName: "",
-            accountType: "Nro",
-            documentId: nroStatementDocumentId,
-            idempotencyKey: "",
-          },
-          hideSpinner,
-        ),
-      );
+      bankDetails.push({
+        accountNumber: nroAccountNo,
+        ifscCode: nroIfsc,
+        holderName: "",
+        accountType: "Nro",
+        documentId: nroStatementDocumentId,
+        idempotencyKey: "",
+      });
     }
 
     if (showNreSection) {
-      requests.push(
-        apiService.postNri(
-          path,
-          {
-            accountNumber: nreAccountNo,
-            ifscCode: nreIfsc,
-            holderName: "",
-            accountType: "NreNonPis",
-            documentId: nreStatementDocumentId,
-            idempotencyKey: "",
-          },
-          hideSpinner,
-        ),
-      );
+      bankDetails.push({
+        accountNumber: nreAccountNo,
+        ifscCode: nreIfsc,
+        holderName: "",
+        accountType: "NreNonPis",
+        documentId: nreStatementDocumentId,
+        idempotencyKey: "",
+      });
     }
 
-    await Promise.all(requests);
+    await apiService.postNri(
+      `applications/${applicationId}/bank/manual`,
+      bankDetails,
+      hideSpinner,
+    );
   };
 
   const handleProceed = async () => {
     try {
       showSpinner();
-
-      if (isStageDataLocked) {
-        setTimeout(() => {
-          router.push("/manualBankInfo");
-          hideSpinner();
-        }, 200);
-
-        return;
-      }
-
       setShowModal(true);
-
       await submitManualBankDetails();
 
       modalTimerRef.current = setTimeout(() => {
         setShowModal(false);
-
         setTimeout(() => {
           router.push("/manualBankInfo");
           hideSpinner();
@@ -1229,66 +1119,60 @@ export default function ManualBankDetails() {
     } catch (error) {
       setShowModal(false);
       hideSpinner();
-
-      console.error("Manual bank details submission failed:", error);
+      console.log("Manual bank details submission failed:", error);
+      toast.error("Unable to submit bank details. Please try again.", {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
     }
   };
 
-  const handleNroChange = (
-    field: "accountNo" | "reAccountNo" | "ifsc",
-    value: string,
-    details?: IFSCEntry | null,
+  const handleNroChange: BankSectionProps["onChange"] = (
+    field,
+    value,
+    details,
   ) => {
-    if (isStageDataLocked) return;
-
-    if (field === "accountNo") {
-      setNroAccountNo(value);
-    } else if (field === "reAccountNo") {
-      setNroReAccountNo(value);
-    } else {
+    if (field === "accountNo") setNroAccountNo(value);
+    else if (field === "reAccountNo") setNroReAccountNo(value);
+    else {
       setNroIfsc(value);
       setNroIfscDetails(details || null);
     }
   };
 
-  const handleNreChange = (
-    field: "accountNo" | "reAccountNo" | "ifsc",
-    value: string,
-    details?: IFSCEntry | null,
+  const handleNreChange: BankSectionProps["onChange"] = (
+    field,
+    value,
+    details,
   ) => {
-    if (isStageDataLocked) return;
-
-    if (field === "accountNo") {
-      setNreAccountNo(value);
-    } else if (field === "reAccountNo") {
-      setNreReAccountNo(value);
-    } else {
+    if (field === "accountNo") setNreAccountNo(value);
+    else if (field === "reAccountNo") setNreReAccountNo(value);
+    else {
       setNreIfsc(value);
       setNreIfscDetails(details || null);
     }
   };
 
   const nroAccountMismatch =
-    !isStageDataLocked &&
     showNroSection &&
     nroReAccountNo.length > 0 &&
     nroAccountNo !== nroReAccountNo;
-
   const nreAccountMismatch =
-    !isStageDataLocked &&
     showNreSection &&
     nreReAccountNo.length > 0 &&
     nreAccountNo !== nreReAccountNo;
-
   const accountsAreDuplicate =
-    !isStageDataLocked &&
     showBothSections &&
     nroAccountNo.length > 0 &&
     nreAccountNo.length > 0 &&
     nroAccountNo === nreAccountNo;
 
-  const nroFileUploaded = nroStatementFiles.some((f) => f.status === "success");
-  const nreFileUploaded = nreStatementFiles.some((f) => f.status === "success");
+  const nroFileUploaded =
+    Boolean(nroStatementDocumentId) ||
+    nroStatementFiles.some((file) => file.status === "success");
+  const nreFileUploaded =
+    Boolean(nreStatementDocumentId) ||
+    nreStatementFiles.some((file) => file.status === "success");
 
   const isNroInvalid =
     showNroSection &&
@@ -1296,39 +1180,30 @@ export default function ManualBankDetails() {
       !nroReAccountNo ||
       !nroIfsc ||
       nroAccountNo !== nroReAccountNo ||
-      !nroFileUploaded ||
-      !nroStatementDocumentId);
-
+      !nroFileUploaded);
   const isNreInvalid =
     showNreSection &&
     (!nreAccountNo ||
       !nreReAccountNo ||
       !nreIfsc ||
       nreAccountNo !== nreReAccountNo ||
-      !nreFileUploaded ||
-      !nreStatementDocumentId);
-
-  const isDisabled = isStageDataLocked
-    ? false
-    : isNroInvalid ||
-      isNreInvalid ||
-      accountsAreDuplicate ||
-      (!showNroSection && !showNreSection);
+      !nreFileUploaded);
+  const isDisabled =
+    isNroInvalid ||
+    isNreInvalid ||
+    accountsAreDuplicate ||
+    (!showNroSection && !showNreSection);
 
   const renderNroSection = () => (
     <BankSection
       title="Enter NRO (Savings Account) details"
       uploadSlot={
-        isStageDataLocked ? (
-          <LockedStatementPreview
-            title="Uploaded NRO Statement"
-            documentUrl={nroStatementPreviewUrl}
-          />
-        ) : (
-          <>
-            <p className={styles.sbiNote}>
-              <strong>Note:</strong> ONLY SBI bank account details are accepted
-            </p>
+        <>
+          <p className={styles.sbiNote}>
+            <strong>Note:</strong> ONLY SBI bank account details are accepted
+          </p>
+
+          {!isStageDataLoading && (
             <FileUploadCard
               title="Upload NRO Statement"
               acceptedTypes={STATEMENT_TYPES}
@@ -1339,22 +1214,22 @@ export default function ManualBankDetails() {
               cropImages
               uploadFn={uploadNroStatement}
               onFilesChange={handleNroFilesChange}
+              initialFiles={nroStatementFiles}
             />
-          </>
-        )
+          )}
+        </>
       }
       accountNo={nroAccountNo}
       reAccountNo={nroReAccountNo}
       ifsc={nroIfsc}
       ifscDetails={nroIfscDetails}
       showAccount={nroShowAccount}
-      disabled={isStageDataLocked}
       errors={{
         accountMismatch: nroAccountMismatch,
         duplicateAccount: accountsAreDuplicate,
       }}
       onChange={handleNroChange}
-      onToggleShow={() => setNroShowAccount((v) => !v)}
+      onToggleShow={() => setNroShowAccount((value) => !value)}
     />
   );
 
@@ -1362,12 +1237,7 @@ export default function ManualBankDetails() {
     <BankSection
       title="Enter Non PIS NRE (Savings Account) details"
       uploadSlot={
-        isStageDataLocked ? (
-          <LockedStatementPreview
-            title="Uploaded Non PIS NRE Statement"
-            documentUrl={nreStatementPreviewUrl}
-          />
-        ) : (
+        !isStageDataLoading ? (
           <FileUploadCard
             title="Upload Non PIS NRE Statement"
             acceptedTypes={STATEMENT_TYPES}
@@ -1378,21 +1248,21 @@ export default function ManualBankDetails() {
             cropImages
             uploadFn={uploadNreStatement}
             onFilesChange={handleNreFilesChange}
+            initialFiles={nreStatementFiles}
           />
-        )
+        ) : null
       }
       accountNo={nreAccountNo}
       reAccountNo={nreReAccountNo}
       ifsc={nreIfsc}
       ifscDetails={nreIfscDetails}
       showAccount={nreShowAccount}
-      disabled={isStageDataLocked}
       errors={{
         accountMismatch: nreAccountMismatch,
         duplicateAccount: accountsAreDuplicate,
       }}
       onChange={handleNreChange}
-      onToggleShow={() => setNreShowAccount((v) => !v)}
+      onToggleShow={() => setNreShowAccount((value) => !value)}
     />
   );
 
@@ -1401,11 +1271,19 @@ export default function ManualBankDetails() {
       type="button"
       className={styles.needHelpBtn}
       suppressHydrationWarning
-      onClick={openFaq}
+      onClick={() => router.push(`/faq?from=${pathname}`)}
     >
       Need Help?
     </button>
   );
+
+  const goBack = () => {
+    showSpinner();
+    setTimeout(() => {
+      router.push("/personalDetailsForm/6");
+      hideSpinner();
+    }, 200);
+  };
 
   return (
     <>
@@ -1425,15 +1303,12 @@ export default function ManualBankDetails() {
             >
               <BackArrow />
             </button>
-
             {renderNeedHelpBtn()}
           </div>
-
           <div className={styles.mobileTitleBlock}>
             <h1 className={styles.mobileTitle}>
               Add your bank details manually
             </h1>
-
             <p className={styles.mobileSubtitle}>
               Enter bank account number and IFSC for bank verification
             </p>
@@ -1476,16 +1351,13 @@ export default function ManualBankDetails() {
             >
               <BackArrow />
             </button>
-
             <div className={styles.desktopTitleBlock}>
               <div className={styles.desktopTitleRow}>
                 <h1 className={styles.desktopCardTitle}>
                   Add your bank details manually
                 </h1>
-
                 {renderNeedHelpBtn()}
               </div>
-
               <p className={styles.desktopCardSubtitle}>
                 Enter bank account number and IFSC for bank verification
               </p>
@@ -1497,7 +1369,6 @@ export default function ManualBankDetails() {
               {showNroSection && renderNroSection()}
               {showNreSection && renderNreSection()}
             </div>
-
             <div className={styles.desktopProceedWrapper}>
               <LoadingButton
                 type="button"
@@ -1525,13 +1396,16 @@ export default function ManualBankDetails() {
         >
           <div className={styles.modalCard}>
             <div className={styles.modalDash} aria-hidden="true" />
-
             <div className={styles.modalContent}>
-              {publicPath("/verifying-animation.gif")}
-              alt="" width={300}
-              height={75}
-              unoptimized className={styles.modalAnimation}
-              aria-hidden="true"
+              <Image
+                src={publicPath("/verifying-animation.gif")}
+                alt=""
+                width={300}
+                height={75}
+                unoptimized
+                className={styles.modalAnimation}
+                aria-hidden="true"
+              />
               <p id="verify-modal-title" className={styles.modalTitle}>
                 Verifying details
               </p>

@@ -6,13 +6,12 @@ import Webcam from "react-webcam";
 import { useSpinner } from "@/components/spinner/Spinner";
 import { toast } from "@/services/toast.service";
 import navigationService from "@/services/navigation.service";
-import { buildFaqUrl } from "@/lib/faq-link";
-import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./selfie.module.scss";
 import blobService from "@/services/blob.service";
 import apiService from "@/services/api.service";
 import { publicPath } from "@/utils/publicPath";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 const DOS = [
   {
@@ -119,14 +118,10 @@ function LocationPinIcon() {
   );
 }
 
-function LocationModal({ onClose }: { onClose: () => void }) {
+function LocationModal() {
   return (
-    <div className={styles.locationOverlay} onClick={onClose}>
-      <div
-        className={styles.locationModalCard}
-        onClick={(e) => e.stopPropagation()}
-        data-lenis-prevent
-      >
+    <div className={styles.locationOverlay}>
+      <div className={styles.locationModalCard} data-lenis-prevent>
         <div className={styles.locationModalTop}>
           <div className={styles.locationIconBox}>
             <LocationPinIcon />
@@ -135,24 +130,28 @@ function LocationModal({ onClose }: { onClose: () => void }) {
             Enable Location Permission
           </h2>
         </div>
+
         <div className={styles.locationModalBody}>
           <p>Location access is required to proceed with selfie capture.</p>
           <ol>
+            <li>
+              Turn on <strong>Location/Location Services</strong> in your device
+              settings.
+            </li>
             <li>
               Tap the <strong>lock icon/site info icon</strong> on the left of
               the address bar.
             </li>
             <li>
-              Go to <strong>Site Settings/Permissions</strong>.
+              Go to <strong>Site Settings/Permissions</strong> and set Location
+              permission to <strong>Allow</strong>.
             </li>
             <li>
-              Set Location permission to <strong>Allow</strong>.
-            </li>
-            <li>
-              Once enabled, tap <strong>Refresh Now</strong> to continue
+              Once enabled, tap <strong>Refresh Now</strong> to continue.
             </li>
           </ol>
         </div>
+
         <button
           type="button"
           className={styles.locationRefreshBtn}
@@ -165,6 +164,99 @@ function LocationModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function CameraModal({ onRefresh }: { onRefresh: () => void }) {
+  const [platform, setPlatform] = useState<"web" | "android" | "ios">("web");
+
+  useEffect(() => {
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes("android")) {
+      setPlatform("android");
+    } else if (/iphone|ipad|ipod/.test(userAgent)) {
+      setPlatform("ios");
+    }
+  }, []);
+
+  return (
+    <div className={styles.locationOverlay}>
+      <div className={styles.locationModalCard} data-lenis-prevent>
+        <div className={styles.locationModalTop}>
+          <div className={styles.locationIconBox}>
+            <img
+              src={publicPath("/assets/images/diy/camera_1.png")}
+              alt="Enable Camera Permission"
+            />
+          </div>
+          <h2 className={styles.locationModalTitle}>
+            Enable Camera Permission
+          </h2>
+        </div>
+
+        <div className={styles.locationModalBody}>
+          <p>Camera access is required to proceed with selfie capture.</p>
+
+          {platform === "web" && (
+            <ol>
+              <li>
+                Tap the <strong>lock icon/site info icon</strong> on the left of
+                the address bar.
+              </li>
+              <li>
+                Go to <strong>Site Settings/Permissions</strong>.
+              </li>
+              <li>
+                Set Camera permission to <strong>Allow</strong>.
+              </li>
+              <li>
+                Once enabled, tap <strong>Refresh Now</strong> to continue.
+              </li>
+            </ol>
+          )}
+
+          {platform === "android" && (
+            <ol>
+              <li>
+                Tap the <strong>top-right menu (&#8942;)</strong> or open
+                browser settings.
+              </li>
+              <li>
+                Select the <strong>information</strong> option.
+              </li>
+              <li>
+                Set Camera permission to <strong>Allow</strong>.
+              </li>
+              <li>
+                Once enabled, tap <strong>Refresh Now</strong> to continue.
+              </li>
+            </ol>
+          )}
+
+          {platform === "ios" && (
+            <ol>
+              <li>
+                Open <strong>Page Settings</strong> in your browser or the SBI
+                Securities App.
+              </li>
+              <li>
+                Set Camera permission to <strong>Allow</strong>.
+              </li>
+              <li>
+                Once enabled, tap <strong>Refresh Now</strong> to continue.
+              </li>
+            </ol>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className={styles.locationRefreshBtn}
+          onClick={onRefresh}
+        >
+          Refresh Now
+        </button>
+      </div>
+    </div>
+  );
+}
 function BadgeDo() {
   return (
     <span className={styles.badgeDo} aria-hidden="true">
@@ -199,8 +291,6 @@ function BadgeDont() {
   );
 }
 
-// Draw a rounded outline around the detected face on the overlay canvas. Green
-// when the face is properly settled, amber while it still needs adjusting.
 function drawFaceBox(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -232,50 +322,215 @@ export default function Selfie() {
   const formNumber = params?.formNumber as string;
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
- const openFaq = () => {
-  router.push(`/faq?from=${pathname}`);
-};
+  const openFaq = () => {
+    router.push(`/faq?from=${pathname}`);
+  };
 
   const [step, setStep] = useState<1 | 2>(1);
   const [selfieFile, setSelfieFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [showWebcam, setShowWebcam] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
 
   const [geoLat, setGeoLat] = useState("");
   const [geoLng, setGeoLng] = useState("");
   const [geoAccuracy, setGeoAccuracy] = useState("0");
 
+  const [isSelfieStageDataAvailable, setIsSelfieStageDataAvailable] =
+    useState(false);
+  const [existingSelfieDocumentId, setExistingSelfieDocumentId] = useState("");
+
   const webcamRef = useRef<Webcam>(null);
   const overlayRef = useRef<HTMLCanvasElement>(null);
+  const selfieFileRef = useRef<File | null>(null);
 
-  // True while a face is detected AND well-centred/sized inside the oval. Drives
-  // the green outline + hint so the user knows their face is properly settled.
   const [faceAligned, setFaceAligned] = useState(false);
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
+
+  const handleCameraRefresh = () => {
+    showSpinner();
+
+    setTimeout(() => {
+      router.push("/CaptureSelfie/1");
+      hideSpinner();
+    }, 200);
+  };
+
+  const decodeHtmlUrl = (url: string) => {
+    let decoded = String(url ?? "");
+
+    if (typeof window !== "undefined") {
+      for (let i = 0; i < 3; i += 1) {
+        const textarea = document.createElement("textarea");
+        textarea.innerHTML = decoded;
+        decoded = textarea.value;
+      }
+    }
+
+    return decoded
+      .replaceAll("&amp;amp;", "&")
+      .replaceAll("&amp;", "&")
+      .replaceAll("&#38;", "&");
+  };
+
+  useEffect(() => {
+    selfieFileRef.current = selfieFile;
+  }, [selfieFile]);
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
+  }, [router, hideSpinner]);
 
+  useEffect(() => {
     if (formNumber === "1") {
       setStep(1);
-    } else if (formNumber === "2") {
-      setStep(2);
-      setShowWebcam(true);
+      return;
     }
+
+    if (formNumber === "2") {
+      setStep(2);
+
+      if (!previewUrl && !isSelfieStageDataAvailable) {
+        setShowWebcam(true);
+      }
+    }
+  }, [formNumber, previewUrl, isSelfieStageDataAvailable]);
+
+  useEffect(() => {
+    if (formNumber !== "2") return;
+
+    let alive = true;
+
+    const getSelfieStageWiseData = async () => {
+      const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+      if (!applicationId) {
+        hideSpinner();
+        return;
+      }
+
+      showSpinner();
+
+      try {
+        const path = `applications/${applicationId}/get/workflow/stagewisedata`;
+
+        // Do not pass hideSpinner here. The spinner must remain visible until
+        // the stage response is bound and the CaptureSelfie/2 page is painted.
+        const response = await apiService.postNri(path, {
+          stagename: "selfie",
+          idempotencyKey: "",
+        });
+
+        if (!alive || !response) return;
+
+        const selfieDocument = Array.isArray(response?.documents)
+          ? response.documents.find(
+              (doc: any) =>
+                String(doc?.documentType ?? "").toLowerCase() === "selfie",
+            )
+          : null;
+
+        const hasSelfieData =
+          response?.status === true &&
+          Boolean(response?.data) &&
+          Object.keys(response.data).length > 0;
+
+        const documentId =
+          response?.data?.selfieDocumentId ||
+          selfieDocument?.documentID ||
+          selfieDocument?.documentId ||
+          "";
+
+        const presignedUrl =
+          selfieDocument?.presignedUrl ||
+          selfieDocument?.preSignedUrl ||
+          selfieDocument?.url ||
+          "";
+
+        if (hasSelfieData || documentId || presignedUrl) {
+          setExistingSelfieDocumentId(documentId);
+          setIsSelfieStageDataAvailable(true);
+
+          sessionStorage.setItem("SelfieVerified", "Yes");
+
+          if (documentId) {
+            sessionStorage.setItem("SelfieDocumentId", documentId);
+          }
+        }
+
+        if (presignedUrl && !selfieFileRef.current) {
+          const previewSelfieUrl = decodeHtmlUrl(presignedUrl);
+
+          try {
+            const resp = await fetch(previewSelfieUrl);
+
+            if (!alive || !resp.ok) {
+              console.log("Saved selfie fetch failed status:", resp.status);
+              return;
+            }
+
+            const blob = await resp.blob();
+
+            if (!alive || blob.size === 0 || selfieFileRef.current) return;
+
+            const fileType = blob.type || "image/jpeg";
+
+            const fileName = blobService.generateFileName(
+              `selfie-${applicationId}`,
+              "jpg",
+            );
+
+            const file = await blobService.blobToFile(blob, fileName, fileType);
+
+            const objectUrl = blobService.fileToPreviewUrl(file);
+
+            setSelfieFile(file);
+            setPreviewUrl(objectUrl);
+            setShowWebcam(false);
+            setIsSelfieStageDataAvailable(true);
+          } catch (error) {
+            console.log("Saved selfie fetch failed:", error);
+          }
+        } else if (!selfieFileRef.current && !previewUrl) {
+          setShowWebcam(true);
+        }
+      } catch (error: any) {
+        if (!alive) return;
+
+        console.log(
+          "Selfie stage wise data error:",
+          error?.response?.data || error,
+        );
+
+        if (!selfieFileRef.current && !previewUrl) {
+          setShowWebcam(true);
+        }
+      } finally {
+        if (alive) {
+          requestAnimationFrame(() => {
+            if (alive) hideSpinner();
+          });
+        }
+      }
+    };
+
+    void getSelfieStageWiseData();
+
+    return () => {
+      alive = false;
+    };
   }, [formNumber]);
 
   useEffect(() => {
     return () => {
-      blobService.revokePreviewUrl(previewUrl);
+      if (previewUrl.startsWith("blob:")) {
+        blobService.revokePreviewUrl(previewUrl);
+      }
     };
   }, [previewUrl]);
 
-  // Live face detection — draws a green outline over the webcam when the user's
-  // face is properly centred inside the oval. Uses the browser's native
-  // FaceDetector API; where it isn't available (Firefox/Safari) the overlay is
-  // simply skipped and capture still works.
   useEffect(() => {
     if (!showWebcam) {
       setFaceAligned(false);
@@ -283,9 +538,8 @@ export default function Selfie() {
     }
 
     const FaceDetectorCtor =
-      typeof window !== "undefined"
-        ? (window as any).FaceDetector
-        : undefined;
+      typeof window !== "undefined" ? (window as any).FaceDetector : undefined;
+
     if (!FaceDetectorCtor) return;
 
     const detector = new FaceDetectorCtor({
@@ -305,12 +559,15 @@ export default function Selfie() {
 
       if (video && canvas && ctx && video.readyState === 4) {
         const { clientWidth: cw, clientHeight: ch } = canvas;
+
         if (canvas.width !== cw) canvas.width = cw;
         if (canvas.height !== ch) canvas.height = ch;
+
         ctx.clearRect(0, 0, cw, ch);
 
         try {
           const faces = await detector.detect(video);
+
           if (!stopped && faces.length > 0) {
             const box = faces[0].boundingBox;
             const vw = video.videoWidth || cw;
@@ -325,9 +582,11 @@ export default function Selfie() {
 
             const faceCx = x + w / 2;
             const faceCy = y + h / 2;
+
             const centred =
               Math.abs(faceCx - cw / 2) < cw * 0.18 &&
               Math.abs(faceCy - ch / 2) < ch * 0.18;
+
             const sized = w > cw * 0.4 && w < cw * 0.95;
             const aligned = centred && sized;
 
@@ -353,14 +612,21 @@ export default function Selfie() {
     };
   }, [showWebcam]);
 
-  const goBack = () => {
+  const goBack = async () => {
     showSpinner();
-
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
     if (step === 1) {
-      setTimeout(() => {
-        router.push("/planprocess/3");
-        hideSpinner();
-      }, 200);
+      // setTimeout(() => {
+      //   router.push("/planprocess/3");
+      //   hideSpinner();
+      // }, 200);
+      await dynamicBackService("SELFIE", applicationId, {
+        push: router.push,
+
+        showSpinner,
+
+        hideSpinner,
+      });
     } else {
       setTimeout(() => {
         router.push("/CaptureSelfie/1");
@@ -370,7 +636,10 @@ export default function Selfie() {
   };
 
   const goToCapture = () => {
+    showSpinner();
+
     if (!navigator.geolocation) {
+      hideSpinner();
       setShowLocationModal(true);
       return;
     }
@@ -387,31 +656,43 @@ export default function Selfie() {
         setGeoLng(String(longitude));
         setGeoAccuracy(String(accuracy || 0));
 
+        // Keep the spinner visible. The CaptureSelfie/2 stage-data effect
+        // hides it only after the saved selfie/camera state is fully bound.
         router.push("/CaptureSelfie/2");
       },
-      () => setShowLocationModal(true),
-      { timeout: 5000 },
+      (error) => {
+        console.log("Location access error:", error);
+        hideSpinner();
+        setShowLocationModal(true);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
     );
   };
 
   const continueWithMobile = async () => {
     const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
     if (!applicationId) {
       toast.error("Your session has expired, please start again.", {
         position: "bottom-center",
         autoClose: 3000,
       });
+
       return;
     }
 
     showSpinner();
+
     try {
       const response = await apiService.sendResumeLink(
         applicationId,
         hideSpinner,
       );
 
-      // Surface the backend message (e.g. "Link has been sent.") in a toast.
       if (response?.status) {
         toast.success(response?.message ?? "Link has been sent.", {
           position: "bottom-center",
@@ -424,7 +705,6 @@ export default function Selfie() {
         });
       }
     } catch (error: any) {
-      // apiService.handleError already surfaced the backend message in a toast.
       console.log("Resume link send error:", error?.response?.data);
     } finally {
       hideSpinner();
@@ -459,28 +739,35 @@ export default function Selfie() {
       return;
     }
 
-    blobService.revokePreviewUrl(previewUrl);
+    if (previewUrl.startsWith("blob:")) {
+      blobService.revokePreviewUrl(previewUrl);
+    }
 
     const objectUrl = blobService.fileToPreviewUrl(file);
 
     setSelfieFile(file);
     setPreviewUrl(objectUrl);
     setShowWebcam(false);
+    setIsSelfieStageDataAvailable(false);
+    setExistingSelfieDocumentId("");
   }, [previewUrl]);
 
   const retake = () => {
-    blobService.revokePreviewUrl(previewUrl);
+    if (previewUrl.startsWith("blob:")) {
+      blobService.revokePreviewUrl(previewUrl);
+    }
 
     setSelfieFile(null);
     setPreviewUrl("");
     setShowWebcam(true);
+    setIsSelfieStageDataAvailable(false);
+    setExistingSelfieDocumentId("");
 
     sessionStorage.removeItem("SelfieVerified");
     sessionStorage.removeItem("SelfieDocumentId");
   };
 
   const uploadSelfie = async () => {
-    
     if (!selfieFile) {
       toast.warning("Please capture a selfie first.", {
         position: "bottom-center",
@@ -497,7 +784,6 @@ export default function Selfie() {
     }
 
     const finalGeoLat = geoLat || sessionStorage.getItem("SelfieGeoLat") || "";
-
     const finalGeoLng = geoLng || sessionStorage.getItem("SelfieGeoLng") || "";
 
     const finalGeoAccuracy =
@@ -534,6 +820,8 @@ export default function Selfie() {
 
       if (response?.documentId) {
         sessionStorage.setItem("SelfieDocumentId", response.documentId);
+      } else if (existingSelfieDocumentId) {
+        sessionStorage.setItem("SelfieDocumentId", existingSelfieDocumentId);
       }
 
       let route = "";
@@ -558,12 +846,6 @@ export default function Selfie() {
           autoClose: 3000,
         });
       }
-
-      // if (rejectStatus !== "R") {
-      //   router.push("/uploadSignatureinfo");
-      // } else {
-      //   navigationService.navigateToNextStep();
-      // }
     } catch (error: any) {
       const errorData = error?.response?.data;
 
@@ -573,7 +855,6 @@ export default function Selfie() {
     }
   };
 
-  // ── Step 1: Prep / Guidelines ───────────────────────────────────────────────
   if (step === 1) {
     return (
       <section
@@ -585,11 +866,7 @@ export default function Selfie() {
           padding: "0",
         }}
       >
-        {/* ══════════════════════════════════════════════════════════
-            MOBILE LAYOUT
-            ══════════════════════════════════════════════════════════ */}
         <div className="mobile_css" style={{ width: "100%" }}>
-          {/* Gray header */}
           <div className={styles.mobGrayHeader}>
             <div className={styles.mobBackRow}>
               {rejectStatus !== "R" && (
@@ -617,6 +894,7 @@ export default function Selfie() {
                 </button>
               )}
             </div>
+
             <div className={styles.mobTitleBlock}>
               <div className={styles.mobTitleRow}>
                 <p className={styles.mobTitle}>Get set for a quick selfie</p>
@@ -635,9 +913,7 @@ export default function Selfie() {
             </div>
           </div>
 
-          {/* White content card */}
           <div className={styles.mobContentCard}>
-            {/* Illustration */}
             <div className={styles.mobIllustration}>
               <img
                 src={publicPath("/assets/images/diy/selfie_illustration.png")}
@@ -645,7 +921,6 @@ export default function Selfie() {
               />
             </div>
 
-            {/* Do's */}
             <div className={styles.mobGuideSection}>
               <p className={styles.mobGuideTitle}>Do&apos;s</p>
               <div className={styles.mobGuideItemRow}>
@@ -661,7 +936,6 @@ export default function Selfie() {
               </div>
             </div>
 
-            {/* Don'ts */}
             <div className={styles.mobGuideSection}>
               <p className={styles.mobGuideTitle}>Dont&apos;s</p>
               <div className={styles.mobGuideItemRow}>
@@ -678,7 +952,6 @@ export default function Selfie() {
             </div>
           </div>
 
-          {/* Sticky capture button */}
           <div className={styles.mobBtnBar}>
             <button
               type="button"
@@ -690,16 +963,10 @@ export default function Selfie() {
           </div>
         </div>
 
-        {showLocationModal && (
-          <LocationModal onClose={() => setShowLocationModal(false)} />
-        )}
+        {showLocationModal && <LocationModal />}
 
-        {/* ══════════════════════════════════════════════════════════
-            DESKTOP LAYOUT
-            ══════════════════════════════════════════════════════════ */}
         <div className="desktop_css">
           <div className={styles.deskCard}>
-            {/* Header */}
             <div className={styles.deskHeader}>
               {rejectStatus !== "R" && (
                 <button
@@ -711,6 +978,7 @@ export default function Selfie() {
                   <BackArrow />
                 </button>
               )}
+
               <div className={styles.deskHeaderText}>
                 <div className={styles.deskTitleRow}>
                   <h5>Get set for a quick selfie</h5>
@@ -729,11 +997,8 @@ export default function Selfie() {
               </div>
             </div>
 
-            {/* Body */}
             <div className={styles.deskBody}>
-              {/* Two-column: illustration + guidelines */}
               <div className={styles.twoCol}>
-                {/* Left: illustration */}
                 <div className={styles.illustrationCol}>
                   <img
                     src={publicPath(
@@ -743,9 +1008,7 @@ export default function Selfie() {
                   />
                 </div>
 
-                {/* Right: guidelines */}
                 <div className={styles.guidelinesCol}>
-                  {/* Do's */}
                   <div className={styles.guideSection}>
                     <p className={styles.guideTitle}>Do&apos;s</p>
                     <div className={styles.guideItemRow}>
@@ -761,7 +1024,6 @@ export default function Selfie() {
                     </div>
                   </div>
 
-                  {/* Dont's */}
                   <div className={styles.guideSection}>
                     <p className={styles.guideTitle}>Dont&apos;s</p>
                     <div className={styles.guideItemRow}>
@@ -779,7 +1041,6 @@ export default function Selfie() {
                 </div>
               </div>
 
-              {/* "No webcam" banner — clickable, leads to mobile flow */}
               <button
                 type="button"
                 className={styles.noWebcamBanner}
@@ -793,7 +1054,6 @@ export default function Selfie() {
                 </div>
               </button>
 
-              {/* Single "Capture Now" button */}
               <div className={styles.deskBtnRow}>
                 <button
                   type="button"
@@ -810,13 +1070,11 @@ export default function Selfie() {
     );
   }
 
-  // ── Step 2: Webcam capture ──────────────────────────────────────────────────
   return (
     <section className="pan_details_form" aria-label="Capture Selfie">
       <div className="container">
         <div className="row">
           <div className="col-lg-10 col-12 m-auto">
-            {/* Mobile */}
             <div className="mobile_css">
               <div className="back_cls">
                 <button
@@ -839,6 +1097,7 @@ export default function Selfie() {
                   />{" "}
                   Back
                 </button>
+
                 <div className="mobile_header_padding">
                   <h5>Capture your selfie</h5>
                   <p className="sub_title">
@@ -861,6 +1120,7 @@ export default function Selfie() {
                       >
                         <BackArrow />
                       </button>
+
                       <div className="heading">
                         <h5>Capture your selfie</h5>
                         <p className="sub_title">
@@ -871,12 +1131,15 @@ export default function Selfie() {
                   </div>
                 </div>
               </div>
+
               <hr className="desktop_css" />
 
               <div className={styles.cameraWrap}>
                 {showWebcam && (
                   <div
-                    className={`${styles.ovalFrame}${faceAligned ? ` ${styles.ovalFrameAligned}` : ""}`}
+                    className={`${styles.ovalFrame}${
+                      faceAligned ? ` ${styles.ovalFrameAligned}` : ""
+                    }`}
                   >
                     <Webcam
                       ref={webcamRef}
@@ -885,17 +1148,10 @@ export default function Selfie() {
                       videoConstraints={{ facingMode: "user" }}
                       className={styles.ovalVideo}
                       onUserMediaError={() => {
-                        toast.error(
-                          "Camera access denied. Please enable camera permissions.",
-                          {
-                            position: "bottom-center",
-                            autoClose: 3000,
-                          },
-                        );
-                        router.push("/CaptureSelfie/1");
+                        setShowCameraModal(true);
                       }}
                     />
-                    {/* Green face-detection outline drawn over the live video. */}
+
                     <canvas ref={overlayRef} className={styles.faceOverlay} />
                   </div>
                 )}
@@ -913,7 +1169,9 @@ export default function Selfie() {
 
                 <p
                   className={`${styles.ovalHint}${
-                    showWebcam && faceAligned ? ` ${styles.ovalHintAligned}` : ""
+                    showWebcam && faceAligned
+                      ? ` ${styles.ovalHintAligned}`
+                      : ""
                   }`}
                 >
                   {showWebcam
@@ -921,7 +1179,6 @@ export default function Selfie() {
                     : "Selfie captured"}
                 </p>
 
-                {/* Capture button (camera icon) — shown while the webcam is live. */}
                 {showWebcam && (
                   <button
                     type="button"
@@ -937,7 +1194,6 @@ export default function Selfie() {
                   </button>
                 )}
 
-                {/* Retake / Upload — single shared row, works on mobile + desktop. */}
                 {!showWebcam && previewUrl && (
                   <div className={styles.captureActions}>
                     <button
@@ -947,6 +1203,7 @@ export default function Selfie() {
                     >
                       Retake
                     </button>
+
                     <button
                       type="button"
                       className={styles.uploadBtn}
@@ -957,43 +1214,13 @@ export default function Selfie() {
                   </div>
                 )}
               </div>
-
-              {/* <div
-                className="stickybtn_desk desktop_css"
-                style={{ marginTop: 24 }}
-              >
-                {!showWebcam && previewUrl && (
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: 12,
-                      maxWidth: 400,
-                      margin: "0 auto",
-                    }}
-                  >
-                    <LoadingButton
-                      type="button"
-                      className="btn btn_cls_outline"
-                      onClick={retake}
-                      style={{ flex: 1 }}
-                    >
-                      Retake
-                    </LoadingButton>
-                    <LoadingButton
-                      type="button"
-                      className="btn btn_cls"
-                      onClick={uploadSelfie}
-                      style={{ flex: 1 }}
-                    >
-                      Upload
-                    </LoadingButton>
-                  </div>
-                )}
-              </div> */}
             </form>
           </div>
         </div>
       </div>
+      {showCameraModal && (
+        <CameraModal onRefresh={() => handleCameraRefresh()} />
+      )}
     </section>
   );
 }

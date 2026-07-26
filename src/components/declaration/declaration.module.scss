@@ -282,7 +282,7 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-direction: column;
   justify-content: space-between;
   gap: 32px;
-  min-height: clamp(300px, 60vh, 400px); // scale with viewport to avoid laptop white-space/scroll
+  min-height: clamp(300px, 60vh, 400px);
 }
 
 .desktopProceedWrapper {
@@ -599,7 +599,7 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 // Radio option row — gap-40 matches Figma spacing between Yes / No
 .tradingQnaAnswers {
   display: flex;
-  gap: 40px;
+  gap: 10px 40px;
   align-items: flex-start;
   flex-wrap: wrap;
 }

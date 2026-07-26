@@ -739,7 +739,7 @@ $border-plan-hl: #bda7ff;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  min-height: clamp(300px, 60vh, 582px); // scale with viewport to avoid laptop white-space/scroll
+  min-height: clamp(300px, 60vh, 582px);
 }
 
 // ─── Desktop Plan Cards (Figma NRE-RI 0:49002) ───────────────

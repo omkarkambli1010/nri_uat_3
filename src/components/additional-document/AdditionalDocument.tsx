@@ -9,24 +9,6 @@ import { friendlyErrorMessage } from '@/utils/errorMessage';
 import { additionalDocumentStore } from './additionalDocumentStore';
 import styles from './additional-document.module.scss';
 
-// AdditionalDocument — TRUE MODAL OVERLAY (not a page)
-// Figma: desktop dialog 0:48996 (inside 0:48751)
-//        mobile sheet   0:49036
-//
-// Upload-only flow (no preview in-modal):
-//   choose    → real file/camera pickers + Skip
-//   uploading → progress
-//   error     → invalid file type or oversized — Try Again
-//
-// On successful upload + crop (or PDF complete) the file is persisted to
-// `additionalDocumentStore` and `onProceed` is fired so the host can route to
-// the dedicated preview page (/additional-document/preview).
-//
-// Props:
-//   onClose   — close the modal (backdrop click, X button)
-//   onProceed — upload completed → host routes to the preview page
-//   onSkip    — user chose to skip this optional document
-
 type DocState = 'choose' | 'uploading' | 'error';
 
 const ACCEPTED_INPUT_HINT = 'image/*,application/pdf,.jpg,.jpeg,.png,.heic,.heif,.webp,.pdf';

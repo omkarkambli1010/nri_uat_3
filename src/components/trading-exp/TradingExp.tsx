@@ -7,10 +7,17 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./trading-exp.module.scss";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // Dummy values matching Figma — swap with API data when ready
-const TRADING_OPTIONS = ["No Experience", "1-3 Years", "4-6 Years", "More than 6-9 Years", "10 or More than 10 years"];
+const TRADING_OPTIONS = [
+  "No Experience",
+  "1-3 Years",
+  "4-6 Years",
+  "More than 6-9 Years",
+  "10 or More than 10 years",
+];
 
 function BackArrow() {
   return (
@@ -56,14 +63,13 @@ export default function TradingExp() {
   // const [selectedTrading, setSelectedTrading] = useState('');
   // const [guid, setGuid] = useState('');
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
     getTradingExpData();
     // getPersonalDetails();
   }, []);
-
 
   const getTradingExpData = async () => {
     const applicationId =
@@ -138,12 +144,24 @@ export default function TradingExp() {
   //   } catch { hideSpinner(); }
   // };
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push('/personalDetailsForm/1');
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push('/personalDetailsForm/1');
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS2", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const handleSelect = async (option: string) => {

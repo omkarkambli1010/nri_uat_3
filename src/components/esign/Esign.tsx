@@ -9,6 +9,7 @@ import { buildFaqUrl } from "@/lib/faq-link";
 import { EsignIllustration } from "./EsignIllustration";
 import styles from "./esign.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
+import dynamicBackService from "@/services/back-navigation.service";
 
 const DESKTOP_MQ = "(min-width: 992px)";
 
@@ -144,12 +145,24 @@ export default function Esign() {
 
   const openFaq = () => router.push(buildFaqUrl(pathname || "/esign"));
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.back();
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.back();
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("ESIGN", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const decodeHtmlUrl = (url: string) => {
@@ -193,9 +206,7 @@ export default function Esign() {
 
         window.open(previewUrl, "_blank", "noopener,noreferrer");
       } else {
-        toast.error(
-          response?.detail || "Unable to load the application form.",
-        );
+        toast.error(response?.detail || "Unable to load the application form.");
       }
     } catch (error: any) {
       const errorData = error?.response?.data;

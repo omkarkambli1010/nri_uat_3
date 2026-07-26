@@ -1526,10 +1526,3 @@ $dark-grey: #231f20;
   }
 }
 
-
-// Offset for SectionNavigation jumps. The site header is position: sticky at
-// ~64px tall, so `scrollIntoView({ block: "start" })` would otherwise tuck each
-// heading underneath it.
-.navTarget {
-  scroll-margin-top: 84px;
-}

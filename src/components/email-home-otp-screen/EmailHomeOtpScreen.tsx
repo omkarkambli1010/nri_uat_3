@@ -266,7 +266,15 @@ export default function EmailHomeOtpScreen() {
         hideSpinner,
       );
       hideSpinner();
-      if (response) {
+      // A 200 response can still carry { verified: false } - only treat an
+      // explicitly verified response as success.
+      if (response?.verified) {
+        if (response.applicationNumber) {
+          sessionStorage.setItem("applicationNumber", response.applicationNumber);
+        }
+        if (response.nextStage) {
+          sessionStorage.setItem("nextStage", response.nextStage);
+        }
         setIsRightOTP(true);
         setIsWrongOTP(false);
         if (typeof window !== "undefined") sessionStorage.removeItem("email");
@@ -302,7 +310,6 @@ export default function EmailHomeOtpScreen() {
         setShakeOtp(true);
       }
     } catch {
-      // The backend message is already toasted by apiService.handleError.
       setIsWrongOTP(true);
       setIsRightOTP(false);
       setShakeOtp(true);
@@ -326,8 +333,6 @@ export default function EmailHomeOtpScreen() {
 
       {/* OTP input */}
       <div className={styles.otpField}>
-        {/* Group label — InputOtp renders 6 separate inputs, so a single htmlFor
-            can't target them; the wrapper is a labelled group instead. */}
         <span id="email-otp-label" className={styles.otpLabel}>Enter OTP</span>
         <div
           className={`${styles.otpInputWrap}${shakeOtp ? ` ${styles.shake}` : ""}`}
@@ -344,23 +349,11 @@ export default function EmailHomeOtpScreen() {
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
-        {/* Inline OTP error message removed per BRD: the backend already toasts
-            "Incorrect OTP. Please try again." via apiService.handleError, so this
-            hardcoded message caused two messages to show for one failure.
-        {isWrongOTP && (
-          <div className={styles.otpError}>
-            <ExclamationCircleSvg />
-            <span>Incorrect OTP.</span>
-          </div>
-        )}
-        */}
       </div>
 
       {/* Resend row */}
       <div className={styles.resendRow}>
         {maxResendReached ? (
-          // BRD: on hitting the resend limit, show only this message — no Home
-          // (or any) button. Resend is locked for 15 minutes.
           <span className={styles.resendTimer}>
             Maximum resend attempts reached. Please try again after 15 mins.
           </span>
@@ -482,7 +475,7 @@ export default function EmailHomeOtpScreen() {
             <SuccessCheckSvg />
             <h5 className={styles.modalTitle}>Email Verification</h5>
             <p className={styles.modalSubtitle}>
-              Your Email ID been verified successfully
+              Your Email ID has been verified successfully
             </p>
           </div>
         </div>

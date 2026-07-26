@@ -92,7 +92,7 @@ export default function FatcaUpload() {
 
   // Load the TIN entries captured on /fatca, and prefill the previously-saved
   // TIN proof document ids + previews from the FATCA stage (POST …/get/workflow/
-  // stagewisedate { stagename: "FATCA" }). The sessionStorage entries (fresh from
+  // stagewisedata { stagename: "FATCA" }). The sessionStorage entries (fresh from
   // /fatca) take precedence; on a direct revisit (no sessionStorage) the saved
   // tax residencies are used instead. Redirect back only if neither has any.
   useEffect(() => {

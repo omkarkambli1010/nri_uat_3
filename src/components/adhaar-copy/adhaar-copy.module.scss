@@ -227,7 +227,7 @@ $info-border: #c3c7ed;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: clamp(300px, 60vh, 520px); // scale with viewport to avoid laptop white-space/scroll
+  min-height: clamp(300px, 60vh, 520px);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -379,6 +379,7 @@ $info-border: #c3c7ed;
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  margin-top: 24px;
 }
 
 // Figma: 14px Regular #666, flex row, gap-6

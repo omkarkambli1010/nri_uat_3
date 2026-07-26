@@ -600,8 +600,27 @@ $error: #d92d20;
   font-weight: 400;
   color: $error;
   line-height: 1.4;
-  margin: -16px 0 0; // pull up toward the field (form column gap is 24px)
+  margin: 0; // pull up toward the field (form column gap is 24px)
+  padding-left: 255px; // align under the input column (231px label + 24px gap)
+}
+
+// City & State errors — the field has two 212px inputs (.desktopInputHalf) in a
+// .desktopInputPair. This error row mirrors that: same 255px offset under the
+// input column, then two 212px cells so each error sits under its own input.
+.desktopCityStateErrorRow {
+  display: flex;
+  gap: 24px;
   padding-left: 255px;
+  margin: 0;
+}
+
+.desktopHalfError {
+  width: 212px;
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 400;
+  color: $error;
+  line-height: 1.4;
 }
 
 // Pincode error sits inside .fieldGroup (gap 8px), not the 24px form column, so

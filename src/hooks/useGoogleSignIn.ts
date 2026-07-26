@@ -30,6 +30,7 @@ type UseGoogleSignInParams = {
 
   fallbackRedirectUrl?: string;
   fallbackClientCode?: string | null;
+  fallbackflag?: string | null;
 
   googleErrorSessionKey?: string;
 
@@ -52,6 +53,7 @@ export function useGoogleSignIn({
   promptParentId = 'one-tap-container',
   fallbackRedirectUrl,
   fallbackClientCode,
+  fallbackflag,
   googleErrorSessionKey = 'GoogleError',
   onSuccess,
   onError,
@@ -169,8 +171,8 @@ export function useGoogleSignIn({
 
     return `${fallbackRedirectUrl}${separator}clientcode=${
       fallbackClientCode || ''
-    }`;
-  }, [fallbackRedirectUrl, fallbackClientCode]);
+    }&flag=${fallbackflag}`;
+  }, [fallbackRedirectUrl, fallbackClientCode, fallbackflag]);
 
   const redirectToFallbackGoogleAuth = useCallback(() => {
     if (typeof window === 'undefined') {

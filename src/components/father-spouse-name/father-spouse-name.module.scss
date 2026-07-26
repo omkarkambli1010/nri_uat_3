@@ -120,10 +120,6 @@ $primary-color: #280071;
   flex-shrink: 0;
 }
 
-// Hidden on mobile/tablet — button lives in the global `.stickybtn` row
-// instead. Must match the 992px breakpoint used by `.mobile_css`/`.desktop_css`
-// (the sticky mobile button is inside `.mobile_css`); using 767px here meant
-// both the in-card and the sticky Proceed buttons showed between 768–991px.
 .desktopProceed {
   @media (max-width: 991.98px) {
     display: none;

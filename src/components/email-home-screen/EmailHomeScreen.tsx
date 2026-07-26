@@ -67,38 +67,50 @@ export default function EmailHomeScreen() {
   }, []);
 
   const getEmailOtpVerify = async (payload: any) => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
     if (!payload) return;
     const reqData = {
-      Flag: "SaveGmail",
-      emailid: payload.email,
-      emailidverified: payload.email_verified,
-      GmailProfileName: payload.name,
-      Formnumber: sessionStorage.getItem("FormNumber"),
-      mobileno: sessionStorage.getItem("mobile"),
-      utm_source: utmSource,
-      utm_medium: utmMedium,
-      utm_campaign: utmCampaign,
+      emailAddress: payload.email,
+      gmailIdVerified: payload.email_verified,
+      gmailProfileName: payload.name,
     };
     showSpinner();
     try {
-      const response = await apiService.postRequest(
-        "api/v1/oauth/service/otp/savegmail",
+      const response = await apiService.postNri(
+        `applications/${applicationId}/gmail/verify`,
         reqData,
         hideSpinner,
       );
-      if (response?.status === true) {
-        setTimeout(() => {
-          router.push("/uploadProcess/1");
-          hideSpinner();
-        }, 200);
+      console.log("Personal Details Gender Response:", response);
+
+      let route = "";
+
+      try {
+        const uiMetadata = response?.uiMetadata
+          ? JSON.parse(response.uiMetadata)
+          : null;
+
+        route = uiMetadata?.route || "";
+      } catch (error: any) {
+        route = "";
+        console.log("Selfie Route Error:", error);
+      }
+
+      if (route) {
+        router.push(`/${route}`);
+        return;
       } else {
-        toast.error(response?.message || "Error", {
+        toast.error("Next Route Not provided", {
           position: "bottom-center",
           autoClose: 3000,
         });
-        hideSpinner();
       }
-    } catch {
+    } catch (error: any) {
+      const errorData = error?.response?.data;
+
+      console.log("Personal Details Gender Error:", errorData);
+    } finally {
       hideSpinner();
     }
   };
@@ -107,10 +119,15 @@ export default function EmailHomeScreen() {
     promptParentId: "one-tap-container",
 
     fallbackRedirectUrl:
-      environment.backendurl + "/GoogleAuthentication/GoogleSignIn.aspx",
+      environment.backendurl.replace("nriapi", "") +
+      "/GoogleAuthentication/GoogleSignIn.aspx",
 
     fallbackClientCode:
-      typeof window !== "undefined" ? sessionStorage.getItem("FormNumber") : "",
+      typeof window !== "undefined"
+        ? sessionStorage.getItem("ApplicationId")
+        : "",
+
+    fallbackflag: "DIYNRI",
 
     googleErrorSessionKey: "GoogleError",
 
@@ -204,12 +221,13 @@ export default function EmailHomeScreen() {
     </div>
   );
 
+  // Only the link itself is interactive — the "(Require OTP Verification)"
+  // note is plain text and must not trigger navigation when clicked.
   const altEmail = (
-    <div
-      className={styles.altEmailBlock}
-      {...buttonKeyProps(emailTextPage)}
-    >
-      <span className={styles.altEmailLink}>Use another E-mail ID</span>
+    <div className={styles.altEmailBlock}>
+      <span className={styles.altEmailLink} {...buttonKeyProps(emailTextPage)}>
+        Use another E-mail ID
+      </span>
       <span className={styles.altEmailNote}>(Require OTP Verification)</span>
     </div>
   );

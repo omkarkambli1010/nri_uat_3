@@ -9,8 +9,9 @@ import navigationService from "@/services/navigation.service";
 import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./declaration.module.scss";
 import { publicPath } from "@/utils/publicPath";
-import { useSessionValue } from '@/hooks/useSessionValue';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import dynamicBackService from "@/services/back-navigation.service";
 // Declaration — plan process step 1
 // Figma: Onboarding / Step 4 / Declaration → 0:25471 (mobile) + 0:25592 (desktop)
 
@@ -59,6 +60,18 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
         QuestionId: "q-pledge",
         Question:
           "I / We would like to instruct the DP to accept all the pledge instructions in my / our account with out any other further instruction from my / our end (If not marked, the default option would be 'No')",
+        SelectedAns: "No",
+        Answer: [{ Key: "Yes" }, { Key: "No" }],
+      },
+    ],
+  },
+  {
+    Title: "DIS",
+    TitleId: "dis",
+    Questions: [
+      {
+        QuestionId: "q-dis",
+        Question: "I/We require Delivery Instruction Slip (DIS)",
         SelectedAns: "Yes",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
@@ -72,18 +85,6 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
         QuestionId: "q-ddpi",
         Question:
           "Account to be operated through Demat Debit And Pledge Instruction (DDPI)",
-        SelectedAns: "Yes",
-        Answer: [{ Key: "Yes" }, { Key: "No" }],
-      },
-    ],
-  },
-  {
-    Title: "DIS",
-    TitleId: "dis",
-    Questions: [
-      {
-        QuestionId: "q-dis",
-        Question: "I/We require Delivery Instruction Slip (DIS)",
         SelectedAns: "No",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
@@ -105,13 +106,13 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-sms-second",
         Question: "Second Holder",
-        SelectedAns: "Yes",
+        SelectedAns: "No",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
       {
         QuestionId: "q-sms-third",
         Question: "Third Holder",
-        SelectedAns: "Yes",
+        SelectedAns: "No",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
     ],
@@ -149,7 +150,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-acct-stmt",
         Question: "",
-        SelectedAns: "As per SEBI Regulation",
+        SelectedAns: "Monthly",
         Answer: [
           { Key: "As per SEBI Regulation" },
           { Key: "Daily" },
@@ -180,7 +181,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-std-docs",
         Question: "",
-        SelectedAns: "Electronic",
+        SelectedAns: "Physical",
         Answer: [
           { Key: "Electronic" },
           { Key: "Physical" },
@@ -253,7 +254,13 @@ function IconInfo() {
 
 function IconClose() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
       <path
         d="M6 6L18 18M18 6L6 18"
         stroke="currentColor"
@@ -387,14 +394,31 @@ export default function Declaration() {
 
   // Focus traps for each modal — WAI-ARIA dialog pattern (focus in, trap,
   // Escape to close, restore focus on close).
-  const termsDialogRef = useFocusTrap<HTMLDivElement>(showTermsModal, () => setShowTermsModal(false));
-  const taxpayerDialogRef = useFocusTrap<HTMLDivElement>(showTaxpayerModal, () => setShowTaxpayerModal(false));
-  const politicalDialogRef = useFocusTrap<HTMLDivElement>(showPoliticalModal, () => setShowPoliticalModal(false));
-  const tradingPrefDialogRef = useFocusTrap<HTMLDivElement>(showTradingPrefModal, () => setShowTradingPrefModal(false));
-  const fundCycleDialogRef = useFocusTrap<HTMLDivElement>(showFundCycleModal, () => setShowFundCycleModal(false));
-  const confirmPrefDialogRef = useFocusTrap<HTMLDivElement>(showConfirmPrefModal, () => setShowConfirmPrefModal(false));
+  const termsDialogRef = useFocusTrap<HTMLDivElement>(showTermsModal, () =>
+    setShowTermsModal(false),
+  );
+  const taxpayerDialogRef = useFocusTrap<HTMLDivElement>(
+    showTaxpayerModal,
+    () => setShowTaxpayerModal(false),
+  );
+  const politicalDialogRef = useFocusTrap<HTMLDivElement>(
+    showPoliticalModal,
+    () => setShowPoliticalModal(false),
+  );
+  const tradingPrefDialogRef = useFocusTrap<HTMLDivElement>(
+    showTradingPrefModal,
+    () => setShowTradingPrefModal(false),
+  );
+  const fundCycleDialogRef = useFocusTrap<HTMLDivElement>(
+    showFundCycleModal,
+    () => setShowFundCycleModal(false),
+  );
+  const confirmPrefDialogRef = useFocusTrap<HTMLDivElement>(
+    showConfirmPrefModal,
+    () => setShowConfirmPrefModal(false),
+  );
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
   const utmSource =
     typeof window !== "undefined"
       ? sessionStorage.getItem("UTMSOURCE") || "search-engine"
@@ -411,14 +435,14 @@ export default function Declaration() {
   }, []);
 
   // Prefill the saved declaration acceptances from the DECLARATION workflow
-  // stage (POST …/get/workflow/stagewisedate { stagename: "DECLARATION" }).
+  // stage (POST …/get/workflow/stagewisedata { stagename: "DECLARATION" }).
   // Field → checkbox mapping mirrors the save payload (handleProceed):
   //   pepAccepted → ispep, preferenceAccepted → istradingPref,
   //   termsAccepted → istermsandcond, mitcAccepted → issettledfunds.
   const getDeclarationWorkflowData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId") ?? ""
+        ? (sessionStorage.getItem("ApplicationId") ?? "")
         : "";
     if (!applicationId) return;
 
@@ -547,7 +571,7 @@ export default function Declaration() {
         });
         setQuestionnaireResponse(qr);
       }
-    } catch { }
+    } catch {}
   };
 
   const selectAllCheckboxes = (checked: boolean, isProceed: boolean) => {
@@ -640,8 +664,8 @@ export default function Declaration() {
     return !!(
       (get(0)?.Title === "Automatic Credit" && get(0)?.AnswerKey !== "YES") ||
       (get(1)?.Title === "Pledge" && get(1)?.AnswerKey !== "YES") ||
-      (get(2)?.Title === "DIS" && get(2)?.AnswerKey !== "NO") ||
       (get(3)?.Title === "DDPI Operation" && get(3)?.AnswerKey !== "YES") ||
+      (get(2)?.Title === "DIS" && get(2)?.AnswerKey !== "NO") ||
       (get(4)?.Title === "SMS Alert Facility" &&
         get(4)?.AnswerKey !== "YES" &&
         get(4)?.QuestionId === 5) ||
@@ -761,9 +785,7 @@ export default function Declaration() {
       return;
     }
 
-    const applicationId =
-      sessionStorage.getItem("ApplicationId") ??
-      "";
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found", {
@@ -823,29 +845,41 @@ export default function Declaration() {
     }
   };
 
-  const redirectToBankDetails = () => {
-    showSpinner();
-    const mode =
-      typeof window !== "undefined" ? sessionStorage.getItem("mode") : "";
-    const isYonoClient =
-      typeof window !== "undefined" ? sessionStorage.getItem("IsYono") : "";
-    const yonobankstatus =
-      typeof window !== "undefined" ? sessionStorage.getItem("yonobank") : "";
-    document.querySelectorAll(".modal-backdrop").forEach((el) => el.remove());
-    if (
-      yonobankstatus === "UNIQUE" &&
-      (isYonoClient === "YONO" || isYonoClient === "Branch Portal")
-    ) {
-      setTimeout(() => {
-        router.push("/personalDetailsForm/5");
-        hideSpinner();
-      }, 200);
-    } else {
-      setTimeout(() => {
-        router.push("/manual-bankdetails");
-        hideSpinner();
-      }, 200);
-    }
+  // const redirectToBankDetails = () => {
+  //   showSpinner();
+  //   const mode =
+  //     typeof window !== "undefined" ? sessionStorage.getItem("mode") : "";
+  //   const isYonoClient =
+  //     typeof window !== "undefined" ? sessionStorage.getItem("IsYono") : "";
+  //   const yonobankstatus =
+  //     typeof window !== "undefined" ? sessionStorage.getItem("yonobank") : "";
+  //   document.querySelectorAll(".modal-backdrop").forEach((el) => el.remove());
+  //   if (
+  //     yonobankstatus === "UNIQUE" &&
+  //     (isYonoClient === "YONO" || isYonoClient === "Branch Portal")
+  //   ) {
+  //     setTimeout(() => {
+  //       router.push("/personalDetailsForm/5");
+  //       hideSpinner();
+  //     }, 200);
+  //   } else {
+  //     setTimeout(() => {
+  //       router.push("/personalDetailsForm/6");
+  //       hideSpinner();
+  //     }, 200);
+  //   }
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("DECLARATION", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   // ─── Preference Denied screen ──────────────────────────────────
@@ -1126,7 +1160,7 @@ export default function Declaration() {
                 <button
                   type="button"
                   className={styles.mobileBackBtn}
-                  onClick={redirectToBankDetails}
+                  onClick={goBack}
                   aria-label="Go back"
                 >
                   <IconBackArrow />
@@ -1186,7 +1220,7 @@ export default function Declaration() {
                 <button
                   type="button"
                   className={styles.desktopBackBtn}
-                  onClick={redirectToBankDetails}
+                  onClick={goBack}
                   aria-label="Go back"
                 >
                   <IconBackArrow />

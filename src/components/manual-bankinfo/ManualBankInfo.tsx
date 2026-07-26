@@ -63,7 +63,7 @@ export const getBankStageData = async (
   };
 
   const response = await apiService.postNri(
-    `applications/${applicationId}/get/workflow/stagewisedate`,
+    `applications/${applicationId}/get/workflow/stagewisedata`,
     reqData,
     hideSpinner,
   );

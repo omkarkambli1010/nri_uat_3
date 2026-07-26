@@ -1,12 +1,3 @@
-// friendlyErrorMessage — extract a user-facing message from an API/network error.
-//
-// Axios sets `error.message` to "Request failed with status code NNN", which is
-// meaningless to end users and must never be shown on the frontend. This helper
-// prefers the backend's own message from the response body, then any *custom*
-// error message, and otherwise falls back to a friendly default — always
-// filtering out the Axios status-code string.
-
-// Matches Axios's default network-error messages so they can be discarded.
 const AXIOS_DEFAULT_RE = /request failed with status code|network error/i;
 
 export function friendlyErrorMessage(

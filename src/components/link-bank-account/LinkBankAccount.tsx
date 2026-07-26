@@ -9,7 +9,7 @@ import navigationService from "@/services/navigation.service";
 import styles from "./link-bank-account.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 import { useSessionValue } from "@/hooks/useSessionValue";
-
+import dynamicBackService from "@/services/back-navigation.service";
 
 // LinkBankAccount — step 6: Bank Details (Select Bank Account Type)
 // Figma: MzSMJbkZfKDT6S8z3G0rVU
@@ -128,16 +128,16 @@ export default function LinkBankAccount() {
   // BRD: the "Non PIS NRE" account option is only valid for the semi-digital
   // journey. For the (fully) digital journey, show NRO only.
   // const isSemiDigital = useSessionValue("accountType") === "semi-digital";
-  const accountType = useSessionValue('accountType');
-  const isSemiDigital = accountType === 'semi-digital';
-  const isDigital = accountType === 'digital';
+  const accountType = useSessionValue("accountType");
+  const isSemiDigital = accountType === "semi-digital";
+  const isDigital = accountType === "digital";
 
   const accountTypes = isSemiDigital
     ? ACCOUNT_TYPES
     : ACCOUNT_TYPES.filter(({ id }) => id !== "nre");
 
   useEffect(() => {
-    if (isDigital) setSelected(['nro']);
+    if (isDigital) setSelected(["nro"]);
   }, [isDigital]);
 
   useEffect(() => {
@@ -187,13 +187,25 @@ export default function LinkBankAccount() {
     );
   };
 
-  const goBack = () => {
-    showSpinner();
+  // const goBack = () => {
+  //   showSpinner();
 
-    setTimeout(() => {
-      router.back();
-      hideSpinner();
-    }, 200);
+  //   setTimeout(() => {
+  //     router.back();
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("BANK", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const handleProceed = () => {

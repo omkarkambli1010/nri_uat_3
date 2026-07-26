@@ -11,6 +11,7 @@ import { buildFaqUrl } from '@/lib/faq-link';
 import styles from './upload-process.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import LoadingButton from '@/components/ui/LoadingButton';
+import dynamicBackService from '@/services/back-navigation.service';
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
 
@@ -401,12 +402,24 @@ export default function UploadProcess() {
     }
   };
 
-  const handleBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push("/home");
-      hideSpinner();
-    }, 200);
+  // const handleBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push("/home");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+   const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PAN_VERIFICATION", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   return (
@@ -421,7 +434,7 @@ export default function UploadProcess() {
             <button
               type="button"
               className={styles.mobileBackBtn}
-              onClick={handleBack}
+              onClick={goBack}
               aria-label="Go back"
               suppressHydrationWarning
             >
@@ -590,7 +603,7 @@ export default function UploadProcess() {
             <button
               type="button"
               className={styles.desktopBackBtn}
-              onClick={handleBack}
+              onClick={goBack}
               aria-label="Go back"
               suppressHydrationWarning
             >

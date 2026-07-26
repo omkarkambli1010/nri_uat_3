@@ -7,8 +7,9 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./father-spouse-name.module.scss";
-import LoadingButton from '@/components/ui/LoadingButton';
-import { useSessionValue } from '@/hooks/useSessionValue';
+import LoadingButton from "@/components/ui/LoadingButton";
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // FatherSpouseName — step 5: Father/Spouse Name (KYC)
 // Equivalent to Angular FatherSpouseNameComponent
@@ -25,17 +26,13 @@ export default function FatherSpouseName() {
   const [fatherNameSpace, setFatherNameSpace] = useState(false);
   const [guid, setGuid] = useState("");
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
     getFatherSpouseData();
   }, []);
 
-
-  // ─── Fetch saved PERSONAL workflow data on mount ───────────────────────
-  // Pre-fills Father/Spouse Name if already saved (e.g. navigating back,
-  // or resuming a saved application).
   const getFatherSpouseData = async () => {
     const applicationId =
       typeof window !== "undefined"
@@ -175,12 +172,24 @@ export default function FatherSpouseName() {
     }
   };
 
-  const BackToFour = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push("/personalDetailsForm/4");
-      hideSpinner();
-    }, 200);
+  // const BackToFour = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push("/personalDetailsForm/4");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS5", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const hasInputError =
@@ -201,7 +210,7 @@ export default function FatherSpouseName() {
                   <button
                     type="button"
                     className="figma-card-back"
-                    onClick={BackToFour}
+                    onClick={goBack}
                     aria-label="Go back"
                   >
                     <svg
@@ -251,7 +260,7 @@ export default function FatherSpouseName() {
                     <button
                       type="button"
                       className="figma-card-back"
-                      onClick={BackToFour}
+                      onClick={goBack}
                       aria-label="Go back"
                     >
                       <svg
@@ -341,7 +350,6 @@ export default function FatherSpouseName() {
                     </div>
                   </div>
 
-                  {/* Desktop: Proceed button inside card (pinned to bottom via justify-between) */}
                   <div
                     className={`${styles.proceedRow} ${styles.desktopProceed}`}
                   >
@@ -358,13 +366,8 @@ export default function FatherSpouseName() {
                 </div>
               </form>
             </div>
-
           </div>
 
-          {/* Mobile: Proceed pinned to the bottom of the gray background —
-              matches Figma (node 0:57726) and the shared .stickybtn pattern
-              used by the other KYC steps. Sibling of the column so it spans
-              the full width and sits at the bottom rather than under the card. */}
           <div className="stickybtn mobile_css">
             <LoadingButton
               className="btn btn_cls"

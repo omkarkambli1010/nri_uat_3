@@ -22,11 +22,17 @@ const nextConfig: NextConfig = {
         {
           source: "/nriapi/:path*",
           destination: "https://udn.sbisecurities.in/nriapi/:path*",
-        },
+        }
+        // },
+        // {
+        //   source: "/s3-file/:path*",
+        //   destination: "https://s3.ap-south-1.amazonaws.com/:path*",
+        //   basePath: false,
+        // },
       ];
     }
     return {
-      beforeFiles: [
+      beforeFiles: [        
         {
           source: "/assets/:path*",
           destination: `${nextServerOrigin}/diynri/assets/:path*`,

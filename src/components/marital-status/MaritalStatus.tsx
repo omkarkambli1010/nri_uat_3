@@ -7,8 +7,8 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./maritalstatus.module.scss";
-import { useSessionValue } from '@/hooks/useSessionValue';
-
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 const MARITAL_OPTIONS = ["Single", "Married"];
 
@@ -53,7 +53,7 @@ export default function MaritalStatus() {
 
   const [selected, setSelected] = useState("");
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -97,17 +97,29 @@ export default function MaritalStatus() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      // Semi-digital users come from the manual document-upload journey
-      // (/aadhar/upload); full-digital users come from DigiLocker.
-      const isSemiDigital =
-        sessionStorage.getItem("accountType") === "semi-digital";
-      // router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
-      router.push(isSemiDigital ? "/uploadProcess/1" : "/aadhar");
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     // Semi-digital users come from the manual document-upload journey
+  //     // (/aadhar/upload); full-digital users come from DigiLocker.
+  //     const isSemiDigital =
+  //       sessionStorage.getItem("accountType") === "semi-digital";
+  //     // router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
+  //     router.push(isSemiDigital ? "/uploadProcess/1" : "/aadhar");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS0", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const handleSelect = async (option: string) => {
@@ -169,7 +181,11 @@ export default function MaritalStatus() {
   };
 
   const optionButtons = (
-    <div className={styles.optionGrid} role="group" aria-label="Marital status options">
+    <div
+      className={styles.optionGrid}
+      role="group"
+      aria-label="Marital status options"
+    >
       {MARITAL_OPTIONS.map((option) => (
         <button
           key={option}
@@ -240,4 +256,3 @@ export default function MaritalStatus() {
     </>
   );
 }
- 

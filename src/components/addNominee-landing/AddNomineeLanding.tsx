@@ -10,6 +10,7 @@ import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // AddNomineeLanding — "Add Nominee" instruction / landing screen.
 // Figma desktop: node 0:43797 ; mobile: node 0:43519.
@@ -95,14 +96,26 @@ export default function AddNomineeLanding() {
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
-  }
+  };
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.back();
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.back();
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("NOMINEE_DETAILS", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const goToAddNominee = () => {
@@ -148,9 +161,9 @@ export default function AddNomineeLanding() {
 
     if (!applicationId) {
       toast.error("Application ID not found.", {
-          position: "bottom-center",
-          autoClose: 3000,
-        });
+        position: "bottom-center",
+        autoClose: 3000,
+      });
     }
 
     return apiService.postNri(

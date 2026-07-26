@@ -16,20 +16,6 @@ import { publicPath } from "@/utils/publicPath";
 import { APP_VERSION } from "@/lib/version";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useFocusTrap } from "@/hooks/useFocusTrap";
-import SectionNavigation, {
-  type Section,
-} from "@/components/SectionNavigation/SectionNavigation";
-
-// Rail entries for the marketing sections below. Each id must match a
-// <section id> in the markup; adding a section here adds an indicator.
-const HOME_SECTIONS: Section[] = [
-  { id: "overview", label: "Overview" },
-  { id: "invest-in-india", label: "Invest in India" },
-  { id: "why-sbi", label: "Why SBI" },
-  { id: "key-features", label: "Key features" },
-  { id: "account-info", label: "Account info" },
-  { id: "need-help", label: "Need help" },
-];
 
 // Home component — equivalent to Angular HomeComponent
 // Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
@@ -208,30 +194,15 @@ export default function HomeComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // ── Landing-link params (iSmart assigned links) ───────────────────────────
-  // e.g. /diynri?RMCode=23395&Email=a%40b.com&Mobile=7400257053&CountryCode=91
-  //      &ApplicationType=Digital&IsmartId=ISM472&utm_source=Issmart&…
-  // Captured here so the form prefills and the register payload carries them.
-  // NOTE: searchParams.get("email") (lowercase) is the Google OAuth callback
-  // param — the landing link uses "Email", so only the exact key is read.
   const urlRmCode = searchParams?.get("RMCode") ?? "";
-  // %40 → @ — searchParams normally percent-decodes already, but replace
-  // defensively in case the value arrives still encoded.
   const urlEmail = (searchParams?.get("Email") ?? "").replace(/%40/gi, "@").trim();
   const urlMobile = (searchParams?.get("Mobile") ?? "").replace(/\D/g, "");
   const urlDialCode = (searchParams?.get("CountryCode") ?? "").replace(/\D/g, "");
   const urlApplicationType = searchParams?.get("ApplicationType") ?? "";
   const urlIsmartId = searchParams?.get("IsmartId") ?? "";
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
-
-  // Country code list — sourced entirely from the Country Master API
-  // (status = 'Y'), no flag sprites. `allCountries` keeps the full list so the
-  // FATF modal can show the restricted (status = 'N') countries.
   const { countries: allCountries, selectable: countries } = useCountries();
-
-  // Form state
   const [sendOtp, setSendOtp] = useState({ mobile: "" });
-  // Selected country (ISO-2) and the national-format mobile digits.
   const [selectedIso2, setSelectedIso2] = useState("");
   const [mobileNational, setMobileNational] = useState("");
   const [mobileDigitReq, setMobileDigitReq] = useState(false);
@@ -248,20 +219,16 @@ export default function HomeComponent() {
   const [employeeId, setEmployeeId] = useState("");
   const [rmCodeError, setRmCodeError] = useState("");
 
-  // RM code rule: alphanumeric, 1–15 characters.
   const RM_CODE_REGEX = /^[a-zA-Z0-9]{1,15}$/;
 
-  // Guards the one-time session prefill once the country list has loaded.
   const prefilledRef = useRef(false);
   const toastRef = useRef<Toast>(null);
   const homeRef = useRef<HTMLDivElement>(null);
 
-  // OTP state — kept for API integration (getMobileOtpVerify / startTimer)
   const [otpMobile, setOtpMobile] = useState("");
   const [isWrongOTP, setIsWrongOTP] = useState(false);
   const [isRightOTP, setIsRightOTP] = useState(false);
 
-  // Timer state — kept for API integration (startTimer)
   const [timeLeft, setTimeLeft] = useState(30);
   const [timeroff, setTimeroff] = useState(true);
   const [displayMobile, setDisplayMobile] = useState(30);
@@ -273,10 +240,8 @@ export default function HomeComponent() {
     () => setShowFatfModal(false),
   );
 
-  // NRI info tabs (Eligibility / How to Get Started / KYC / Important Points)
   const [activeInfoTab, setActiveInfoTab] = useState(0);
 
-  // Fallback FATF list, used only if the master returns no restricted countries.
   const FATF_FALLBACK_COUNTRIES = [
     "South Sudan",
     "Netherlands",
@@ -307,8 +272,6 @@ export default function HomeComponent() {
     "Yemen",
   ];
 
-  // FATF (restricted) countries shown in the modal — the Country Master rows
-  // flagged status = 'N'. Falls back to the static list if none are returned.
   const restrictedCountries = allCountries
     .filter((c) => c.status === 'N')
     .map((c) => c.name);
@@ -440,9 +403,6 @@ export default function HomeComponent() {
     );
     setIsPhoneValid(isValid);
   };
-
-  // BRD: changing the country code or number invalidates downstream choices, so
-  // clear them and require the user to re-confirm. (No-op when already empty.)
   const resetDownstreamChoices = () => {
     setAccountType("");
     setTermsAccepted(false);
@@ -459,14 +419,12 @@ export default function HomeComponent() {
 
   const handleMobileChange = (raw: string) => {
     let digits = raw.replace(/\D/g, "");
-    // India: numbers must start 6-9 — strip any leading 0-5 (e.g. from paste).
     if (selectedIso2 === "in") digits = digits.replace(/^[0-5]+/, "");
     setMobileNational(digits);
     resetDownstreamChoices();
     applyPhone(selectedIso2, digits);
   };
 
-  // Block typing 0-5 as the first digit of an Indian mobile number.
   const handleMobileKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key < "0" || e.key > "9") return; // only guard digit keys
     if (selectedIso2 !== "in") return;
@@ -559,6 +517,10 @@ export default function HomeComponent() {
   };
 
   const handleGetStarted = async () => {
+
+    window.sessionStorage.clear();
+
+    // Block proceeding with an RM-assisted journey unless the RM code is valid.
     if (rmAssisted && !RM_CODE_REGEX.test(employeeId)) {
       setRmCodeError("Please enter a valid RM code.");
       return;
@@ -572,19 +534,30 @@ export default function HomeComponent() {
       loginProvider: "Mobile",
       rmCode: rmAssisted && employeeId ? employeeId : urlRmCode || null,
       idempotencyKey: null,
-      UtmSource: searchParams?.get("utm_source") || "NA",
-      UtmCampaign: searchParams?.get("utm_campaign") || "NA",
-      UtmMedium: searchParams?.get("utm_medium") || "NA",
-      ISmartId: urlIsmartId || null,
+      utmSource: searchParams?.get("utm_source") || "NA",
+      utmCampaign: searchParams?.get("utm_campaign") || "NA",
+      utmMedium: searchParams?.get("utm_medium") || "NA",
+      iSmartId: urlIsmartId || null,
+      promocode: searchParams?.get("promo_code") || "NA",
     };
-
     console.log("Register payload:", payload);
-
     showSpinner();
     try {
       const response = await apiService.registerUser(payload, hideSpinner);
       if (!response) {
         hideSpinner();
+        return;
+      }
+
+      if (response.isLeadCompleted === true) {
+        hideSpinner();
+        toastRef.current?.show({
+          severity: "info",
+          detail:
+            response.completionMessage ||
+            "Your application is already completed. No further action is required.",
+          life: 5000,
+        });
         return;
       }
 
@@ -690,18 +663,10 @@ export default function HomeComponent() {
 
   return (
     <div className={styles.homeRoot} ref={homeRef}>
-      {/* Dark marks: this page is light-themed. */}
-      <SectionNavigation
-        sections={HOME_SECTIONS}
-        tone="onLight"
-        ariaLabel="Page sections"
-      />
-
       {/* Banner Section */}
       <section
-        id="overview"
         aria-label="Open Demat and Trading Account"
-        className={`${styles.banner} banner ${styles.navTarget}`}
+        className={`${styles.banner} banner`}
       >
         {/* Decorative circles */}
         <div className={styles.decorCirclePink} aria-hidden="true" />
@@ -815,7 +780,7 @@ export default function HomeComponent() {
                           onChange={() => setAccountType("digital")}
                         />
                         <span>
-                          Digital Journey - NRO Account
+                          Fully-Digital Journey - NRO Account
                           <br />
                           <small>
                             ( Available only in India with Aadhaar e-sign)
@@ -959,9 +924,8 @@ export default function HomeComponent() {
 
       {/* Invest in India Intro Section */}
       <section
-        id="invest-in-india"
         aria-label="Invest in India from Anywhere in the World"
-        className={`${styles.investIntro} ${styles.navTarget}`}
+        className={styles.investIntro}
       >
         <div className="container">
           <div className="row">
@@ -988,9 +952,8 @@ export default function HomeComponent() {
 
       {/* Why Open Demat Section */}
       <section
-        id="why-sbi"
         aria-label="Why Open Demat Account With SBI Securities"
-        className={`${styles.whyOpenDemat} ${styles.navTarget}`}
+        className={styles.whyOpenDemat}
       >
         <div className="container">
           <div className="row">
@@ -1026,9 +989,8 @@ export default function HomeComponent() {
 
       {/* Key Features Section */}
       <section
-        id="key-features"
         aria-label="Key Features of NRI Demat & Trading Account"
-        className={`${styles.whyOpenDemat} ${styles.navTarget}`}
+        className={styles.whyOpenDemat}
       >
         <div className="container">
           <div className="row">
@@ -1088,9 +1050,8 @@ export default function HomeComponent() {
 
       {/* NRI Account Info Tabs Section */}
       <section
-        id="account-info"
         aria-label="NRI Account Information"
-        className={`${styles.infoTabsSection} ${styles.navTarget}`}
+        className={styles.infoTabsSection}
       >
         <div className="container">
           <div className="row">
@@ -1228,9 +1189,8 @@ export default function HomeComponent() {
 
       {/* Need Help Section */}
       <section
-        id="need-help"
         aria-label="Need Help"
-        className={`${styles.needHelpSection} ${styles.navTarget}`}
+        className={styles.needHelpSection}
       >
         <div className="container">
           {/* <p className={styles.needHelpProceed}>
@@ -1342,7 +1302,7 @@ export default function HomeComponent() {
               </a>
             </p>
             <p>
-              Copyright © 2026. All rights Reserved. SBICAP Securities Limited.
+              Copyright © 2026. All rights Reserved. <a href="https://www.sbisecurities.in/">SBICAP Securities Limited</a>&nbsp;
               Site is best viewed in edge browser, Firefox 38+, Chrome 50+ at
               1366x768 pixel resolution. Windows 10 and above
             </p>

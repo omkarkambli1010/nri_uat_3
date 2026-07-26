@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSpinner } from '@/components/spinner/Spinner';
-import styles from './plan-preference.module.scss';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useSpinner } from "@/components/spinner/Spinner";
+import styles from "./plan-preference.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
 import { Splide, SplideSlide } from "@splidejs/react-splide";
-import LoadingButton from '@/components/ui/LoadingButton';
-import { useSessionValue } from '@/hooks/useSessionValue';
-import { useFocusTrap } from '@/hooks/useFocusTrap';
+import LoadingButton from "@/components/ui/LoadingButton";
+import { useSessionValue } from "@/hooks/useSessionValue";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
+import dynamicBackService from "@/services/back-navigation.service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,8 +18,8 @@ interface ApiPlan {
   id: string;
   name: string;
   description: string;
-  feeInPaise: number;   // raw value from API — displayed as-is, no conversion
-  depository: 'NSDL' | 'CDSL';
+  feeInPaise: number; // raw value from API — displayed as-is, no conversion
+  depository: "NSDL" | "CDSL";
   journeyType: string;
   isCurrent: boolean;
   version: number;
@@ -41,45 +42,53 @@ interface StaticPlanData {
 
 const STATIC_BY_KEY: Record<string, StaticPlanData> = {
   basic: {
-    icon: publicPath('/assets/plan-icons/plan-icon-basic.svg'),
-    feeLabel: 'Account Opening Fees',
-    brokerageMain: '₹20',
-    brokerageNote: '*On Equity Intraday Trades',
-    mobilePriceGst: '',
+    icon: publicPath("/assets/plan-icons/plan-icon-basic.svg"),
+    feeLabel: "Account Opening Fees",
+    brokerageMain: "₹20",
+    brokerageNote: "*On Equity Intraday Trades",
+    mobilePriceGst: "",
     benefits: [
-      { type: 'solid', text: '0.50% on Delivery Trade' },
-      { type: 'solid', text: '₹50/Lot on Options' },
-      { type: 'open',  text: '0.50% on E-Margin', sub: '*0% interest for 23 trading days' },
+      { type: "solid", text: "0.50% on Delivery Trade" },
+      { type: "solid", text: "₹50/Lot on Options" },
+      {
+        type: "open",
+        text: "0.50% on E-Margin",
+        sub: "*0% interest for 23 trading days",
+      },
     ],
     equity: [
-      { val: '₹20/order', lbl: 'on Intraday' },
-      { val: '0.50%',     lbl: 'on Delivery' },
-      { val: '₹20/order', lbl: 'on ETF' },
-      { val: '0.50%',     lbl: 'on E-Margin' },
+      { val: "₹20/order", lbl: "on Intraday" },
+      { val: "0.50%", lbl: "on Delivery" },
+      { val: "₹20/order", lbl: "on ETF" },
+      { val: "0.50%", lbl: "on E-Margin" },
     ],
     derivatives: [
-      { val: '₹20/order', lbl: 'on Intraday' },
-      { val: '₹50/Lot',   lbl: 'on Options' },
-      { val: '0.05%',     lbl: 'on Futures' },
+      { val: "₹20/order", lbl: "on Intraday" },
+      { val: "₹50/Lot", lbl: "on Options" },
+      { val: "0.05%", lbl: "on Futures" },
     ],
   },
   premium: {
-    icon: publicPath('/assets/plan-icons/plan-icon-premium.svg'),
-    feeLabel: 'One-time Account Opening Fees',
-    brokerageMain: 'Zero',
-    brokerageNote: '*Till 75 Lacs Delivery Trade Value',
-    mobilePriceGst: '+ GST',
+    icon: publicPath("/assets/plan-icons/plan-icon-premium.svg"),
+    feeLabel: "One-time Account Opening Fees",
+    brokerageMain: "Zero",
+    brokerageNote: "*Till 75 Lacs Delivery Trade Value",
+    mobilePriceGst: "+ GST",
     benefits: [
-      { type: 'solid', text: '₹20 on Equity Intraday' },
-      { type: 'solid', text: '0.20% on Equity Delivery' },
-      { type: 'carry', text: '₹20/Order on Carry Forward Options' },
-      { type: 'open',  text: '0.40% on E-Margin', sub: '*0% interest for 23 trading days' },
+      { type: "solid", text: "₹20 on Equity Intraday" },
+      { type: "solid", text: "0.20% on Equity Delivery" },
+      { type: "carry", text: "₹20/Order on Carry Forward Options" },
+      {
+        type: "open",
+        text: "0.40% on E-Margin",
+        sub: "*0% interest for 23 trading days",
+      },
     ],
     equity: [
-      { val: '₹20/order', lbl: 'on Intraday' },
-      { val: '0.10%',     lbl: 'on Delivery*' },
-      { val: '₹0',        lbl: 'on ETF' },
-      { val: '0.40%',     lbl: 'on E-Margin' },
+      { val: "₹20/order", lbl: "on Intraday" },
+      { val: "0.10%", lbl: "on Delivery*" },
+      { val: "₹0", lbl: "on ETF" },
+      { val: "0.40%", lbl: "on E-Margin" },
     ],
     derivatives: [
       { val: "₹20/order", lbl: "on Intraday" },
@@ -88,41 +97,45 @@ const STATIC_BY_KEY: Record<string, StaticPlanData> = {
     ],
   },
   default: {
-    icon: publicPath('/assets/plan-icons/plan-icon-special.svg'),
-    feeLabel: 'One-time Account Opening Fees',
-    brokerageMain: 'Zero',
-    brokerageNote: '*On all Intraday Trades',
-    mobilePriceGst: '+ GST',
+    icon: publicPath("/assets/plan-icons/plan-icon-special.svg"),
+    feeLabel: "One-time Account Opening Fees",
+    brokerageMain: "Zero",
+    brokerageNote: "*On all Intraday Trades",
+    mobilePriceGst: "+ GST",
     benefits: [
-      { type: 'solid', text: '0.20% on Equity Delivery' },
-      { type: 'carry', text: '₹20/Order on Carry Forward Options' },
-      { type: 'open',  text: '0.50% on E-Margin', sub: '*0% interest for 23 trading days' },
+      { type: "solid", text: "0.20% on Equity Delivery" },
+      { type: "carry", text: "₹20/Order on Carry Forward Options" },
+      {
+        type: "open",
+        text: "0.50% on E-Margin",
+        sub: "*0% interest for 23 trading days",
+      },
     ],
     equity: [
-      { val: '₹0',    lbl: 'on Intraday' },
-      { val: '0.20%', lbl: 'on Delivery' },
-      { val: '₹0',    lbl: 'on ETF' },
-      { val: '0.50%', lbl: 'on E-Margin' },
+      { val: "₹0", lbl: "on Intraday" },
+      { val: "0.20%", lbl: "on Delivery" },
+      { val: "₹0", lbl: "on ETF" },
+      { val: "0.50%", lbl: "on E-Margin" },
     ],
     derivatives: [
-      { val: '₹0',        lbl: 'on Intraday' },
-      { val: '₹20/order', lbl: 'on Options' },
-      { val: '₹20/order', lbl: 'on Futures' },
+      { val: "₹0", lbl: "on Intraday" },
+      { val: "₹20/order", lbl: "on Options" },
+      { val: "₹20/order", lbl: "on Futures" },
     ],
   },
 };
 
 const getStaticData = (planName: string): StaticPlanData => {
   const lower = planName.toLowerCase();
-  if (lower.includes('basic'))   return STATIC_BY_KEY.basic;
-  if (lower.includes('premium')) return STATIC_BY_KEY.premium;
+  if (lower.includes("basic")) return STATIC_BY_KEY.basic;
+  if (lower.includes("premium")) return STATIC_BY_KEY.premium;
   return STATIC_BY_KEY.default;
 };
 
 const routeFromUiMetadata = (uiMetadata: string | undefined): string | null => {
   try {
-    const meta = JSON.parse(uiMetadata ?? '{}');
-    return meta?.route ? `/${String(meta.route).replace(/^\//, '')}` : null;
+    const meta = JSON.parse(uiMetadata ?? "{}");
+    return meta?.route ? `/${String(meta.route).replace(/^\//, "")}` : null;
   } catch {
     return null;
   }
@@ -132,9 +145,27 @@ const routeFromUiMetadata = (uiMetadata: string | undefined): string | null => {
 
 const BackArrow = () => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-    <path d="M5 12H19" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M5 12L11 18" stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M5 12L11 6"  stroke="black" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    <path
+      d="M5 12H19"
+      stroke="black"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5 12L11 18"
+      stroke="black"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+    <path
+      d="M5 12L11 6"
+      stroke="black"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
   </svg>
 );
 
@@ -167,58 +198,59 @@ const ModalDoneIcon = ({ size = 20 }: { size?: number }) => (
   </svg>
 );
 
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function PlanPreference() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
-  const [apiPlans, setApiPlans]         = useState<ApiPlan[]>([]);
+  const [apiPlans, setApiPlans] = useState<ApiPlan[]>([]);
   const [plansLoading, setPlansLoading] = useState(true);
-  const [plansError, setPlansError]     = useState<string | null>(null);
+  const [plansError, setPlansError] = useState<string | null>(null);
 
   // Depository the plans are fetched for. Defaults to NSDL; the radio at the top
   // switches it (persisted to sessionStorage) and re-fetches. Seeded from the
   // stored value after mount to avoid a hydration mismatch.
-  const [depository, setDepository]     = useState<'NSDL' | 'CDSL'>('NSDL');
+  const [depository, setDepository] = useState<"NSDL" | "CDSL">("NSDL");
 
-  const [selectedIndex, setSelectedIndex]     = useState<number | null>(null);
-  const [isProceeding, setIsProceeding]       = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isProceeding, setIsProceeding] = useState(false);
   const [proceedingIndex, setProceedingIndex] = useState<number | null>(null);
-  const [proceedError, setProceedError]       = useState<string | null>(null);
+  const [proceedError, setProceedError] = useState<string | null>(null);
 
-  const [showKnowMore, setShowKnowMore]   = useState(false);
+  const [showKnowMore, setShowKnowMore] = useState(false);
   const [knowMoreIndex, setKnowMoreIndex] = useState(0);
-  const knowMoreDialogRef = useFocusTrap<HTMLDivElement>(
-    showKnowMore,
-    () => setShowKnowMore(false),
+  const knowMoreDialogRef = useFocusTrap<HTMLDivElement>(showKnowMore, () =>
+    setShowKnowMore(false),
   );
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
   // Mobile layout selection by plan count:
   //   1 plan      → single full-detail card (no carousel)
   //   2–3 plans   → tab strip + comparison table
   //   4+ plans    → swipeable carousel of plan cards
-  const isSinglePlan  = apiPlans.length === 1;
-  const isCarousel    = apiPlans.length > 3;
+  const isSinglePlan = apiPlans.length === 1;
+  const isCarousel = apiPlans.length > 3;
 
   useEffect(() => {
     // Seed the depository from the stored value (default NSDL) and fetch that
     // depository's plans.
-    const stored = sessionStorage.getItem('depository') === 'CDSL' ? 'CDSL' : 'NSDL';
+    const stored =
+      sessionStorage.getItem("depository") === "CDSL" ? "CDSL" : "NSDL";
     setDepository(stored);
     void fetchPlans(stored);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchPlans = async (dep: 'NSDL' | 'CDSL' = depository) => {
-    const applicationId = sessionStorage.getItem('ApplicationId') ?? '';
-    const journeyType   = sessionStorage.getItem('accountType') === 'semi-digital'
-      ? 'NriSemiDigital' : 'NroDigital';
+  const fetchPlans = async (dep: "NSDL" | "CDSL" = depository) => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const journeyType =
+      sessionStorage.getItem("accountType") === "semi-digital"
+        ? "NriSemiDigital"
+        : "NroDigital";
 
     if (!applicationId) {
-      setPlansError('Session expired. Please start again.');
+      setPlansError("Session expired. Please start again.");
       setPlansLoading(false);
       return;
     }
@@ -228,7 +260,11 @@ export default function PlanPreference() {
     showSpinner();
 
     try {
-      const plans: ApiPlan[] = await apiService.getPlans(applicationId, journeyType, dep);
+      const plans: ApiPlan[] = await apiService.getPlans(
+        applicationId,
+        journeyType,
+        dep,
+      );
       if (Array.isArray(plans) && plans.length > 0) {
         const sorted = [...plans].sort((a, b) => a.feeInPaise - b.feeInPaise);
         setApiPlans(sorted);
@@ -239,7 +275,8 @@ export default function PlanPreference() {
         // stage) that still exists in THIS depository's list.
         let selectedIdx: number | null = null;
         try {
-          const saved       = await apiService.getPlanSelectionWorkflow(applicationId);
+          const saved =
+            await apiService.getPlanSelectionWorkflow(applicationId);
           const savedPlanId = saved?.data?.planId;
           if (savedPlanId) {
             const matchIdx = sorted.findIndex((p) => p.id === savedPlanId);
@@ -251,10 +288,10 @@ export default function PlanPreference() {
 
         setSelectedIndex(selectedIdx);
       } else {
-        setPlansError('No plans available at the moment.');
+        setPlansError("No plans available at the moment.");
       }
     } catch {
-      setPlansError('Failed to load plans. Please try again.');
+      setPlansError("Failed to load plans. Please try again.");
     } finally {
       setPlansLoading(false);
       hideSpinner();
@@ -262,10 +299,10 @@ export default function PlanPreference() {
   };
 
   // Radio change → persist the depository and re-fetch that depository's plans.
-  const handleDepositoryChange = (dep: 'NSDL' | 'CDSL') => {
+  const handleDepositoryChange = (dep: "NSDL" | "CDSL") => {
     if (dep === depository || plansLoading) return;
     setDepository(dep);
-    sessionStorage.setItem('depository', dep);
+    sessionStorage.setItem("depository", dep);
     void fetchPlans(dep);
   };
 
@@ -273,8 +310,11 @@ export default function PlanPreference() {
     const plan = apiPlans[idx];
     if (!plan) return;
 
-    const applicationId = sessionStorage.getItem('ApplicationId') ?? '';
-    if (!applicationId) { setProceedError('Session expired. Please start again.'); return; }
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    if (!applicationId) {
+      setProceedError("Session expired. Please start again.");
+      return;
+    }
 
     setIsProceeding(true);
     setProceedingIndex(idx);
@@ -283,20 +323,21 @@ export default function PlanPreference() {
 
     try {
       const response = await apiService.selectPlan(applicationId, {
-        planId:     plan.id,
+        planId: plan.id,
         depository: plan.depository,
       });
-      sessionStorage.setItem('selectedPlan', String(idx));
-      sessionStorage.setItem('planId',       plan.id);
-      sessionStorage.setItem('depository',   plan.depository);
-      const route = routeFromUiMetadata(response?.uiMetadata) ?? '/CaptureSelfie/1';
+      sessionStorage.setItem("selectedPlan", String(idx));
+      sessionStorage.setItem("planId", plan.id);
+      sessionStorage.setItem("depository", plan.depository);
+      const route =
+        routeFromUiMetadata(response?.uiMetadata) ?? "/CaptureSelfie/1";
       router.push(route);
     } catch (err: any) {
       const msg =
-        err?.response?.data?.detail  ||
+        err?.response?.data?.detail ||
         err?.response?.data?.message ||
-        err?.response?.data?.title   ||
-        'Something went wrong. Please try again.';
+        err?.response?.data?.title ||
+        "Something went wrong. Please try again.";
       setProceedError(msg);
     } finally {
       setIsProceeding(false);
@@ -305,12 +346,28 @@ export default function PlanPreference() {
     }
   };
 
-  const backToDeclaration = () => router.push('/planprocess/1');
-  const openKnowMore = (index: number) => { setKnowMoreIndex(index); setShowKnowMore(true); };
+  // const backToDeclaration = () => router.push('/planprocess/1');
 
-  const kmPlan   = apiPlans[knowMoreIndex];
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PLAN_SELECTION", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
+  };
+
+  const openKnowMore = (index: number) => {
+    setKnowMoreIndex(index);
+    setShowKnowMore(true);
+  };
+
+  const kmPlan = apiPlans[knowMoreIndex];
   const kmStatic = kmPlan ? getStaticData(kmPlan.name) : STATIC_BY_KEY.default;
-  const kmName   = kmPlan?.name ?? '';
+  const kmName = kmPlan?.name ?? "";
 
   if (plansLoading) {
     return (
@@ -324,7 +381,9 @@ export default function PlanPreference() {
     return (
       <div className={styles.errorState} aria-live="assertive">
         <p>{plansError}</p>
-        <button type="button" onClick={() => fetchPlans()}>Retry</button>
+        <button type="button" onClick={() => fetchPlans()}>
+          Retry
+        </button>
       </div>
     );
   }
@@ -337,24 +396,28 @@ export default function PlanPreference() {
   const renderDepositoryRadio = (idSuffix: string) => (
     <div className={styles.depositoryGroup}>
       <p className={styles.depositoryTitle}>Select Repository:</p>
-      <div className={styles.depositoryRow} role="radiogroup" aria-label="Select depository">
-      {(['NSDL', 'CDSL'] as const).map((dep) => (
-        <label
-          key={dep}
-          className={`${styles.depositoryOption}${depository === dep ? ` ${styles.depositoryOptionActive}` : ''}`}
-        >
-          <input
-            type="radio"
-            name={`depository-${idSuffix}`}
-            value={dep}
-            checked={depository === dep}
-            onChange={() => handleDepositoryChange(dep)}
-            disabled={plansLoading}
-            className={styles.depositoryRadioInput}
-          />
-          <span className={styles.depositoryLabelText}>{dep}</span>
-        </label>
-      ))}
+      <div
+        className={styles.depositoryRow}
+        role="radiogroup"
+        aria-label="Select depository"
+      >
+        {(["NSDL", "CDSL"] as const).map((dep) => (
+          <label
+            key={dep}
+            className={`${styles.depositoryOption}${depository === dep ? ` ${styles.depositoryOptionActive}` : ""}`}
+          >
+            <input
+              type="radio"
+              name={`depository-${idSuffix}`}
+              value={dep}
+              checked={depository === dep}
+              onChange={() => handleDepositoryChange(dep)}
+              disabled={plansLoading}
+              className={styles.depositoryRadioInput}
+            />
+            <span className={styles.depositoryLabelText}>{dep}</span>
+          </label>
+        ))}
       </div>
     </div>
   );
@@ -362,15 +425,17 @@ export default function PlanPreference() {
   // Full plan card used by the mobile carousel (4+ plans). Reuses the existing
   // slide-card styles; tap selects, Proceed submits, Know More opens the modal.
   const renderCarouselCard = (plan: ApiPlan, i: number) => {
-    const s                = getStaticData(plan.name);
-    const isSelected       = selectedIndex === i;
+    const s = getStaticData(plan.name);
+    const isSelected = selectedIndex === i;
     const isThisProceeding = isProceeding && proceedingIndex === i;
     return (
       <div
         className={[
           styles.slideCard,
-          isSelected ? styles.slideCardHighlighted : '',
-        ].filter(Boolean).join(' ')}
+          isSelected ? styles.slideCardHighlighted : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onClick={() => setSelectedIndex(i)}
       >
         <div className={styles.slideIconRow}>
@@ -380,7 +445,9 @@ export default function PlanPreference() {
 
         <div className={styles.slidePriceRow}>
           <div className={styles.slidePriceAmount}>
-            <span className={styles.slidePriceValue}>{plan.feeInPaise === 0 ? '0' : plan.feeInPaise}</span>
+            <span className={styles.slidePriceValue}>
+              {plan.feeInPaise === 0 ? "0" : plan.feeInPaise}
+            </span>
             <span className={styles.slidePriceGst}>Excl. GST</span>
           </div>
           <p className={styles.slideFeeLabel}>{s.feeLabel}</p>
@@ -398,14 +465,21 @@ export default function PlanPreference() {
             className={styles.slideProceedBtn}
             loading={isThisProceeding}
             disabled={isProceeding}
-            onClick={(e) => { e.stopPropagation(); setSelectedIndex(i); proceedWithPlan(i); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedIndex(i);
+              proceedWithPlan(i);
+            }}
           >
-            {isThisProceeding ? 'Processing' : 'Proceed'}
+            {isThisProceeding ? "Processing" : "Proceed"}
           </LoadingButton>
           <button
             type="button"
             className={styles.slideKnowMore}
-            onClick={(e) => { e.stopPropagation(); openKnowMore(i); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              openKnowMore(i);
+            }}
           >
             Know More
           </button>
@@ -417,16 +491,15 @@ export default function PlanPreference() {
   // Desktop plan card. Rendered in a centered flex row for ≤3 plans, or inside
   // a Splide carousel for 4+ plans.
   const renderDesktopCard = (plan: ApiPlan, i: number) => {
-    const s                = getStaticData(plan.name);
-    const isSelected       = selectedIndex === i;
+    const s = getStaticData(plan.name);
+    const isSelected = selectedIndex === i;
     const isThisProceeding = isProceeding && proceedingIndex === i;
     return (
       <div
         key={plan.id}
-        className={[
-          styles.dCard,
-          isSelected ? styles.dCardSelected : '',
-        ].filter(Boolean).join(' ')}
+        className={[styles.dCard, isSelected ? styles.dCardSelected : ""]
+          .filter(Boolean)
+          .join(" ")}
         onClick={() => setSelectedIndex(i)}
         style={{ cursor: "pointer" }}
       >
@@ -459,7 +532,13 @@ export default function PlanPreference() {
           <div className={styles.dCardTop}>
             <div className={styles.dPlanHeader}>
               <div className={styles.dTitleRow}>
-                <img src={s.icon} alt="" width={31} height={31} className={styles.dPlanIcon} />
+                <img
+                  src={s.icon}
+                  alt=""
+                  width={31}
+                  height={31}
+                  className={styles.dPlanIcon}
+                />
                 <span className={styles.dPlanName}>{plan.name}</span>
               </div>
               {/* Raw feeInPaise — no conversion */}
@@ -468,7 +547,7 @@ export default function PlanPreference() {
                   <div className={styles.dPriceAmount}>
                     <span className={styles.dPriceRupee}>₹</span>
                     <span className={styles.dPriceNumber}>
-                      {plan.feeInPaise === 0 ? '0' : plan.feeInPaise}
+                      {plan.feeInPaise === 0 ? "0" : plan.feeInPaise}
                     </span>
                   </div>
                   <span className={styles.dPriceGst}>Excl. GST</span>
@@ -480,11 +559,12 @@ export default function PlanPreference() {
             <div className={styles.dBrokerageSection}>
               <div className={styles.dDivider} />
               <div className={styles.dBrokerageText}>
-                <p className={styles.dBrokerageDescription}>{plan.description}</p>
+                <p className={styles.dBrokerageDescription}>
+                  {plan.description}
+                </p>
               </div>
               <div className={styles.dDivider} />
             </div>
-
           </div>
 
           <div className={styles.dCardActions}>
@@ -499,7 +579,7 @@ export default function PlanPreference() {
                 proceedWithPlan(i);
               }}
             >
-              {isThisProceeding ? 'Processing' : 'Proceed'}
+              {isThisProceeding ? "Processing" : "Proceed"}
             </LoadingButton>
             <button
               type="button"
@@ -526,7 +606,7 @@ export default function PlanPreference() {
           {rejectStatus !== "R" && (
             <button
               className={styles.mobileBackBtn}
-              onClick={backToDeclaration}
+              onClick={goBack}
               aria-label="Back"
             >
               <BackArrow />
@@ -538,76 +618,92 @@ export default function PlanPreference() {
               {/* DP Tariff button removed per product. */}
             </div>
             <p className={styles.mobileSubtitle}>
-              Select a plan that works best for your investment and trading needs
+              Select a plan that works best for your investment and trading
+              needs
             </p>
           </div>
         </div>
 
         <div className={styles.mobilePlanCard}>
-
-          {renderDepositoryRadio('mob')}
+          {renderDepositoryRadio("mob")}
 
           {/* ── SINGLE PLAN: show a full detail card + Proceed button ────────── */}
-          {isSinglePlan && (() => {
-            const plan = apiPlans[0];
-            const s    = getStaticData(plan.name);
-            const isThisProceeding = isProceeding && proceedingIndex === 0;
-            return (
-              <div className={styles.singlePlanWrap}>
-                <div className={styles.singlePlanCard}>
-                  {/* Header row: icon + name */}
-                  <div className={styles.slideIconRow}>
-                    <img src={s.icon} alt={plan.name} width={28} height={28} />
-                    <p className={styles.slidePlanName}>{plan.name}</p>
-                  </div>
-
-                  {/* Price */}
-                  <div className={styles.slidePriceRow}>
-                    <div className={styles.slidePriceAmount}>
-                      <span className={styles.slidePriceValue}>{plan.feeInPaise === 0 ? '0' : plan.feeInPaise}</span>
-                      <span className={styles.slidePriceGst}>Excl. GST</span>
+          {isSinglePlan &&
+            (() => {
+              const plan = apiPlans[0];
+              const s = getStaticData(plan.name);
+              const isThisProceeding = isProceeding && proceedingIndex === 0;
+              return (
+                <div className={styles.singlePlanWrap}>
+                  <div className={styles.singlePlanCard}>
+                    {/* Header row: icon + name */}
+                    <div className={styles.slideIconRow}>
+                      <img
+                        src={s.icon}
+                        alt={plan.name}
+                        width={28}
+                        height={28}
+                      />
+                      <p className={styles.slidePlanName}>{plan.name}</p>
                     </div>
-                    <p className={styles.slideFeeLabel}>{s.feeLabel}</p>
+
+                    {/* Price */}
+                    <div className={styles.slidePriceRow}>
+                      <div className={styles.slidePriceAmount}>
+                        <span className={styles.slidePriceValue}>
+                          {plan.feeInPaise === 0 ? "0" : plan.feeInPaise}
+                        </span>
+                        <span className={styles.slidePriceGst}>Excl. GST</span>
+                      </div>
+                      <p className={styles.slideFeeLabel}>{s.feeLabel}</p>
+                    </div>
+
+                    <div className={styles.slideDivider} />
+
+                    {/* Brokerage */}
+                    <div className={styles.slideBrokerageBlock}>
+                      <p className={styles.brokerageDescription}>
+                        {plan.description}
+                      </p>
+                    </div>
+
+                    {/* Know More */}
+                    <div className={styles.slideActions}>
+                      <button
+                        type="button"
+                        className={styles.slideKnowMore}
+                        onClick={() => openKnowMore(0)}
+                      >
+                        Know More
+                      </button>
+                    </div>
                   </div>
 
-                  <div className={styles.slideDivider} />
+                  {/* Proceed button */}
+                  <LoadingButton
+                    type="button"
+                    className={styles.singlePlanProceedBtn}
+                    loading={isThisProceeding}
+                    disabled={isProceeding}
+                    onClick={() => proceedWithPlan(0)}
+                  >
+                    {isThisProceeding ? "Processing" : "Proceed"}
+                  </LoadingButton>
 
-                  {/* Brokerage */}
-                  <div className={styles.slideBrokerageBlock}>
-                    <p className={styles.brokerageDescription}>{plan.description}</p>
-                  </div>
-
-                  {/* Know More */}
-                  <div className={styles.slideActions}>
-                    <button
-                      type="button"
-                      className={styles.slideKnowMore}
-                      onClick={() => openKnowMore(0)}
+                  {proceedError && (
+                    <p
+                      style={{
+                        color: "#d32f2f",
+                        fontSize: 13,
+                        textAlign: "center",
+                      }}
                     >
-                      Know More
-                    </button>
-                  </div>
+                      {proceedError}
+                    </p>
+                  )}
                 </div>
-
-                {/* Proceed button */}
-                <LoadingButton
-                  type="button"
-                  className={styles.singlePlanProceedBtn}
-                  loading={isThisProceeding}
-                  disabled={isProceeding}
-                  onClick={() => proceedWithPlan(0)}
-                >
-                  {isThisProceeding ? 'Processing' : 'Proceed'}
-                </LoadingButton>
-
-                {proceedError && (
-                  <p style={{ color: '#d32f2f', fontSize: 13, textAlign: 'center' }}>
-                    {proceedError}
-                  </p>
-                )}
-              </div>
-            );
-          })()}
+              );
+            })()}
 
           {/* ── 4+ PLANS: swipeable carousel of full plan cards ──────────────── */}
           {isCarousel && (
@@ -620,12 +716,12 @@ export default function PlanPreference() {
                     // in equally on both sides. The ~22% side padding is what
                     // controls how much of the neighbours shows — increase it to
                     // reveal more of the adjacent cards (towards half each).
-                    focus: 'center',
+                    focus: "center",
                     arrows: false,
                     pagination: true,
                     rewind: false,
-                    gap: '12px',
-                    padding: { left: '22%', right: '22%' },
+                    gap: "12px",
+                    padding: { left: "22%", right: "22%" },
                     speed: 300, // smooth-but-quick slide between cards
                     start: selectedIndex ?? 0,
                   }}
@@ -640,7 +736,15 @@ export default function PlanPreference() {
               </div>
 
               {proceedError && (
-                <p style={{ color: '#d32f2f', fontSize: 13, textAlign: 'center', marginTop: 8, padding: '0 16px' }}>
+                <p
+                  style={{
+                    color: "#d32f2f",
+                    fontSize: 13,
+                    textAlign: "center",
+                    marginTop: 8,
+                    padding: "0 16px",
+                  }}
+                >
                   {proceedError}
                 </p>
               )}
@@ -652,36 +756,51 @@ export default function PlanPreference() {
             <>
               <div className={styles.mobilePlanTabs}>
                 {apiPlans.map((plan, i) => {
-                  const s                = getStaticData(plan.name);
-                  const isMiddle         = i === middleIndex;
-                  const isSelected       = selectedIndex === i;
-                  const isThisProceeding = isProceeding && proceedingIndex === i;
+                  const s = getStaticData(plan.name);
+                  const isMiddle = i === middleIndex;
+                  const isSelected = selectedIndex === i;
+                  const isThisProceeding =
+                    isProceeding && proceedingIndex === i;
                   return (
                     <div
                       key={plan.id}
                       className={[
                         styles.mobilePlanTab,
-                        isMiddle && !isSelected ? styles.mobilePlanTabMiddle : '',
-                        isSelected ? styles.mobilePlanTabSelected : '',
-                      ].filter(Boolean).join(' ')}
+                        isMiddle && !isSelected
+                          ? styles.mobilePlanTabMiddle
+                          : "",
+                        isSelected ? styles.mobilePlanTabSelected : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                     >
-                      <img src={s.icon} alt={plan.name} className={styles.tabIcon} />
+                      <img
+                        src={s.icon}
+                        alt={plan.name}
+                        className={styles.tabIcon}
+                      />
                       <div className={styles.tabNamePrice}>
                         <p className={styles.tabName}>{plan.name}</p>
                         <div>
                           <p className={styles.tabPrice}>
-                            {plan.feeInPaise === 0
-                              ? 'ZERO'
-                              : <>
-                                  ₹{plan.feeInPaise}
-                                  {s.mobilePriceGst && (
-                                    <span className={styles.tabPriceGst}> {s.mobilePriceGst}</span>
-                                  )}
-                                </>
-                            }
+                            {plan.feeInPaise === 0 ? (
+                              "ZERO"
+                            ) : (
+                              <>
+                                ₹{plan.feeInPaise}
+                                {s.mobilePriceGst && (
+                                  <span className={styles.tabPriceGst}>
+                                    {" "}
+                                    {s.mobilePriceGst}
+                                  </span>
+                                )}
+                              </>
+                            )}
                           </p>
                           <p className={styles.tabPriceSub}>
-                            {plan.feeInPaise === 0 ? 'Zero fees' : 'One-time fees'}
+                            {plan.feeInPaise === 0
+                              ? "Zero fees"
+                              : "One-time fees"}
                           </p>
                         </div>
                       </div>
@@ -689,12 +808,20 @@ export default function PlanPreference() {
                         type="button"
                         className={[
                           styles.tabSelectBtn,
-                          isSelected ? styles.tabSelectBtnSelected : '',
-                        ].filter(Boolean).join(' ')}
+                          isSelected ? styles.tabSelectBtnSelected : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
                         disabled={isProceeding}
-                        onClick={() => isSelected ? proceedWithPlan(i) : setSelectedIndex(i)}
+                        onClick={() =>
+                          isSelected ? proceedWithPlan(i) : setSelectedIndex(i)
+                        }
                       >
-                        {isThisProceeding ? 'Processing' : isSelected ? 'Selected' : 'Select'}
+                        {isThisProceeding
+                          ? "Processing"
+                          : isSelected
+                            ? "Selected"
+                            : "Select"}
                       </button>
                     </div>
                   );
@@ -702,21 +829,35 @@ export default function PlanPreference() {
               </div>
 
               <div className={styles.comparisonBanner}>
-                <p><strong>ZERO</strong> Interest for 23 trading days for Margin Trading</p>
-                <p>and <strong>FREE</strong> AMC for 1 year</p>
+                <p>
+                  <strong>ZERO</strong> Interest for 23 trading days for Margin
+                  Trading
+                </p>
+                <p>
+                  and <strong>FREE</strong> AMC for 1 year
+                </p>
               </div>
 
               <div className={styles.comparisonScrollArea}>
-                <div className={styles.comparisonSectionHeader}><p>Equity</p></div>
+                <div className={styles.comparisonSectionHeader}>
+                  <p>Equity</p>
+                </div>
                 <div className={styles.comparisonDataRow}>
                   {apiPlans.map((plan, i) => {
                     const s = getStaticData(plan.name);
                     return (
-                      <div key={plan.id} className={[
-                        styles.comparisonCol,
-                        selectedIndex === i ? styles.comparisonColSelected : '',
-                        i === middleIndex   ? styles.comparisonColMiddle   : '',
-                      ].filter(Boolean).join(' ')}>
+                      <div
+                        key={plan.id}
+                        className={[
+                          styles.comparisonCol,
+                          selectedIndex === i
+                            ? styles.comparisonColSelected
+                            : "",
+                          i === middleIndex ? styles.comparisonColMiddle : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
                         {s.equity.map((cell, ci) => (
                           <div key={ci} className={styles.comparisonCell}>
                             <p className={styles.cellVal}>{cell.val}</p>
@@ -728,7 +869,7 @@ export default function PlanPreference() {
                   })}
                 </div>
 
-                <div className={styles.comparisonSectionHeader}><p>Derivatives (F&amp;O)</p></div>
+                {/* <div className={styles.comparisonSectionHeader}><p>Derivatives (F&amp;O)</p></div>
                 <div className={styles.comparisonDataRow}>
                   {apiPlans.map((plan, i) => {
                     const s = getStaticData(plan.name);
@@ -747,15 +888,24 @@ export default function PlanPreference() {
                       </div>
                     );
                   })}
-                </div>
+                </div> */}
 
                 <p className={styles.comparisonFootnote}>
-                  *Zero Brokerage on Delivery till 75 lakh Delivery Trade Volume for Premium Plan
+                  *Zero Brokerage on Delivery till 75 lakh Delivery Trade Volume
+                  for Premium Plan
                 </p>
               </div>
 
               {proceedError && (
-                <p style={{ color: '#d32f2f', fontSize: 13, textAlign: 'center', marginTop: 8, padding: '0 16px' }}>
+                <p
+                  style={{
+                    color: "#d32f2f",
+                    fontSize: 13,
+                    textAlign: "center",
+                    marginTop: 8,
+                    padding: "0 16px",
+                  }}
+                >
                   {proceedError}
                 </p>
               )}
@@ -772,7 +922,7 @@ export default function PlanPreference() {
               {rejectStatus !== "R" && (
                 <button
                   className={styles.desktopBackBtn}
-                  onClick={backToDeclaration}
+                  onClick={goBack}
                   aria-label="Back"
                 >
                   <BackArrow />
@@ -781,8 +931,10 @@ export default function PlanPreference() {
               <div>
                 <p className={styles.desktopCardTitle}>Plan Selection</p>
                 <p className={styles.desktopCardSubtitle}>
-                  Basis your trading preferences, we recommend the below plans.<br />
-                  Select 1 of these {apiPlans.length} plans to begin your investment journey.
+                  Basis your trading preferences, we recommend the below plans.
+                  <br />
+                  Select 1 of these {apiPlans.length} plans to begin your
+                  investment journey.
                 </p>
               </div>
             </div>
@@ -790,7 +942,7 @@ export default function PlanPreference() {
           </div>
 
           <div className={styles.desktopCardBody}>
-            {renderDepositoryRadio('desk')}
+            {renderDepositoryRadio("desk")}
 
             {isCarousel ? (
               <div className={styles.dCarouselWrapper}>
@@ -798,14 +950,14 @@ export default function PlanPreference() {
                   options={{
                     perPage: 3,
                     perMove: 1,
-                    gap: '24px',
+                    gap: "24px",
                     arrows: false,
                     pagination: true,
                     drag: true,
                     trimSpace: true,
                     rewind: false,
                     speed: 500,
-                    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
                   aria-label="Plan options"
                 >
@@ -849,7 +1001,10 @@ export default function PlanPreference() {
           aria-label={`${kmName} plan details`}
           tabIndex={-1}
         >
-          <div className={styles.modalSheet} onClick={(e) => e.stopPropagation()}>
+          <div
+            className={styles.modalSheet}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={styles.modalDash} aria-hidden="true" />
             <div className={styles.modalCloseRow}>
               <button
@@ -880,12 +1035,14 @@ export default function PlanPreference() {
                             <strong>{item.val}</strong> {item.lbl}
                           </p>
                         </div>
-                        {fi < kmStatic.equity.length - 1 && <div className={styles.modalItemDivider} />}
+                        {fi < kmStatic.equity.length - 1 && (
+                          <div className={styles.modalItemDivider} />
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
-                <div style={{ flex: 1 }}>
+                {/* <div style={{ flex: 1 }}>
                   <p className={styles.modalColumnHeader}>
                     Derivatives (F&amp;O)
                   </p>
@@ -902,17 +1059,21 @@ export default function PlanPreference() {
                       </div>
                     ))}
                   </div>
-                </div>
+                </div> */}
               </div>
               <div className={styles.modalListMobile}>
-                {[...kmStatic.equity, ...kmStatic.derivatives].map((item, fi) => (
-                  <div key={fi}>
-                    <div className={styles.modalListItem}>
-                      <ModalDoneIcon size={16} />
-                      <p><strong>{item.val}</strong> {item.lbl}</p>
+                {[...kmStatic.equity, ...kmStatic.derivatives].map(
+                  (item, fi) => (
+                    <div key={fi}>
+                      <div className={styles.modalListItem}>
+                        <ModalDoneIcon size={16} />
+                        <p>
+                          <strong>{item.val}</strong> {item.lbl}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
             <button

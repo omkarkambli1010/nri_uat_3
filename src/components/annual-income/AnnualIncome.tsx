@@ -7,7 +7,8 @@ import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./annual-income.module.scss";
-import { useSessionValue } from '@/hooks/useSessionValue';
+import { useSessionValue } from "@/hooks/useSessionValue";
+import dynamicBackService from "@/services/back-navigation.service";
 
 const INCOME_OPTIONS = [
   "Below 1 lac",
@@ -61,7 +62,7 @@ export default function AnnualIncome() {
   // const [selectedIncome, setSelectedIncome] = useState('');
   // const [guid, setGuid] = useState('');
 
-  const rejectStatus = useSessionValue('RejectStatus');
+  const rejectStatus = useSessionValue("RejectStatus");
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -101,16 +102,27 @@ export default function AnnualIncome() {
     }
   };
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push('/personalDetailsForm/2');
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push('/personalDetailsForm/2');
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("PERSONAL_DETAILS3", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   const handleSelect = async (option: string) => {
-
     setSelected(option);
 
     const applicationId = sessionStorage.getItem("ApplicationId") ?? "";

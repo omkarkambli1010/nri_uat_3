@@ -31,9 +31,9 @@ const RELATIONSHIP_OPTIONS = [
   "Mother",
   "Brother",
   "Sister",
-  "Grand Son",
-  "Grand Daughter",
-  "Others",
+  "GrandSon",
+  "GrandDaughter",
+  "Other",
 ];
 
 // Document Master (nominee proof) — per spec.
@@ -41,7 +41,7 @@ const DOCUMENT_TYPE_OPTIONS = [
   "Passport",
   "Driving License",
   "Aadhaar",
-  "PanCard",
+  // "PanCard",
 ];
 
 // Nominee country dropdown is sourced from the Country Master API; restricted
@@ -104,9 +104,11 @@ interface ApiNominee {
   proofValue: string;
   addressLine1: string;
   addressLine2: string;
+  addressLine3: string;
   city: string;
   state: string;
   pincode: string;
+  country: string;
   nomNamePrint: string;
   guardian?: ApiGuardian;
 }
@@ -398,6 +400,9 @@ export default function AddNominee() {
     return () => mq.removeEventListener("change", update);
   }, []);
 
+  const guardianMaxDate = new Date();
+  guardianMaxDate.setFullYear(guardianMaxDate.getFullYear() - 18);
+
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
     setIsRejectStatus(sessionStorage.getItem("RejectStatus") === "R");
@@ -547,10 +552,12 @@ export default function AddNominee() {
   const mapProofType = (documentType: string): string => {
     switch (documentType) {
       case "Aadhaar":
-        return "AadhaarLast4";
+        return "Aadhaar";
       case "Passport":
         return "Passport";
       case "Driving License":
+        return "DrivingLicense";
+      case "DrivingLicense":
         return "DrivingLicense";
       case "PanCard":
         return "PanCard";
@@ -560,8 +567,10 @@ export default function AddNominee() {
   };
 
   const mapGuardianRelationship = (relationship: string): string => {
-    if (relationship === "Legal Guardian") return "LegalGuardian";
-    return "NaturalGuardian";
+    if (relationship === "Legal Guardian" || relationship === "LegalGuardian") {
+      return "LegalGuardian";
+    }
+    return relationship;
   };
 
   const mapNomineeToApiPayload = (n: Nominee): ApiNominee => {
@@ -575,15 +584,15 @@ export default function AddNominee() {
       email: n.email,
       relationship: n.relationship,
       percentageAllocation: Number(n.allocation) || 0,
-      addressMode: n.sameAsApplicant ? "SameAsApplicant" : "Manual",
+      addressMode: n.sameAsApplicant ? "SameAsApplicant" : "ManualEntry",
       proofType: mapProofType(n.documentType),
       proofValue: n.documentNumber,
       addressLine1: n.sameAsApplicant ? "" : n.addressLine1,
-      addressLine2: n.sameAsApplicant
-        ? ""
-        : [n.addressLine2, n.addressLine3].filter(Boolean).join(", "),
+      addressLine2: n.sameAsApplicant ? "" : n.addressLine2,
+      addressLine3: n.sameAsApplicant ? "" : n.addressLine3,
       city: n.sameAsApplicant ? "" : n.city,
       state: n.sameAsApplicant ? "" : n.state,
+      country: n.sameAsApplicant ? "" : n.country,
       pincode: n.sameAsApplicant ? "" : n.pincode,
       nomNamePrint: n.printPreference === "yes" ? "Yes" : "No",
     };
@@ -647,7 +656,7 @@ export default function AddNominee() {
     const nameRe = /^[a-zA-Z\s]+$/;
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const mobileRe = /^[6-9]\d{9}$/;
-    const pincodeRe = /^\d{6}$/;
+    // const pincodeRe = /^\d{10}$/;
     const alnumRe = /^[A-Za-z0-9]+$/;
     const aadhaarLast4Re = /^\d{4}$/;
 
@@ -720,12 +729,14 @@ export default function AddNominee() {
       if (!current.addressLine3.trim()) e.addressLine3 = ADDR_MSG;
       if (!current.city.trim()) e.city = ADDR_MSG;
       if (!current.country.trim()) e.country = ADDR_MSG;
+      if (!current.state.trim()) e.state = ADDR_MSG;
 
-      if (!current.pincode) {
-        e.pincode = ADDR_MSG;
-      } else if (!pincodeRe.test(current.pincode)) {
-        e.pincode = "Enter a valid 6-digit pincode";
+      if (!current.pincode.trim()) {
+        e.pincode = ADDR_MSG ?? "Pincode is required";
       }
+      // else if (!pincodeRe.test(current.pincode)) {
+      //   e.pincode = "Enter a valid 10-digit pincode";
+      // }
     }
 
     // ── Document type ──────────────────────────────────────────────────────
@@ -785,7 +796,7 @@ export default function AddNominee() {
         ) {
           e.guardianDob =
             "Guardian date of birth must be earlier than nominee date of birth";
-        } else if (guardianAge === null || guardianAge <= 18) {
+        } else if (guardianAge === null || guardianAge < 18) {
           e.guardianDob = "Guardian age must be more than 18 years";
         }
       }
@@ -794,9 +805,9 @@ export default function AddNominee() {
         e.guardianRelationship = "Guardian relationship is required";
       }
 
-      if (!current.guardianAddressLine1.trim()) {
-        e.guardianAddressLine1 = "Guardian address is required";
-      }
+      // if (!current.guardianAddressLine1.trim()) {
+      //   e.guardianAddressLine1 = "Guardian address is required";
+      // }
     }
     return e;
   };
@@ -927,14 +938,15 @@ export default function AddNominee() {
 
   const openFaq = () => {
     router.push(`/faq?from=${pathname}`);
-  }
+  };
 
   const goBack = () => {
     // Always return to the Add Nominee landing screen, regardless of how the
     // user arrived here (router.back() could land on an unrelated page).
     showSpinner();
     setTimeout(() => {
-      router.push("/addNominee-landing");
+      // router.push("/addNominee-landing");
+      router.push("/visa");
       hideSpinner();
     }, 200);
   };
@@ -1246,7 +1258,9 @@ export default function AddNominee() {
                           className={`${styles.input} ${errCls("mobile")}`}
                           placeholder="Enter Mobile Number"
                           inputMode="numeric"
-                          maxLength={current.mobileCountryIso2 === "in" ? 10 : 15}
+                          maxLength={
+                            current.mobileCountryIso2 === "in" ? 10 : 15
+                          }
                           value={current.mobile}
                           onChange={(e) =>
                             updateCurrent(
@@ -1293,6 +1307,7 @@ export default function AddNominee() {
                           touchUI
                           panelClassName="p-prime-cal-sm"
                           className={`p-prime-cal${errors.dob ? " p-prime-cal-error" : ""}`}
+                          maxDate={new Date()}
                         />
                       </div>
                       {errMsg("dob")}
@@ -1304,9 +1319,10 @@ export default function AddNominee() {
 
                   {/* Address — either preview or extra fields */}
                   {current.sameAsApplicant ? (
-                    <div className={styles.addressPreview}>
-                      <p>{applicantAddress}</p>
-                    </div>
+                    // <div className={styles.addressPreview}>
+                    //   <p>{applicantAddress}</p>
+                    // </div>
+                    ""
                   ) : (
                     <>
                       <div className={styles.row}>
@@ -1407,12 +1423,12 @@ export default function AddNominee() {
                           <input
                             className={`${styles.input} ${errCls("pincode")}`}
                             placeholder="Enter pincode"
-                            maxLength={6}
+                            maxLength={10}
                             value={current.pincode}
                             onChange={(e) =>
                               updateCurrent(
                                 "pincode",
-                                e.target.value.replace(/[^0-9]/g, ""),
+                                e.target.value.toUpperCase().slice(0, 10),
                               )
                             }
                           />
@@ -1457,7 +1473,7 @@ export default function AddNominee() {
                             }
                           >
                             <option value="">Select</option>
-                            {["Father", "Mother", "Legal Guardian"].map((r) => (
+                            {["Father", "Mother", "LegalGuardian"].map((r) => (
                               <option key={r} value={r}>
                                 {r}
                               </option>
@@ -1483,12 +1499,17 @@ export default function AddNominee() {
                               touchUI
                               panelClassName="p-prime-cal-sm"
                               className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
+                              maxDate={guardianMaxDate}
+                              viewDate={
+                                strToDate(current.guardianDob) ||
+                                guardianMaxDate
+                              }
                             />
                           </div>
                           {errMsg("guardianDob")}
                         </div>
                       </div>
-                      <div className={styles.row}>
+                      {/* <div className={styles.row}>
                         <p className={styles.rowLabel}>Guardian Address</p>
                         <div className={styles.fieldStack}>
                           <input
@@ -1504,7 +1525,7 @@ export default function AddNominee() {
                           />
                           {errMsg("guardianAddressLine1")}
                         </div>
-                      </div>
+                      </div> */}
                     </>
                   )}
 
@@ -1841,6 +1862,7 @@ export default function AddNominee() {
                 touchUI
                 panelClassName="p-prime-cal-sm"
                 className={`p-prime-cal${errors.dob ? " p-prime-cal-error" : ""}`}
+                maxDate={new Date()}
               />
               {errMsg("dob")}
             </div>
@@ -1848,9 +1870,10 @@ export default function AddNominee() {
             {checkboxGroup}
 
             {current.sameAsApplicant ? (
-              <div className={styles.addressPreview}>
-                <p>{applicantAddress}</p>
-              </div>
+              // <div className={styles.addressPreview}>
+              //   <p>{applicantAddress}</p>
+              // </div>
+              ""
             ) : (
               <>
                 <div className={styles.mobField}>
@@ -1932,12 +1955,12 @@ export default function AddNominee() {
                   <input
                     className={`${styles.mobInput} ${errCls("pincode", true)}`}
                     placeholder="Enter pincode"
-                    maxLength={6}
+                    maxLength={10}
                     value={current.pincode}
                     onChange={(e) =>
                       updateCurrent(
                         "pincode",
-                        e.target.value.replace(/[^0-9]/g, ""),
+                        e.target.value.toUpperCase().slice(0, 10),
                       )
                     }
                   />
@@ -1976,7 +1999,7 @@ export default function AddNominee() {
                     }
                   >
                     <option value="">Select</option>
-                    {["Father", "Mother", "Legal Guardian"].map((r) => (
+                    {["Father", "Mother", "LegalGuardian"].map((r) => (
                       <option key={r} value={r}>
                         {r}
                       </option>
@@ -1997,10 +2020,12 @@ export default function AddNominee() {
                     touchUI
                     panelClassName="p-prime-cal-sm"
                     className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
+                    maxDate={guardianMaxDate}
+                    viewDate={strToDate(current.guardianDob) || guardianMaxDate}
                   />
                   {errMsg("guardianDob")}
                 </div>
-                <div className={styles.mobField}>
+                {/* <div className={styles.mobField}>
                   <label className={styles.mobLabel}>Guardian Address</label>
                   <input
                     className={`${styles.mobInput} ${errCls("guardianAddressLine1", true)}`}
@@ -2011,7 +2036,7 @@ export default function AddNominee() {
                     }
                   />
                   {errMsg("guardianAddressLine1")}
-                </div>
+                </div> */}
               </>
             )}
 
