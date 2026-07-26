@@ -20,8 +20,10 @@
 // 'personalDetailsForm/3'            → src/app/personalDetailsForm/3/page.tsx
 // 'personalDetailsForm/4'            → src/app/personalDetailsForm/4/page.tsx
 // 'personalDetailsForm/5'            → src/app/personalDetailsForm/5/page.tsx
-// 'personalDetailsForm/6'            → src/app/personalDetailsForm/6/page.tsx
+// 'personalDetailsForm/6'            → REMOVED, merged into 'manual-bankdetails'
+//                                      (redirected in next.config.ts)
 // 'manual-bankdetails'               → src/app/manual-bankdetails/page.tsx
+//                                      (account type + details, single page)
 // 'manual-document-screen'           → src/app/manual-document-screen/page.tsx
 // 'planprocess/1'                    → src/app/planprocess/1/page.tsx
 // 'planprocess/2'                    → src/app/planprocess/2/page.tsx

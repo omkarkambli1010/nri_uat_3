@@ -16,6 +16,22 @@ const nextConfig: NextConfig = {
   //trailingSlash: true,
   output: "standalone",
 
+  // /personalDetailsForm/6 (Link Bank Account) was merged into
+  // /manual-bankdetails. The next route is server-driven — the API still returns
+  // the old path after PERSONAL_DETAILS5, and users mid-application have it
+  // cached in sessionStorage.allowedRoutes — so catch it here rather than in
+  // each of the 24 components that push uiMetadata.route. Not permanent: remove
+  // once the backend stops emitting it.
+  async redirects() {
+    return [
+      {
+        source: "/personalDetailsForm/6",
+        destination: "/manual-bankdetails",
+        permanent: false,
+      },
+    ];
+  },
+
   async rewrites() {
     if (isDevelopment) {
       return [

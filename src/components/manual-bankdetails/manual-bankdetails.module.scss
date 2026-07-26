@@ -555,6 +555,84 @@ $shadow-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// Select Bank Account Type — checkboxes (merged from LinkBankAccount / step 6)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Figma: 14px Regular #666, line-height 20px
+.sectionLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-label;
+  line-height: 20px;
+  margin: 0;
+}
+
+// Mobile: flex-col gap-16 · Desktop: flex-row gap-16
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+  }
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.checkboxBtn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Figma: 18×18, rounded-2px — unchecked: border #999
+.checkboxBox {
+  width: 18px;
+  height: 18px;
+  border-radius: 2px;
+  border: 1.5px solid #999999;
+  background: $bg-white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+// Figma: checked — bg #280071
+.checkboxBoxChecked {
+  background: $primary;
+  border-color: $primary;
+}
+
+// Figma: unchecked label — 14px Regular #2b2b2b · checked — 14px SemiBold #280071
+.checkboxLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  white-space: nowrap;
+  line-height: normal;
+}
+
+.checkboxLabelChecked {
+  font-weight: 600;
+  color: $primary;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // Verifying Details Modal
 // ══════════════════════════════════════════════════════════════════════════════
 

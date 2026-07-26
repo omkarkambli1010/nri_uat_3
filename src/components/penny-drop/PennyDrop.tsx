@@ -108,7 +108,7 @@ export default function PennyDrop() {
   const BackToSix = () => {
     showSpinner();
     setTimeout(() => {
-      router.push("/personalDetailsForm/6");
+      router.push("/manual-bankdetails");
       hideSpinner();
     }, 200);
   };
