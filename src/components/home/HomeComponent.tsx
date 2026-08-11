@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Splide, SplideSlide } from "@splidejs/react-splide";
 import { Toast } from "primereact/toast";
 import { useSpinner } from "@/components/spinner/Spinner";
 import { useCountries } from "@/components/country-select/useCountries";

@@ -113,7 +113,21 @@ const nextConfig: NextConfig = {
   // Declaring this key also silences the "webpack config with no turbopack
   // config" build error. The `webpack` block below is kept only so `next build
   // --webpack` remains a working escape hatch if a Turbopack issue turns up.
-  turbopack: {},
+  turbopack: {
+    // @splidejs/react-splide@0.7.12 is a broken dual package: its `exports.import`
+    // entry (dist/js/react-splide.esm.js) uses ESM syntax but carries a .js
+    // extension in a package with no `"type": "module"`, so by spec that file is
+    // CommonJS. Webpack sniffed the syntax and coped; Turbopack (the Next 16
+    // default) does not — it resolved `Splide`/`SplideSlide` to `undefined`,
+    // inlined `void 0` into the JSX and tree-shook the package away, so every
+    // <Splide> render threw "Element type is invalid". Point the resolver at the
+    // CJS build, which exports all three components correctly.
+    // Remove once react-splide ships a correctly declared ESM entry.
+    resolveAlias: {
+      "@splidejs/react-splide":
+        "./node_modules/@splidejs/react-splide/dist/js/react-splide.cjs.js",
+    },
+  },
 
   webpack: (config) => {
     config.resolve.fallback = {

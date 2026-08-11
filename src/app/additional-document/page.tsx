@@ -1,25 +1,22 @@
-'use client';
-
 // Route: /additional-document
 // Direct-URL fallback — AdditionalDocument is normally rendered as a modal
 // overlay inside FatcaDocument or OciBack, not as a standalone page.
-// This wrapper makes it accessible via direct URL by rendering it over
-// a blank page with router.back() as the close handler.
+// The AdditionalDocumentFallback wrapper makes it accessible via direct URL.
+//
+// Kept as a server component so it can export `metadata`; the router-driven
+// wrapper it renders carries its own 'use client'.
 
-import { useRouter } from 'next/navigation';
 import { Suspense } from 'react';
-import AdditionalDocument from '@/components/additional-document/AdditionalDocument';
+import type { Metadata } from 'next';
+import AdditionalDocumentFallback from '@/components/additional-document/AdditionalDocumentFallback';
+import { canonicalUrl } from '@/lib/seo';
 
-function AdditionalDocumentFallback() {
-  const router = useRouter();
-  return (
-    <AdditionalDocument
-      onClose={() => router.back()}
-      onProceed={() => router.push('/additional-document/preview')}
-      onSkip={() => router.push('/esign')}
-    />
-  );
-}
+export const metadata: Metadata = {
+  title: 'Additional Document | SBI Securities',
+  description:
+    'Upload any additional supporting document requested for your SBI Securities NRI account application.',
+  alternates: { canonical: canonicalUrl('additional-document') },
+};
 
 export default function AdditionalDocumentPage() {
   return (
