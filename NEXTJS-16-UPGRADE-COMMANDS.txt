@@ -1,0 +1,294 @@
+================================================================================
+ NEXT.JS 15.5.14  ->  16.3.0 UPGRADE + SEO / CRAWLER ENABLEMENT
+ Project : onboarding-diy-pwa  (NRI onboarding DIY PWA)
+ Branch  : chore/next-16-upgrade-seo   (created off release-uat-4)
+ Date    : 2026-08-11
+================================================================================
+
+ All commands are Windows CMD compatible. Run them from the project root:
+
+     D:\tmp\nrionboarding-nextjs-feature-uat_13_omkar
+
+ Commands marked [DONE] have already been executed on this branch. They are
+ listed so the sequence can be reproduced from a clean checkout if needed.
+
+
+================================================================================
+ STEP 0 - PRE-FLIGHT CHECK
+================================================================================
+
+ Check current versions before starting:
+
+     node -v
+     npm -v
+     npx next --version
+
+ Expected before upgrade : Next 15.5.14, React 19.2.4
+ Expected after  upgrade : Next 16.3.0,  React 19.2.8
+
+ NOTE ON NODE VERSION
+ --------------------
+ This machine runs Node v21.6.1. Next 16 requires >= 20.9.0, so it works,
+ BUT Node 21 is end-of-life and several transitive packages emit
+ EBADENGINE warnings against it (minimatch, eslint-visitor-keys).
+ Recommend moving the dev + build machines to Node 22 LTS:
+
+     nvm install 22
+     nvm use 22
+
+
+================================================================================
+ STEP 1 - CREATE THE UPGRADE BRANCH                                     [DONE]
+================================================================================
+
+     git checkout release-uat-4
+     git pull
+     git checkout -b chore/next-16-upgrade-seo
+
+
+================================================================================
+ STEP 2 - UPGRADE THE RUNTIME DEPENDENCIES                              [DONE]
+================================================================================
+
+ Next + React core:
+
+     npm install next@16.3.0 react@19.2.8 react-dom@19.2.8 --save
+
+ Dev/tooling dependencies:
+
+     npm install -D eslint-config-next@16.3.0 @types/react@latest @types/react-dom@latest eslint@^9
+
+ IMPORTANT - DO NOT INSTALL ESLINT 10
+ ------------------------------------
+ eslint-config-next@16.3.0 declares peer "eslint": ">=9.0.0", but its bundled
+ eslint-plugin-react still calls context.getFilename(), which ESLint 10
+ removed. Installing eslint@latest (10.x) makes "npm run lint" crash with:
+
+     TypeError: Error while loading rule 'react/display-name':
+     contextOrFilename.getFilename is not a function
+
+ ESLint must stay pinned at ^9 until eslint-config-next ships a fix.
+
+ Verify what landed:
+
+     npx next --version
+     npx eslint --version
+
+
+================================================================================
+ STEP 3 - CODE / CONFIG CHANGES (file edits, not commands)
+================================================================================
+
+ These were applied by hand. Listed here so the reason for each is on record.
+
+ 3a. next.config.ts  -- added "turbopack: {}"
+     Next 16 builds with Turbopack by default. A next.config.ts containing a
+     "webpack" key with no "turbopack" key is now a HARD BUILD ERROR:
+
+         ERROR: This build is using Turbopack, with a `webpack` config and
+         no `turbopack` config.
+
+     The existing webpack block only stubbed Node builtins
+     (fs/net/tls -> false) for the browser bundle. Turbopack does not polyfill
+     Node builtins into client bundles at all, so that stubbing is unnecessary.
+     The webpack block was LEFT IN PLACE so that "next build --webpack"
+     remains a working escape hatch if a Turbopack issue shows up.
+
+ 3b. package.json  -- "lint": "next lint"  ->  "lint": "eslint ."
+     Next 16 removed the "next lint" command entirely.
+
+ 3c. eslint.config.mjs  -- NEW FILE (flat config)
+     There was NO ESLint config in this repo at all, which means "next lint"
+     never actually ran. Adding the config surfaced 434 pre-existing findings.
+     None were caused by this upgrade. They are set to "warn" so that
+     "npm run lint" exits 0 and is usable as a gate for NEW problems.
+     Promote each rule back to "error" as its backlog is cleared.
+
+ 3d. SEO files -- see the SEO section further down.
+
+ NOTE: Next also auto-reformatted tsconfig.json on first build and set
+ "jsx": "react-jsx" plus added ".next/dev/types/**/*.ts" to "include".
+ This is expected and required by Next 16.
+
+
+================================================================================
+ STEP 4 - BUILD + VERIFY (run these to confirm the upgrade)
+================================================================================
+
+ Clean any stale build output first (Windows CMD):
+
+     rmdir /s /q .next
+
+ Development-env build:
+
+     npm run build
+
+ Production-env build:
+
+     npx cross-env NEXT_PUBLIC_ENV=production next build
+
+ UAT-env build:
+
+     npx cross-env NEXT_PUBLIC_ENV=uat next build
+
+ TypeScript typecheck:
+
+     npx tsc --noEmit
+
+ Lint:
+
+     npm run lint
+
+ RESULTS ON THIS BRANCH
+ ----------------------
+     npm run build                     PASS  (Next.js 16.3.0 Turbopack, 12.7s)
+     NEXT_PUBLIC_ENV=production build  PASS  (46 routes)
+     NEXT_PUBLIC_ENV=uat build         PASS
+     npx tsc --noEmit                  PASS  (exit 0, no type errors)
+     npm run lint                      PASS  (exit 0, 432 warnings, 0 errors)
+
+ NOT RUN - these bump the version number in package.json, so run them
+ yourself when you actually intend to cut a build:
+
+     npm run build:uat
+     npm run build:prod
+
+
+================================================================================
+ SEO / CRAWLER ENABLEMENT - WHAT CHANGED AND WHY
+================================================================================
+
+ GOAL: let Googlebot and other crawlers index the public pages, while keeping
+ the KYC onboarding funnel out of the search index.
+
+ WHY NOT INDEX EVERYTHING
+ ------------------------
+ The root layout previously set robots: "index, follow", and because it is the
+ ROOT layout that applied to every route - including /uploadPan, /CaptureSelfie,
+ /passportUpload, /manual-bankdetails, /esign, /personalDetailsForm and
+ /nriapi. Those pages are thin, near-duplicate, session-scoped funnel steps.
+ Indexing them dilutes ranking for the pages that matter and exposes the
+ funnel structure. Only /home and /faq carry real search value.
+
+ FILES ADDED
+ -----------
+     src/lib/seo.ts        Central SEO policy: site URL, public route list,
+                           canonical URL helper, environment gate.
+     src/app/robots.ts     Generates /robots.txt
+     src/app/sitemap.ts    Generates /sitemap.xml
+
+ FILES MODIFIED
+ --------------
+     src/app/layout.tsx    Default changed to noindex/nofollow + metadataBase
+     src/app/home/page.tsx Opts INTO indexing + canonical + OpenGraph
+     src/app/faq/page.tsx  Opts INTO indexing + canonical + description
+
+ NO COMPONENT FILES WERE MODIFIED.
+
+ DESIGN DECISION 1 - DENY BY DEFAULT
+ -----------------------------------
+ The root layout now defaults every route to noindex, and /home and /faq opt
+ back in individually. This means a NEW funnel step added later is protected
+ automatically instead of silently becoming crawlable.
+
+ DESIGN DECISION 2 - UAT IS NEVER INDEXED
+ ----------------------------------------
+ udn.sbisecurities.in serves the same pages as production. If it were indexed
+ it would compete with production for the same queries. Indexing is therefore
+ gated on NEXT_PUBLIC_ENV=production. On UAT, robots.txt blocks everything and
+ the sitemap is empty.
+
+ DESIGN DECISION 3 - THE DISALLOW IS SCOPED TO /diynri/, NOT /
+ -------------------------------------------------------------
+ robots.txt is served from the HOST ROOT, and other apps share this host -
+ the commented-out config in src/environments/environment.ts shows
+ /open-demat-account/ also lives on diy.sbisecurities.in. A bare
+ "Disallow: /" would have deindexed that app too. The rule is scoped to the
+ basePath instead. robots.txt uses longest-match-wins, so the two Allow lines
+ correctly override the broader Disallow.
+
+ VERIFIED OUTPUT - PRODUCTION
+ ----------------------------
+     User-Agent: *
+     Allow: /diynri/home
+     Allow: /diynri/faq
+     Disallow: /diynri/
+
+     Host: https://diy.sbisecurities.in
+     Sitemap: https://diy.sbisecurities.in/diynri/sitemap.xml
+
+     /home     -> <meta name="robots" content="index, follow">
+                  <link rel="canonical" href=".../diynri/home">
+     /faq      -> <meta name="robots" content="index, follow">
+                  <link rel="canonical" href=".../diynri/faq">
+     /uploadPan-> <meta name="robots" content="noindex, nofollow">
+     /esign    -> <meta name="robots" content="noindex, nofollow">
+
+ VERIFIED OUTPUT - UAT
+ ---------------------
+     User-Agent: *
+     Disallow: /diynri/
+
+     sitemap.xml is empty, /home is noindex,nofollow.
+
+ Inspect the generated files yourself after a build:
+
+     type .next\server\app\robots.txt.body
+     type .next\server\app\sitemap.xml.body
+
+ IMPORTANT - basePath AND robots.txt REACHABILITY
+ ------------------------------------------------
+ The app runs under basePath "/diynri", so Next emits these at
+ /diynri/robots.txt and /diynri/sitemap.xml. Crawlers ONLY read
+ <origin>/robots.txt. The existing "beforeFiles" rewrite in next.config.ts
+ maps root-level .txt/.xml requests into /diynri/..., so both resolve
+ correctly. DO NOT REMOVE THAT REWRITE or robots.txt becomes unreachable.
+
+ After deploying to production, confirm from outside:
+
+     curl https://diy.sbisecurities.in/robots.txt
+     curl https://diy.sbisecurities.in/sitemap.xml
+
+ Then submit the sitemap in Google Search Console:
+     https://diy.sbisecurities.in/diynri/sitemap.xml
+
+
+================================================================================
+ STEP 5 - COMMIT
+================================================================================
+
+     git add -A
+     git commit -m "Upgrade Next.js 15.5 -> 16.3 and scope SEO indexing to public pages"
+     git push -u origin chore/next-16-upgrade-seo
+
+
+================================================================================
+ OPEN ITEMS / NOT ADDRESSED
+================================================================================
+
+ 1. package.json has "test": "jest" but jest is NOT installed as a dependency.
+    That script cannot run and could not be used to validate this upgrade.
+
+ 2. 432 pre-existing lint warnings are now visible for the first time.
+    The largest groups:
+        145  @typescript-eslint/no-explicit-any
+         88  @typescript-eslint/no-unused-vars
+         59  @next/next/no-img-element
+         49  react-hooks/set-state-in-effect
+         41  react-hooks/exhaustive-deps
+         25  react-hooks/immutability
+         18  react-hooks/refs
+    The react-hooks/* ones come from eslint-plugin-react-hooks v7 (React
+    Compiler rules), new in Next 16, and are worth reviewing - they flag
+    genuine state/ref misuse. None block the build.
+
+ 3. npm audit reports 7 vulnerabilities (1 moderate, 5 high, 1 critical) in
+    transitive dependencies. Not introduced by this upgrade. Review with:
+        npm audit
+
+ 4. Only /home and /faq are indexable. If any other page should be public,
+    add it to PUBLIC_ROUTES in src/lib/seo.ts, add a matching entry to
+    ROUTE_METADATA in src/app/sitemap.ts, and give the page its own
+    robots: { index: true } metadata export.
+
+================================================================================

@@ -11,8 +11,10 @@ import "react-toastify/dist/ReactToastify.css";
 import "@splidejs/react-splide/css/core";
 import Providers from "@/lib/providers";
 import AppShell from "@/components/app-shell/AppShell";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   // Plain "&" — these are JS strings, so Next escapes them for the DOM. A literal
   // "&amp;" here would render as the visible text "&amp;" in the tab/SERP.
   title:
@@ -21,7 +23,15 @@ export const metadata: Metadata = {
     "Open Demat Account - Zero Cost Demat & Trading Account opening online at SBI Securities; ₹0* Brokerage till ₹75 lakh Trades, Flat Brokerage ₹20/order* and Zero AMC for 1st Year & more",
   keywords:
     "demat account, trading account, SBI Securities, open demat account online",
-  robots: "index, follow",
+  // Default to noindex and let the two public pages (/home, /faq) opt back in
+  // via their own `metadata` export. Deny-by-default is deliberate: this app is
+  // a KYC funnel, so a new step page added later must not silently become
+  // crawlable just because someone forgot to think about it. See @/lib/seo.
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
   icons: { icon: "/favicon.ico" },
   openGraph: {
     title: "Open Demat Account | SBI Securities",

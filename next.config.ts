@@ -107,6 +107,14 @@ const nextConfig: NextConfig = {
     unoptimized: true,
   },
 
+  // Next 16 builds with Turbopack by default. An empty config is enough here:
+  // Turbopack does not polyfill Node builtins into client bundles, so the old
+  // `webpack.resolve.fallback` stubbing of fs/net/tls is no longer needed.
+  // Declaring this key also silences the "webpack config with no turbopack
+  // config" build error. The `webpack` block below is kept only so `next build
+  // --webpack` remains a working escape hatch if a Turbopack issue turns up.
+  turbopack: {},
+
   webpack: (config) => {
     config.resolve.fallback = {
       ...config.resolve.fallback,
