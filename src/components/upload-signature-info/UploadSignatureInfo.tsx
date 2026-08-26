@@ -10,6 +10,7 @@ import { signatureStore } from "@/components/upload-signature/signatureStore";
 import styles from "./upload-signature-info.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const DESKTOP_MQ = "(min-width: 992px)";
 
@@ -139,7 +140,7 @@ export default function UploadSignatureInfo() {
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
-    setIsRejectStatus(sessionStorage.getItem("RejectStatus") === "R");
+   //setIsRejectStatus(secureSessionService.getItem("RejectStatus") === "R");
   }, []);
 
   useEffect(() => {
@@ -163,7 +164,7 @@ export default function UploadSignatureInfo() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("SIGNATURE", applicationId, {
       push: router.push,

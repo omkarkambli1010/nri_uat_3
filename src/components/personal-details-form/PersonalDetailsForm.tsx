@@ -9,6 +9,7 @@ import navigationService from "@/services/navigation.service";
 import styles from "./personal-details-form.module.scss";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // PersonalDetailsForm — step 1: Gender selection
 // Figma: 8TizndCcBb3VyE5CIJBEZe
@@ -69,7 +70,7 @@ export default function PersonalDetailsForm() {
   const getPersonalDetailsData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId")
+        ? secureSessionService.getItem("ApplicationId")
         : null;
 
     if (!applicationId) return;
@@ -99,7 +100,7 @@ export default function PersonalDetailsForm() {
   }, []);
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PERSONAL_DETAILS1", applicationId, {
       push: router.push,
@@ -122,7 +123,7 @@ export default function PersonalDetailsForm() {
   const handleSelect = async (option: string) => {
     setSelected(option);
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
@@ -156,7 +157,7 @@ export default function PersonalDetailsForm() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Personal Details Route Error:", error);
       }
 
       if (route) {

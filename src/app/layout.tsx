@@ -11,17 +11,22 @@ import "react-toastify/dist/ReactToastify.css";
 import "@splidejs/react-splide/css/core";
 import Providers from "@/lib/providers";
 import AppShell from "@/components/app-shell/AppShell";
+import GlobalBackButtonController from "@/components/navigation/GlobalBackButtonController";
+import { SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  // Plain "&" — these are JS strings, so Next escapes them for the DOM. A literal
-  // "&amp;" here would render as the visible text "&amp;" in the tab/SERP.
+  metadataBase: new URL(SITE_URL),
   title:
     "Open Demat Account - Free Demat & Trading Account Opening Online | SBI Securities",
   description:
     "Open Demat Account - Zero Cost Demat & Trading Account opening online at SBI Securities; ₹0* Brokerage till ₹75 lakh Trades, Flat Brokerage ₹20/order* and Zero AMC for 1st Year & more",
   keywords:
     "demat account, trading account, SBI Securities, open demat account online",
-  robots: "index, follow",
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
   icons: { icon: "/favicon.ico" },
   openGraph: {
     title: "Open Demat Account | SBI Securities",
@@ -48,6 +53,7 @@ export default function RootLayout({
           src="https://accounts.google.com/gsi/client"
           strategy="afterInteractive"
         />
+        <GlobalBackButtonController />
         <Providers>
           <AppShell>{children}</AppShell>
         </Providers>

@@ -7,39 +7,87 @@ import navigationService from "@/services/navigation.service";
 import styles from "./permanent-address-details.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
+import apiService from "@/services/api.service";
+import { toast } from "@/services/toast.service";
 
 // PermanentAddressDetails — gateway screen before permanent address flow
 // Figma: NRO-PERMENANT-IND-ADDRESS — Desktop 2:4200, Mobile 2:4109
-// Yes (Aadhaar-linked mobile) → /aadhar (eKYC)
-// No → /permanentAddress (manual entry)
+//
+// The Yes / No answer is posted to
+//   POST …/applications/{id}/digilocker/confirmation
+// and the next screen comes from the response rather than from a hardcoded
+// path, so the backend owns the journey order:
+//
+//   { "stagecode": "DIGILOCKER",
+//     "uiMetadata": "{\"route\": \"digilocker-screen\"}",
+//     "status": true }
+//
+// uiMetadata is a JSON *string*, so it has to be parsed before the route can
+// be read.
 
-const BackArrowSvg = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="#2B2B2B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+function BackArrow() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12H19"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 18"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 6"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 type AadhaarLinked = "yes" | "no" | "";
+
+// Used only when the API answers without a usable route, so a missing or
+// malformed uiMetadata cannot strand the user on this screen.
+const FALLBACK_ROUTES: Record<"yes" | "no", string> = {
+  yes: "digilocker-screen",
+  no: "personalDetailsForm/0",
+};
+
+/** Pulls `route` out of the uiMetadata JSON string; "" when absent or invalid. */
+const parseRoute = (uiMetadata?: string): string => {
+  if (!uiMetadata) return "";
+  try {
+    return String(JSON.parse(uiMetadata)?.route ?? "").trim();
+  } catch {
+    return "";
+  }
+};
 
 export default function PermanentAddressDetails() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   const [aadhaarLinked, setAadhaarLinked] = useState<AadhaarLinked>("");
+  const [submitting, setSubmitting] = useState(false);
 
-  const isProceedDisabled = aadhaarLinked === "";
+  const isProceedDisabled = aadhaarLinked === "" || submitting;
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
@@ -50,7 +98,7 @@ export default function PermanentAddressDetails() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("DIGILOCKER_CONFIRMATION", applicationId, {
       push: router.push,
@@ -61,17 +109,38 @@ export default function PermanentAddressDetails() {
     });
   };
 
-  const handleProceed = () => {
-    if (isProceedDisabled) return;
+  const handleProceed = async () => {
+    if (aadhaarLinked === "" || submitting) return;
+
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
+    if (!applicationId) {
+      toast.error("Your session has expired, please start again.", {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
+      setTimeout(() => router.push("/home"), 200);
+      return;
+    }
+    setSubmitting(true);
     showSpinner();
-    setTimeout(() => {
-      if (aadhaarLinked === "yes") {
-        router.push("/digilocker-screen");
-      } else {
-        router.push('/aadhar/upload');
+    try {
+      const response = await apiService.confirmDigilocker(
+        applicationId,
+        aadhaarLinked,
+        hideSpinner,
+      );
+
+      if (response?.status === false) {
+        return;
       }
+
+      const nextRoute = parseRoute(response?.uiMetadata) || FALLBACK_ROUTES[aadhaarLinked];
+      router.push(`/${nextRoute}`);
+    } catch {
+    } finally {
       hideSpinner();
-    }, 200);
+      setSubmitting(false);
+    }
   };
 
   const renderQuestion = (groupName: string) => (
@@ -123,7 +192,8 @@ export default function PermanentAddressDetails() {
               aria-label="Go back"
               suppressHydrationWarning
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.mobileTitleBlock}>
               <h5 className={styles.mobileTitle}>
@@ -168,7 +238,8 @@ export default function PermanentAddressDetails() {
               aria-label="Go back"
               suppressHydrationWarning
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.desktopTitleBlock}>
               <h5 className={styles.desktopCardTitle}>

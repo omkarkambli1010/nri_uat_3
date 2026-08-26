@@ -5,7 +5,7 @@
 `SignatureUploadModal` lets the user pick an image or PDF as their signature.
 Today, after `FileReader.readAsDataURL` finishes, the modal jumps straight
 to a filename row with a Proceed button that hands the base64 data URL to
-the parent verify view, which then writes it to `sessionStorage`.
+the parent verify view, which then writes it to `secureSessionService`.
 
 We are changing two things together:
 
@@ -14,7 +14,7 @@ We are changing two things together:
    the verify view sees it.
 2. **Blob everywhere** — drop base64 from the entire signature flow. Use
    `Blob` + `URL.createObjectURL` in component state. Drop the
-   sessionStorage signature persistence path entirely.
+   secureSessionService signature persistence path entirely.
 
 ## Scope
 
@@ -23,7 +23,7 @@ In:
 - New `SignatureCropperModal` using `react-image-crop@^11`.
 - Refactor `signatureStore` / `SignatureUploadModal` / `UploadSignature` /
   `UploadSignatureInfo` to use Blobs instead of base64.
-- Drop `sessionStorage` reads/writes for `signatureBase64`, `signatureName`,
+- Drop `secureSessionService` reads/writes for `signatureBase64`, `signatureName`,
   `signatureType`, `signatureSource`. (No other page consumes them.)
 - Pad-drawn signature also becomes a Blob via `canvas.toBlob('image/png')`.
 

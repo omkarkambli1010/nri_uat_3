@@ -8,6 +8,7 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './bp-sso.module.scss';
+import secureSessionService from '@/services/secure-session.service';
 
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
@@ -70,9 +71,9 @@ export default function BpSso() {
 
       if (response?.status === true) {
         const data = response.data;
-        sessionStorage.setItem('FormNumber', data?.FormNumber ?? formNumber);
-        sessionStorage.setItem('clientid', data?.ClientId ?? '');
-        sessionStorage.setItem('token', data?.Token ?? '');
+        secureSessionService.setItem('FormNumber', data?.FormNumber ?? formNumber);
+        secureSessionService.setItem('clientid', data?.ClientId ?? '');
+        secureSessionService.setItem('token', data?.Token ?? '');
         router.push(data?.NextRoute ?? '/home');
       } else {
         toast.error(response?.message ?? 'Verification failed. Please try again.', {

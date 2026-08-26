@@ -13,9 +13,10 @@ import { toast } from '@/services/toast.service';
 import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './passport-upload.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import secureSessionService from '@/services/secure-session.service';
 
 const getApplicationId = (): string =>
-  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+  typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
 
 // Pull a presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
@@ -56,6 +57,7 @@ interface PassportDetails {
   nationality:    string;
   gender:         string;
   placeOfIssue:   string;
+  placeOfBirth:   string;
 }
 
 type FieldErrors = Partial<Record<keyof PassportDetails, string>>;
@@ -153,6 +155,13 @@ function validateDetails(d: PassportDetails, isIndian: boolean): FieldErrors {
   // ── Place of Issue ───────────────────────────────────────────────────────────
   if (!d.placeOfIssue.trim() || !PLACE_RE.test(d.placeOfIssue.trim())) {
     errs.placeOfIssue = 'Please enter a valid Place of Issue (letters only, min 2 characters).';
+  }
+
+  // ── Place of Birth ───────────────────────────────────────────────────────────
+  // Same rule as Place of Issue: the API returns values like
+  // "VERAVAL, GUJARAT", so commas and spaces have to pass.
+  if (!d.placeOfBirth.trim() || !PLACE_RE.test(d.placeOfBirth.trim())) {
+    errs.placeOfBirth = 'Please enter a valid Place of Birth (letters only, min 2 characters).';
   }
 
   return errs;
@@ -303,6 +312,7 @@ export default function PassportUploadAll() {
   const [nationality,    setNationality]    = useState('');
   const [gender,         setGender]         = useState('');
   const [placeOfIssue,   setPlaceOfIssue]   = useState('');
+  const [placeOfBirth,   setPlaceOfBirth]   = useState('');
 
   const [errors,         setErrors]         = useState<FieldErrors>({});
   const [frontEditMode,  setFrontEditMode]  = useState(false);
@@ -324,6 +334,7 @@ export default function PassportUploadAll() {
     const nat  = pickField(d, 'nationality');
     const gen  = pickField(d, 'gender', 'sex');
     const poi  = pickField(d, 'placeOfIssue', 'placeOfIssuance', 'issuePlace');
+    const pob  = pickField(d, 'placeOfBirth', 'birthPlace', 'placeOfBirthName');
 
     if (name) setFullName(name);
     if (dobV) setDob(normalizeIso(dobV));
@@ -333,6 +344,7 @@ export default function PassportUploadAll() {
     if (nat)  setNationality(resolveCountryName(nat));
     if (gen)  setGender(gen);
     if (poi)  setPlaceOfIssue(poi);
+    if (pob)  setPlaceOfBirth(pob);
 
     // OCR-filled values are untouched by definition.
     setDetailsEdited(false);
@@ -343,7 +355,7 @@ export default function PassportUploadAll() {
     (field: 'FrontFile' | 'BackFile') =>
     async (file: File, onProgress: (p: number) => void) => {
       const applicationId =
-        typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+        typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
       if (!applicationId) {
         toast.error('Your session has expired, please start again.');
         throw new Error('Missing application ID');
@@ -381,6 +393,7 @@ export default function PassportUploadAll() {
     setNationality(v => v || 'India');
     setGender(v => v || 'Male');
     setPlaceOfIssue(v => v || 'Mumbai');
+    setPlaceOfBirth(v => v || 'Mumbai, Maharashtra');
     setDetailsEdited(false);
   };
 
@@ -404,6 +417,7 @@ export default function PassportUploadAll() {
     setNationality('');
     setGender('');
     setPlaceOfIssue('');
+    setPlaceOfBirth('');
     setErrors({});
     setFrontEditMode(false);
     setDetailsFetched(false);
@@ -485,6 +499,7 @@ export default function PassportUploadAll() {
     if (str(d.nationality)) setNationality(resolveCountryName(str(d.nationality)));
     if (str(d.gender)) setGender(str(d.gender));
     if (str(d.issuingCountry)) setPlaceOfIssue(str(d.issuingCountry));
+    if (str(d.placeOfBirth)) setPlaceOfBirth(str(d.placeOfBirth));
 
     setDetailsFetched(true);
     setDetailsEdited(false);
@@ -501,7 +516,7 @@ export default function PassportUploadAll() {
     !frontUploaded || !backUploaded ||
     !fullName.trim() || !dob || !passportNumber.trim() ||
     !issueDate || !expiryDate || !nationality.trim() || !gender.trim() ||
-    !placeOfIssue.trim();
+    !placeOfIssue.trim() || !placeOfBirth.trim();
 
   const onFieldChange = (key: keyof PassportDetails) => {
     setDetailsEdited(true);
@@ -520,6 +535,7 @@ export default function PassportUploadAll() {
     if (detailsEdited) {
       const current: PassportDetails = {
         fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender, placeOfIssue,
+      placeOfBirth,
       };
       const errs = validateDetails(current, isIndian);
       setErrors(errs);
@@ -559,6 +575,7 @@ export default function PassportUploadAll() {
 
     const current: PassportDetails = {
       fullName, dob, passportNumber, issueDate, expiryDate, nationality, gender, placeOfIssue,
+      placeOfBirth,
     };
     const errs = validateDetails(current, isIndian);
     setErrors(errs);
@@ -568,7 +585,7 @@ export default function PassportUploadAll() {
     }
 
     const applicationId =
-      typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+      typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
     if (!applicationId) {
       toast.error('Your session has expired, please start again.');
       return;
@@ -578,7 +595,7 @@ export default function PassportUploadAll() {
     try {
       const res = await apiService.updatePassport(applicationId, {
         holderName: fullName, dob, passportNumber,
-        issueDate, expiryDate, nationality, gender, placeOfIssue,
+        issueDate, expiryDate, nationality, gender, placeOfIssue, placeOfBirth,
       });
       if (res?.uiMetadata) {
         const route = routeFromUiMetadata(res.uiMetadata);
@@ -750,7 +767,7 @@ export default function PassportUploadAll() {
         </select>
       </FieldRow>
 
-      <FieldRow id={`${idPrefix}-placeOfIssue`} label="Place of Issue *" error={errors.placeOfIssue}>
+      <FieldRow id={`${idPrefix}-placeOfIssue`} label="Place of Issue Country *" error={errors.placeOfIssue}>
         <input
           id={`${idPrefix}-placeOfIssue`}
           type="text"
@@ -767,6 +784,24 @@ export default function PassportUploadAll() {
           autoComplete="off"
         />
       </FieldRow>
+
+      <FieldRow id={`${idPrefix}-placeOfBirth`} label="Place of Birth *" error={errors.placeOfBirth}>
+        <input
+          id={`${idPrefix}-placeOfBirth`}
+          type="text"
+          value={placeOfBirth}
+          maxLength={60}
+          onChange={(e) => {
+            const v = e.target.value.replace(/[^A-Za-z .,'\-]/g, '');
+            setPlaceOfBirth(v);
+            onFieldChange('placeOfBirth');
+          }}
+          className={inputCls('placeOfBirth')}
+          aria-invalid={!!errors.placeOfBirth}
+          placeholder="Enter place of birth"
+          autoComplete="off"
+        />
+      </FieldRow>
     </>
   );
 
@@ -779,7 +814,8 @@ export default function PassportUploadAll() {
       <ReadOnlyRow label="Expiry Date"     value={formatDateForDisplay(expiryDate)} />
       <ReadOnlyRow label="Nationality"     value={nationality} />
       <ReadOnlyRow label="Gender"          value={gender} />
-      <ReadOnlyRow label="Place of Issue"  value={placeOfIssue} />
+      <ReadOnlyRow label="Place of Issue Country"  value={placeOfIssue} />
+      <ReadOnlyRow label="Place of Birth"          value={placeOfBirth} />
     </div>
   );
 

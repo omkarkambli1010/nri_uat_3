@@ -1,16 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/set-state-in-effect */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import DateField from "@/components/date-field/DateField";
 import { useSpinner } from "@/components/spinner/Spinner";
 import { toast } from "@/services/toast.service";
-import apiService from "@/services/api.service";
+import apiService, { CodeDisplayMaster } from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import { buildFaqUrl } from "@/lib/faq-link";
 import { useCountries } from "@/components/country-select/useCountries";
 import CountryCodeSelect from "@/components/country-select/CountryCodeSelect";
 import styles from "./add-nominee.module.scss";
+import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // AddNominee — multi-state nominee form
 // Figma:
@@ -22,8 +27,10 @@ import styles from "./add-nominee.module.scss";
 //   6. Max reached          (W 0:41850)
 
 const DESKTOP_MQ = "(min-width: 992px)";
+// BRD v1.2 removes nominee address capture. Existing code is retained below but disabled.
+const SHOW_NOMINEE_ADDRESS = false;
 
-const RELATIONSHIP_OPTIONS = [
+const FALLBACK_RELATIONSHIPS: CodeDisplayMaster[] = [
   "Spouse",
   "Son",
   "Daughter",
@@ -34,24 +41,37 @@ const RELATIONSHIP_OPTIONS = [
   "GrandSon",
   "GrandDaughter",
   "Other",
+].map((displayName) => ({
+  code: displayName.replace(/\s/g, "").toUpperCase(),
+  displayName,
+}));
+const FALLBACK_GUARDIAN_RELATIONSHIPS: CodeDisplayMaster[] = [
+  { code: "FATHER", displayName: "Father" },
+  { code: "MOTHER", displayName: "Mother" },
+  { code: "LEGALGUARDIAN", displayName: "Legal Guardian" },
 ];
-
-// Document Master (nominee proof) — per spec.
-const DOCUMENT_TYPE_OPTIONS = [
-  "Passport",
-  "Driving License",
-  "Aadhaar",
-  // "PanCard",
+const FALLBACK_PROOFS: CodeDisplayMaster[] = [
+  { code: "PASSPORT", displayName: "Passport" },
+  { code: "DRIVINGLICENSE", displayName: "Driving License" },
+  { code: "AADHAAR", displayName: "Aadhaar" },
 ];
-
+const normalizeMasterValue = (items: CodeDisplayMaster[], value: string) => {
+  const key = value.replace(/\s/g, "").toUpperCase();
+  return (
+    items.find(
+      (x) =>
+        x.code.replace(/\s/g, "").toUpperCase() === key ||
+        x.displayName.replace(/\s/g, "").toUpperCase() === key,
+    )?.code || value
+  );
+};
 // Nominee country dropdown is sourced from the Country Master API; restricted
 // (status = 'N') countries are filtered out by useCountries().selectable.
 
-type PrintPref = "yes" | "no" | "";
+type PrintPref = "Name of the Nominee(s)" | "Nomination: Yes / No" | "";
 
 interface Nominee {
   firstName: string;
-  middleName: string;
   lastName: string;
   relationship: string;
   allocation: string;
@@ -72,8 +92,12 @@ interface Nominee {
   printPreference: PrintPref;
   encashPercentage: string;
   guardianFirstName: string;
-  guardianMiddleName: string;
   guardianLastName: string;
+  guardianMobile: string;
+  guardianMobileCountryIso2: string;
+  guardianEmail: string;
+  guardianDocumentType: string;
+  guardianDocumentNumber: string;
   guardianDob: string;
   guardianRelationship: string;
   guardianAddressLine1: string;
@@ -86,41 +110,77 @@ interface Nominee {
 }
 
 interface ApiGuardian {
-  fullName: string;
-  dateOfBirth: string;
-  relationship: string;
-  pan: string;
-}
-
-interface ApiNominee {
-  fullName: string;
-  dateOfBirth: string;
+  firstName: string;
+  lastName: string;
+  countryCode: string;
   mobile: string;
   email: string;
   relationship: string;
-  percentageAllocation: number;
-  addressMode: string;
-  proofType: string;
+  proofType?: string;
   proofValue: string;
-  addressLine1: string;
-  addressLine2: string;
-  addressLine3: string;
-  city: string;
-  state: string;
-  pincode: string;
-  country: string;
+}
+
+interface ApiNominee {
+  firstName: string;
+  lastName: string;
+  isMinor: boolean;
+  dateOfBirth: string;
+  countryCode: string;
+  mobile: string;
+  email: string;
+  relationship: string;
+  percentageAllocation: number | "";
+  proofType?: string;
+  proofValue: string;
   nomNamePrint: string;
   guardian?: ApiGuardian;
 }
 
+type NullableApiGuardian = {
+  [K in keyof ApiGuardian]: ApiGuardian[K] | null;
+} & {
+  fullName?: string | null;
+  dateOfBirth?: string | null;
+  pan?: string | null;
+};
+
+type NullableApiNominee = {
+  [K in keyof ApiNominee]: K extends "guardian"
+    ? NullableApiGuardian | null
+    : ApiNominee[K] | null;
+} & {
+  fullName?: string | null;
+  addressMode?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  addressLine3?: string | null;
+  city?: string | null;
+  state?: string | null;
+  pincode?: string | null;
+  country?: string | null;
+};
+
+interface NomineeStageData {
+  applicationId: string;
+  isNominee: boolean;
+  nomineeAdd: string;
+  nominees?: NullableApiNominee[] | null;
+}
+
+interface NomineeStageResponse {
+  status: boolean;
+  applicationId: string;
+  stagename: string;
+  data: NomineeStageData | null;
+}
+
 const blankNominee: Nominee = {
   firstName: "",
-  middleName: "",
   lastName: "",
   relationship: "",
   allocation: "100",
   mobile: "",
-  mobileCountryIso2: "in",
+  mobileCountryIso2: "",
   email: "",
   dob: "",
   sameAsApplicant: true,
@@ -136,8 +196,12 @@ const blankNominee: Nominee = {
   printPreference: "",
   encashPercentage: "",
   guardianFirstName: "",
-  guardianMiddleName: "",
   guardianLastName: "",
+  guardianMobile: "",
+  guardianMobileCountryIso2: "",
+  guardianEmail: "",
+  guardianDocumentType: "",
+  guardianDocumentNumber: "",
   guardianDob: "",
   guardianRelationship: "",
   guardianAddressLine1: "",
@@ -168,6 +232,20 @@ const computeAge = (dob: string): number | null => {
   if (m < 0 || (m === 0 && today.getDate() < d.getDate())) age--;
   return age;
 };
+const PAN_PATTERN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+const isPanProof = (proofType: string): boolean => {
+  const normalized = proofType.replace(/\s/g, "").toUpperCase();
+  return normalized === "PAN" || normalized === "PANCARD";
+};
+const formatPan = (raw: string): string => {
+  const value = raw.toUpperCase();
+  const part1 = value.substring(0, 5).replace(/[^A-Z]/g, "");
+  const part2 = value.substring(5, 9).replace(/\D/g, "");
+  const part3 = value.substring(9, 10).replace(/[^A-Z]/g, "");
+  return part1 + part2 + part3;
+};
+const getPanInputMode = (value: string): "text" | "numeric" =>
+  value.length >= 5 && value.length < 9 ? "numeric" : "text";
 
 function BackArrow() {
   return (
@@ -374,16 +452,82 @@ function CheckIcon() {
 }
 
 export default function AddNominee() {
+  const nomineeDataLoaded = useRef(false);
   const router = useRouter();
   const pathname = usePathname();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const { selectable: COUNTRY_OPTIONS } = useCountries();
+  const COUNTRY_CODE_OPTIONS = useMemo(
+    () => [
+      {
+        iso2: "",
+        name: "Select",
+        countryCode: "",
+        teleCode: "",
+        dialCode: "",
+        status: "Y",
+      } as any,
+      ...COUNTRY_OPTIONS,
+    ],
+    [COUNTRY_OPTIONS],
+  );
+  const resolveCountryIso2 = (
+    countryCode: string | null | undefined,
+  ): string => {
+    if (!countryCode) return "";
+
+    const rawTokens = String(countryCode)
+      .trim()
+      .split("/")
+      .map((token) => token.trim())
+      .filter(Boolean);
+
+    const textTokens = new Set(rawTokens.map((token) => token.toUpperCase()));
+    const numericTokens = new Set(
+      rawTokens.map((token) => token.replace(/\D/g, "")).filter(Boolean),
+    );
+
+    const matchedCountry = COUNTRY_OPTIONS.find((country) => {
+      const textValues = [
+        country.iso2,
+        (country as any).iso3,
+        (country as any).countryIso3,
+        (country as any).alpha2Code,
+        (country as any).alpha3Code,
+        country.countryCode,
+        (country as any).teleCode,
+        country.dialCode,
+      ]
+        .filter((value) => value !== null && value !== undefined)
+        .map((value) => String(value).trim().toUpperCase())
+        .filter(Boolean);
+
+      const numericValues = textValues
+        .map((value) => value.replace(/\D/g, ""))
+        .filter(Boolean);
+
+      return (
+        textValues.some((value) => textTokens.has(value)) ||
+        numericValues.some((value) => numericTokens.has(value))
+      );
+    });
+
+    return matchedCountry?.iso2?.trim().toLowerCase() || "";
+  };
 
   const [isDesktop, setIsDesktop] = useState<boolean | null>(null);
   const [isRejectStatus, setIsRejectStatus] = useState(false);
   const [view, setView] = useState<"form" | "summary">("form");
   const [nominees, setNominees] = useState<Nominee[]>([]);
   const [current, setCurrent] = useState<Nominee>({ ...blankNominee });
+  const [nomineeRelationships, setNomineeRelationships] = useState(
+    FALLBACK_RELATIONSHIPS,
+  );
+  const [guardianRelationships, setGuardianRelationships] = useState(
+    FALLBACK_GUARDIAN_RELATIONSHIPS,
+  );
+  const [nomineeProofTypes, setNomineeProofTypes] = useState(FALLBACK_PROOFS);
+  const [guardianProofTypes, setGuardianProofTypes] = useState(FALLBACK_PROOFS);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [errors, setErrors] = useState<Partial<Record<keyof Nominee, string>>>(
     {},
@@ -391,6 +535,216 @@ export default function AddNominee() {
 
   // Pulled once on mount — used for "same as applicant" preview pill
   const [applicantAddress, setApplicantAddress] = useState("");
+
+  const mapProofTypeFromApi = (
+    proofType: string | null | undefined,
+  ): string => {
+    return proofType === "DrivingLicense" ? "Driving License" : proofType || "";
+  };
+
+  const splitFullName = (fullName: string | null) => {
+    const parts = (fullName || "").trim().split(/\s+/).filter(Boolean);
+
+    return {
+      firstName: parts[0] || "",
+      //middleName: parts.length > 2 ? parts.slice(1, -1).join(" ") : "",
+      lastName: parts.length > 1 ? parts[parts.length - 1] : "",
+    };
+  };
+
+  const mapApiNomineeToForm = (n: NullableApiNominee): Nominee => {
+    const splitName = splitFullName(n.fullName || "");
+    const name = {
+      firstName: n.firstName || splitName.firstName,
+      lastName: n.lastName || splitName.lastName,
+    };
+    const splitGuardian = splitFullName(n.guardian?.fullName || "");
+    const guardianName = {
+      firstName: n.guardian?.firstName || splitGuardian.firstName,
+      lastName: n.guardian?.lastName || splitGuardian.lastName,
+    };
+    const savedPrintPreference = n.nomNamePrint?.trim() || "";
+    const printPreference: PrintPref =
+      savedPrintPreference === "Name of the Nominee(s)" ||
+      savedPrintPreference.toLowerCase() === "yes"
+        ? "Name of the Nominee(s)"
+        : savedPrintPreference === "Nomination: Yes / No" ||
+            savedPrintPreference.toLowerCase() === "no"
+          ? "Nomination: Yes / No"
+          : "";
+
+    return {
+      ...blankNominee,
+      ...name,
+      relationship: n.relationship || "",
+      allocation:
+        n.percentageAllocation == null ? "" : String(n.percentageAllocation),
+      mobile: n.mobile || "",
+      mobileCountryIso2: resolveCountryIso2(n.countryCode),
+      email: n.email || "",
+      dob: n.dateOfBirth?.split("T")[0] || "",
+      sameAsApplicant: n.addressMode === "SameAsApplicant",
+      addressLine1: n.addressLine1 || "",
+      addressLine2: n.addressLine2 || "",
+      addressLine3: n.addressLine3 || "",
+      city: n.city || "",
+      state: n.state || "",
+      country: n.country || "",
+      pincode: n.pincode || "",
+      documentType: mapProofTypeFromApi(n.proofType),
+      documentNumber: n.proofType ? n.proofValue || "" : "",
+      printPreference,
+      guardianFirstName: guardianName.firstName,
+      guardianLastName: guardianName.lastName,
+      guardianMobile: n.guardian?.mobile || "",
+      guardianMobileCountryIso2: resolveCountryIso2(n.guardian?.countryCode),
+      guardianEmail: n.guardian?.email || "",
+      guardianDocumentType: mapProofTypeFromApi(n.guardian?.proofType || null),
+      guardianDocumentNumber: n.guardian?.proofType
+        ? n.guardian?.proofValue || ""
+        : "",
+      guardianDob: n.guardian?.dateOfBirth?.split("T")[0] || "",
+      guardianRelationship:
+        n.guardian?.relationship === "Legal Guardian"
+          ? "LegalGuardian"
+          : n.guardian?.relationship || "",
+    };
+  };
+
+  const getApplicationId = () => {
+    return typeof window !== "undefined"
+      ? secureSessionService.getItem("ApplicationId") || ""
+      : "";
+  };
+
+  const generateIdempotencyKey = () => {
+    return typeof crypto !== "undefined" &&
+      typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  };
+
+  const loadExistingNominees = async () => {
+    let nr = FALLBACK_RELATIONSHIPS,
+      gr = FALLBACK_GUARDIAN_RELATIONSHIPS,
+      np = FALLBACK_PROOFS,
+      gp = FALLBACK_PROOFS;
+    try {
+      const values = await Promise.all([
+        apiService.getNomineeRelationshipMaster(),
+        apiService.getGuardianRelationshipMaster(),
+        apiService.getNomineeProofTypeMaster(),
+        apiService.getGuardianProofTypeMaster(),
+      ]);
+      nr = values[0];
+      gr = values[1];
+      np = values[2];
+      gp = values[3];
+      if (nr.length) setNomineeRelationships(nr);
+      if (gr.length) setGuardianRelationships(gr);
+      if (np.length) setNomineeProofTypes(np);
+      if (gp.length) setGuardianProofTypes(gp);
+    } catch (error) {
+      console.error("Failed to load nominee masters:", error);
+    }
+    const applicationId = getApplicationId();
+
+    if (!applicationId) {
+      toast.error("Application ID not found.", {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    showSpinner();
+
+    try {
+      const response: NomineeStageResponse = await apiService.postNri(
+        `applications/${applicationId}/get/workflow/stagewisedata`,
+        {
+          stagename: "nominee",
+          idempotencyKey: "",
+        },
+        hideSpinner,
+      );
+
+      if (!response?.status || !response.data) {
+        setNominees([]);
+        setCurrent({ ...blankNominee });
+        setEditingIndex(null);
+        setErrors({});
+        setView("form");
+        return;
+      }
+
+      const stageData = response.data;
+      const apiNominees = stageData.nominees || [];
+
+      const hasNominees =
+        stageData.isNominee === true &&
+        stageData.nomineeAdd?.toLowerCase() === "yes" &&
+        apiNominees.length > 0;
+
+      if (!hasNominees) {
+        setNominees([]);
+        setCurrent({ ...blankNominee });
+        setEditingIndex(null);
+        setErrors({});
+        setView("form");
+        return;
+      }
+
+      const restoredNominees = apiNominees
+        .filter((nominee) =>
+          Boolean(
+            nominee.fullName?.trim() ||
+            nominee.firstName?.trim() ||
+            nominee.lastName?.trim(),
+          ),
+        )
+        .slice(0, 3)
+        .map(mapApiNomineeToForm)
+        .map((x) => ({
+          ...x,
+          relationship: normalizeMasterValue(nr, x.relationship),
+          guardianRelationship: normalizeMasterValue(
+            gr,
+            x.guardianRelationship,
+          ),
+          documentType: normalizeMasterValue(np, x.documentType),
+          guardianDocumentType: normalizeMasterValue(
+            gp,
+            x.guardianDocumentType,
+          ),
+        }));
+
+      const nomineesToRestore =
+        restoredNominees.length === 1
+          ? [{ ...restoredNominees[0], allocation: "100" }]
+          : restoredNominees;
+      setNominees(nomineesToRestore);
+      setCurrent({ ...blankNominee });
+      setEditingIndex(null);
+      setErrors({});
+      setView(nomineesToRestore.length > 0 ? "summary" : "form");
+    } catch (error) {
+      console.error("Failed to load nominee details:", error);
+
+      // toast.error("Unable to load nominee details.", {
+      //   position: "bottom-center",
+      //   autoClose: 3000,
+      // });
+
+      setNominees([]);
+      setCurrent({ ...blankNominee });
+      setEditingIndex(null);
+      setErrors({});
+      setView("form");
+    } finally {
+      hideSpinner();
+    }
+  };
 
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP_MQ);
@@ -405,53 +759,17 @@ export default function AddNominee() {
 
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
-    setIsRejectStatus(sessionStorage.getItem("RejectStatus") === "R");
-    // Cached applicant address used in the preview pill when "same as applicant" is ticked
-    // setApplicantAddress(
-    //   sessionStorage.getItem("ApplicantAddress") ||
-    //     "Sector 20 Anand Vihar Co-Operative Society, Borivali, Mumbai, Maharashtra 400703",
-    // );
-    //loadExistingNominees();
-  }, []);
+    setIsRejectStatus(secureSessionService.getItem("RejectStatus") === "R");
 
-  // const loadExistingNominees = async () => {
-  //   showSpinner();
-  //   const reqData = {
-  //     flag: "nominee",
-  //     formnumber:
-  //       typeof window !== "undefined"
-  //         ? sessionStorage.getItem("FormNumber")
-  //         : "",
-  //   };
-  //   try {
-  //     const response = await apiService.postRequestNominee(
-  //       "api/v1/nomineeservice/getnominee",
-  //       reqData,
-  //       hideSpinner,
-  //     );
-  //     if (
-  //       response?.status === true &&
-  //       Array.isArray(response.data) &&
-  //       response.data.length
-  //     ) {
-  //       const restored: Nominee[] = response.data.map((n: any) => ({
-  //         ...blankNominee,
-  //         firstName: (n.NomineeName || "").split(" ")[0] || "",
-  //         lastName: (n.NomineeName || "").split(" ").slice(1).join(" ") || "",
-  //         relationship: n.Relation || "",
-  //         allocation: String(n.Percentage || "100"),
-  //         dob: n.DOB || "",
-  //         addressLine1: n.Address || "",
-  //       }));
-  //       setNominees(restored);
-  //       setView("summary");
-  //     }
-  //   } catch {
-  //     /* ignore */
-  //   } finally {
-  //     hideSpinner();
-  //   }
-  // };
+    // Country codes are restored through Country Master, so wait until its
+    // options are available before loading the saved nominees.
+    if (COUNTRY_OPTIONS.length === 0 || nomineeDataLoaded.current) return;
+
+    nomineeDataLoaded.current = true;
+    void loadExistingNominees();
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [COUNTRY_OPTIONS.length]);
 
   const updateCurrent = <K extends keyof Nominee>(
     key: K,
@@ -477,16 +795,31 @@ export default function AddNominee() {
   // Document number entry rules depend on the selected type:
   //   Aadhaar → exactly 4 digits (digits only, capped at 4)
   //   everything else → alphanumeric only, uppercased
-  const sanitizeDocumentNumber = (value: string): string =>
-    current.documentType === "Aadhaar"
-      ? value.replace(/[^0-9]/g, "").slice(0, 4)
-      : value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const sanitizeDocumentNumber = (value: string): string => {
+    if (!current.documentType) return "";
+
+    if (current.documentType.toUpperCase() === "AADHAAR")
+      return value.replace(/[^0-9]/g, "").slice(0, 4);
+    if (isPanProof(current.documentType)) return formatPan(value);
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  };
 
   // Switching document type invalidates any number already typed (a PAN value
   // is not a valid Aadhaar value, etc.) — clear it so stale input can't linger.
+  const sanitizeGuardianDocumentNumber = (value: string) => {
+    if (current.guardianDocumentType.toUpperCase() === "AADHAAR")
+      return value.replace(/[^0-9]/g, "").slice(0, 4);
+    if (isPanProof(current.guardianDocumentType)) return formatPan(value);
+    return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  };
   const changeDocumentType = (value: string) => {
     updateCurrent("documentType", value);
     updateCurrent("documentNumber", "");
+  };
+
+  const changeGuardianDocumentType = (value: string) => {
+    updateCurrent("guardianDocumentType", value);
+    updateCurrent("guardianDocumentNumber", "");
   };
 
   // Sanitize the typed mobile number for the currently-selected country.
@@ -494,6 +827,11 @@ export default function AddNominee() {
   //   Other → digits only, max 15 (E.164).
   const sanitizeMobileFor = (value: string, iso2: string): string => {
     const digits = value.replace(/[^0-9]/g, "");
+
+    if (!iso2) {
+      return digits.slice(0, 15);
+    }
+
     return iso2 === "in"
       ? digits.replace(/^[0-5]+/, "").slice(0, 10)
       : digits.slice(0, 15);
@@ -510,6 +848,7 @@ export default function AddNominee() {
       mobileCountryIso2: iso2,
       mobile: sanitizeMobileFor(prev.mobile, iso2),
     }));
+
     setErrors((prev) => {
       if (!prev.mobile) return prev;
       const next = { ...prev };
@@ -518,13 +857,37 @@ export default function AddNominee() {
     });
   };
 
+  const handleGuardianMobileCountryChange = (iso2: string) => {
+    setCurrent((prev) => ({
+      ...prev,
+      guardianMobileCountryIso2: iso2,
+      guardianMobile: sanitizeMobileFor(prev.guardianMobile, iso2),
+    }));
+
+    setErrors((prev) => {
+      if (!prev.guardianMobile) return prev;
+      const next = { ...prev };
+      delete next.guardianMobile;
+      return next;
+    });
+  };
   const isMinor = useMemo(() => {
     const age = computeAge(current.dob);
     return age !== null && age < 18;
   }, [current.dob]);
 
+  const getCountryCode = (iso2: string): string => {
+    if (!iso2) return "";
+
+    return (
+      COUNTRY_OPTIONS.find(
+        (country) => country.iso2.toLowerCase() === iso2.toLowerCase(),
+      )?.countryCode || iso2.toUpperCase()
+    );
+  };
+
   const nomineeFullName = (n: Nominee) =>
-    [n.firstName, n.middleName, n.lastName].filter(Boolean).join(" ").trim();
+    [n.firstName, n.lastName].filter(Boolean).join(" ").trim();
 
   // Total allocation across all saved nominees + the current one (excluding the
   // one being edited so it doesn't double-count).
@@ -536,84 +899,99 @@ export default function AddNominee() {
     return others + (Number(current.allocation) || 0);
   }, [nominees, current.allocation, editingIndex]);
 
-  const getApplicationId = () => {
-    return typeof window !== "undefined"
-      ? window.sessionStorage.getItem("ApplicationId") || ""
-      : "";
-  };
-
-  const generateIdempotencyKey = () => {
-    return typeof crypto !== "undefined" &&
-      typeof crypto.randomUUID === "function"
-      ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  };
-
-  const mapProofType = (documentType: string): string => {
-    switch (documentType) {
-      case "Aadhaar":
-        return "Aadhaar";
-      case "Passport":
-        return "Passport";
-      case "Driving License":
-        return "DrivingLicense";
-      case "DrivingLicense":
-        return "DrivingLicense";
-      case "PanCard":
-        return "PanCard";
-      default:
-        return documentType;
-    }
-  };
-
-  const mapGuardianRelationship = (relationship: string): string => {
-    if (relationship === "Legal Guardian" || relationship === "LegalGuardian") {
-      return "LegalGuardian";
-    }
-    return relationship;
-  };
+  const mapProofType = (documentType: string): string => documentType;
 
   const mapNomineeToApiPayload = (n: Nominee): ApiNominee => {
     const age = computeAge(n.dob);
     const nomineeIsMinor = age !== null && age < 18;
 
     const apiNominee: ApiNominee = {
-      fullName: nomineeFullName(n),
+      firstName: n.firstName.trim(),
+      lastName: n.lastName.trim(),
+      isMinor: nomineeIsMinor,
       dateOfBirth: n.dob,
+      countryCode: getCountryCode(n.mobileCountryIso2),
       mobile: n.mobile,
+      // mobile: n.mobileCountryIso2 ? n.mobile : "",
       email: n.email,
       relationship: n.relationship,
-      percentageAllocation: Number(n.allocation) || 0,
-      addressMode: n.sameAsApplicant ? "SameAsApplicant" : "ManualEntry",
-      proofType: mapProofType(n.documentType),
-      proofValue: n.documentNumber,
-      addressLine1: n.sameAsApplicant ? "" : n.addressLine1,
-      addressLine2: n.sameAsApplicant ? "" : n.addressLine2,
-      addressLine3: n.sameAsApplicant ? "" : n.addressLine3,
-      city: n.sameAsApplicant ? "" : n.city,
-      state: n.sameAsApplicant ? "" : n.state,
-      country: n.sameAsApplicant ? "" : n.country,
-      pincode: n.sameAsApplicant ? "" : n.pincode,
-      nomNamePrint: n.printPreference === "yes" ? "Yes" : "No",
+      percentageAllocation:
+        n.allocation.trim() === "" ? "" : Number(n.allocation),
+      proofValue: n.documentType ? n.documentNumber : "",
+      nomNamePrint: n.printPreference || "",
     };
 
-    if (nomineeIsMinor) {
+    if (n.documentType) {
+      apiNominee.proofType = mapProofType(n.documentType);
+    }
+
+    const hasGuardianDetails = [
+      n.guardianFirstName,
+      n.guardianLastName,
+      n.guardianMobile,
+      n.guardianEmail,
+      n.guardianRelationship,
+      n.guardianDocumentType,
+      n.guardianDocumentNumber,
+    ].some((value) => value.trim() !== "");
+
+    if (nomineeIsMinor && hasGuardianDetails) {
       apiNominee.guardian = {
-        fullName: [
-          n.guardianFirstName,
-          n.guardianMiddleName,
-          n.guardianLastName,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .trim(),
-        dateOfBirth: n.guardianDob,
-        relationship: mapGuardianRelationship(n.guardianRelationship),
-        pan: "",
+        firstName: n.guardianFirstName.trim(),
+        lastName: n.guardianLastName.trim(),
+        countryCode: getCountryCode(n.guardianMobileCountryIso2),
+        mobile: n.guardianMobile,
+        // mobile: n.guardianMobileCountryIso2 ? n.guardianMobile : "",
+        email: n.guardianEmail,
+        relationship: n.guardianRelationship,
+        proofValue: n.guardianDocumentType ? n.guardianDocumentNumber : "",
       };
+
+      if (n.guardianDocumentType) {
+        apiNominee.guardian.proofType = mapProofType(n.guardianDocumentType);
+      }
     }
 
     return apiNominee;
+  };
+
+  const allocationPattern = /^(?:100(?:\.0{1,2})?|\d{1,2}(?:\.\d{1,2})?)$/;
+
+  const validateAllocations = (items: Nominee[]): Nominee[] => {
+    if (items.length === 1) {
+      return [{ ...items[0], allocation: "100" }];
+    }
+
+    const values = items.map((item) => item.allocation.trim());
+    const allBlank = values.every((value) => value === "");
+    const allFilled = values.every((value) => value !== "");
+
+    if (allBlank) {
+      return items;
+    }
+
+    if (!allFilled) {
+      throw new Error(
+        "Either enter allocation for all nominees or leave all allocations blank.",
+      );
+    }
+
+    if (values.some((value) => !allocationPattern.test(value) || Number(value) < 0.01 )) {
+      throw new Error(
+        "Allocation must be between 0.01 and 100 with up to two decimal places.",
+      );
+    }
+
+    const total = values.reduce(
+      (sum, value) => sum + Math.round(Number(value) * 100),
+      0,
+    );
+
+    if (total !== 10000) {
+      throw new Error("Total nominee allocation must equal 100% only.");
+    }
+
+    return items;
   };
 
   const submitNomineeDetails = async () => {
@@ -627,18 +1005,16 @@ export default function AddNominee() {
       return null;
     }
 
-    const total = nominees.reduce(
-      (sum, n) => sum + (Number(n.allocation) || 0),
-      0,
-    );
-
-    if (total !== 100) {
-      toast.warning("Total nominee allocation must equal 100%.");
+    let nomineesForPayload: Nominee[];
+    try {
+      nomineesForPayload = validateAllocations(nominees);
+    } catch (error: any) {
+      toast.warning(error?.message || "Invalid nominee allocation.");
       return null;
     }
 
     const payload = {
-      nominees: nominees.map(mapNomineeToApiPayload),
+      nominees: nomineesForPayload.map(mapNomineeToApiPayload),
       nomineeAdd: "Yes",
       isNominee: true,
       idempotencyKey: "", //generateIdempotencyKey(),
@@ -655,159 +1031,142 @@ export default function AddNominee() {
     const e: Partial<Record<keyof Nominee, string>> = {};
     const nameRe = /^[a-zA-Z\s]+$/;
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const mobileRe = /^[6-9]\d{9}$/;
-    // const pincodeRe = /^\d{10}$/;
+    // const mobileRe = /^[6-9]\d{9}$/;
     const alnumRe = /^[A-Za-z0-9]+$/;
     const aadhaarLast4Re = /^\d{4}$/;
 
-    // ── Name fields — mandatory, alphabets only ─────────────────────────────
-    if (!current.firstName.trim()) {
-      e.firstName = "Please enter nominee name.";
-    } else if (!nameRe.test(current.firstName.trim())) {
-      e.firstName = "Only alphabets are allowed in nominee name.";
-    }
+    if (!current.firstName.trim())
+      e.firstName = "Please enter nominee first name.";
+    else if (current.firstName.trim().length > 15)
+      e.firstName = "Maximum 15 characters allowed.";
+    else if (!nameRe.test(current.firstName.trim()))
+      e.firstName = "Only alphabets are allowed.";
 
-    if (current.middleName.trim() && !nameRe.test(current.middleName.trim())) {
-      e.middleName = "Only alphabets are allowed in nominee name.";
-    }
-
-    if (!current.lastName.trim()) {
-      e.lastName = "Please enter nominee name.";
-    } else if (!nameRe.test(current.lastName.trim())) {
-      e.lastName = "Only alphabets are allowed in nominee name.";
-    }
-
-    // ── Relationship / Allocation ──────────────────────────────────────────
-    if (!current.relationship) {
+    if (!current.lastName.trim())
+      e.lastName = "Please enter nominee last name.";
+    else if (current.lastName.trim().length > 15)
+      e.lastName = "Maximum 15 characters allowed.";
+    else if (!nameRe.test(current.lastName.trim()))
+      e.lastName = "Only alphabets are allowed.";
+    if (!current.relationship)
       e.relationship = "Please select nominee relationship.";
-    }
 
-    const allocNum = Number(current.allocation);
+    // if (current.mobile) {
+    //   if (current.mobileCountryIso2 === "in" && !mobileRe.test(current.mobile))
+    //     e.mobile = "Enter a valid 10-digit mobile number.";
+    //   else if (
+    //     current.mobileCountryIso2 !== "in" &&
+    //     (current.mobile.length < 6 || current.mobile.length > 15)
+    //   )
+    //     e.mobile = "Enter a valid mobile number.";
+    // }
+    if (current.email.trim() && !emailRe.test(current.email.trim()))
+      e.email = "Enter a valid email address.";
 
-    if (!current.allocation || Number.isNaN(allocNum)) {
-      e.allocation = "Allocation is required";
-    } else if (allocNum < 1 || allocNum > 100) {
-      e.allocation = "Must be between 1 and 100";
-    } else if (totalAllocation > 100) {
-      e.allocation = `Total across nominees exceeds 100% (currently ${totalAllocation}%)`;
-    }
-
-    // ── Contact ────────────────────────────────────────────────────────────
-    if (!current.mobile) {
-      e.mobile = "Mobile number is required";
-    } else if (current.mobileCountryIso2 === "in") {
-      if (!mobileRe.test(current.mobile)) {
-        e.mobile = "Enter a valid 10-digit mobile number";
-      }
-    } else if (current.mobile.length < 6 || current.mobile.length > 15) {
-      e.mobile = "Enter a valid mobile number";
-    }
-
-    if (!current.email.trim()) {
-      e.email = "Email is required";
-    } else if (!emailRe.test(current.email.trim())) {
-      e.email = "Enter a valid email address";
-    }
-
-    // ── DOB — mandatory, valid past date ───────────────────────────────────
+    // DOB is mandatory.
     if (!current.dob) {
       e.dob = "Please select nominee date of birth.";
-    } else {
-      const d = new Date(current.dob);
-
-      if (Number.isNaN(d.getTime()) || d > new Date()) {
-        e.dob = "Please select nominee date of birth.";
-      }
     }
 
-    // ── Address only when same as applicant is unchecked ───────────────────
-    if (!current.sameAsApplicant) {
-      const ADDR_MSG = "Please enter complete address.";
-
-      if (!current.addressLine1.trim()) e.addressLine1 = ADDR_MSG;
-      if (!current.addressLine2.trim()) e.addressLine2 = ADDR_MSG;
-      if (!current.addressLine3.trim()) e.addressLine3 = ADDR_MSG;
-      if (!current.city.trim()) e.city = ADDR_MSG;
-      if (!current.country.trim()) e.country = ADDR_MSG;
-      if (!current.state.trim()) e.state = ADDR_MSG;
-
-      if (!current.pincode.trim()) {
-        e.pincode = ADDR_MSG ?? "Pincode is required";
-      }
-      // else if (!pincodeRe.test(current.pincode)) {
-      //   e.pincode = "Enter a valid 10-digit pincode";
-      // }
+    if (current.dob) {
+      const dob = new Date(current.dob);
+      if (Number.isNaN(dob.getTime()) || dob > new Date())
+        e.dob = "Please select a valid date of birth.";
     }
 
-    // ── Document type ──────────────────────────────────────────────────────
-    if (!current.documentType) {
-      e.documentType = "Please select a valid Address Proof Document Type.";
+    const hasDocType = Boolean(current.documentType);
+    const hasDocNo = Boolean(current.documentNumber.trim());
+    if (hasDocType !== hasDocNo) {
+      if (!hasDocType) e.documentType = "Select proof of identity type.";
+      if (!hasDocNo) e.documentNumber = "Enter identity proof number.";
     }
-
-    // ── Proof number — Aadhaar = exactly 4 digits; else alphanumeric ───────
-    if (!current.documentNumber.trim()) {
-      e.documentNumber = "Please enter Address Proof number";
-    } else {
-      const docNum = current.documentNumber.trim().toUpperCase();
-
-      if (current.documentType === "Aadhaar") {
-        if (!aadhaarLast4Re.test(docNum)) {
-          e.documentNumber = "Aadhaar proof number must be exactly 4 digits.";
-        }
-      } else if (!alnumRe.test(docNum)) {
-        e.documentNumber =
-          "Please enter a valid alphanumeric Address Proof number.";
-      }
+    if (hasDocType && hasDocNo) {
+      const value = current.documentNumber.trim().toUpperCase();
+      if (
+        current.documentType.toUpperCase() === "AADHAAR" &&
+        !aadhaarLast4Re.test(value)
+      )
+        e.documentNumber = "Aadhaar proof number must be exactly 4 digits.";
+      else if (isPanProof(current.documentType) && !PAN_PATTERN.test(value))
+        e.documentNumber = "Please enter a valid PAN in AAAAA1234A format.";
+      else if (isPanProof(current.documentType) && value[3] !== "P")
+        e.documentNumber = "Only personal PAN numbers are accepted.";
+      else if (
+        current.documentType.toUpperCase() !== "AADHAAR" &&
+        !isPanProof(current.documentType) &&
+        !alnumRe.test(value)
+      )
+        e.documentNumber = "Enter a valid alphanumeric identity proof number.";
     }
+    if (!current.printPreference)
+      e.printPreference = "Please select a nominee printing preference.";
 
-    // ── Print preference ───────────────────────────────────────────────────
-    if (!current.printPreference) {
-      e.printPreference = "Please select Yes or No";
-    }
-
-    // ── Guardian only when nominee is minor ─────────────────────────────────
+    // Guardian fields are optional and apply only when the optional nominee DOB indicates age below 18.
     if (isMinor) {
-      if (!current.guardianFirstName.trim()) {
-        e.guardianFirstName = "Guardian first name is required";
-      } else if (!nameRe.test(current.guardianFirstName.trim())) {
-        e.guardianFirstName = "Letters and spaces only";
-      }
-
-      if (!current.guardianDob) {
-        e.guardianDob = "Guardian date of birth is required";
-      } else {
-        const nomineeDate = new Date(current.dob);
-        const guardianDate = new Date(current.guardianDob);
-        const guardianAge = computeAge(current.guardianDob);
-
-        if (Number.isNaN(guardianDate.getTime())) {
-          e.guardianDob = "Invalid guardian date of birth";
-        } else if (guardianDate > new Date()) {
-          e.guardianDob = "Guardian date of birth must be in the past";
-        } else if (
-          !Number.isNaN(nomineeDate.getTime()) &&
-          guardianDate.getTime() === nomineeDate.getTime()
-        ) {
-          e.guardianDob =
-            "Guardian date of birth cannot be same as nominee date of birth";
-        } else if (
-          !Number.isNaN(nomineeDate.getTime()) &&
-          guardianDate >= nomineeDate
-        ) {
-          e.guardianDob =
-            "Guardian date of birth must be earlier than nominee date of birth";
-        } else if (guardianAge === null || guardianAge < 18) {
-          e.guardianDob = "Guardian age must be more than 18 years";
-        }
-      }
-
-      if (!current.guardianRelationship) {
-        e.guardianRelationship = "Guardian relationship is required";
-      }
-
-      // if (!current.guardianAddressLine1.trim()) {
-      //   e.guardianAddressLine1 = "Guardian address is required";
+      if (current.guardianFirstName.trim().length > 15)
+        e.guardianFirstName = "Maximum 15 characters allowed.";
+      if (current.guardianLastName.trim().length > 15)
+        e.guardianLastName = "Maximum 15 characters allowed.";
+      if (
+        current.guardianFirstName.trim() &&
+        !nameRe.test(current.guardianFirstName.trim())
+      )
+        e.guardianFirstName = "Only alphabets are allowed.";
+      if (
+        current.guardianLastName.trim() &&
+        !nameRe.test(current.guardianLastName.trim())
+      )
+        e.guardianLastName = "Only alphabets are allowed.";
+      // if (current.guardianMobile) {
+      //   if (
+      //     current.guardianMobileCountryIso2 === "in" &&
+      //     !mobileRe.test(current.guardianMobile)
+      //   )
+      //     e.guardianMobile = "Enter a valid 10-digit guardian mobile number.";
+      //   else if (
+      //     current.guardianMobileCountryIso2 !== "in" &&
+      //     (current.guardianMobile.length < 6 ||
+      //       current.guardianMobile.length > 15)
+      //   )
+      //     e.guardianMobile = "Enter a valid guardian mobile number.";
       // }
+      if (
+        current.guardianEmail.trim() &&
+        !emailRe.test(current.guardianEmail.trim())
+      )
+        e.guardianEmail = "Enter a valid guardian email address.";
+      const hasGuardianDocType = Boolean(current.guardianDocumentType);
+      const hasGuardianDocNo = Boolean(current.guardianDocumentNumber.trim());
+      if (hasGuardianDocType !== hasGuardianDocNo) {
+        if (!hasGuardianDocType)
+          e.guardianDocumentType = "Select guardian proof of identity type.";
+        if (!hasGuardianDocNo)
+          e.guardianDocumentNumber = "Enter guardian identity proof number.";
+      }
+      if (
+        hasGuardianDocType &&
+        hasGuardianDocNo &&
+        current.guardianDocumentType.toUpperCase() === "AADHAAR" &&
+        !aadhaarLast4Re.test(current.guardianDocumentNumber)
+      )
+        e.guardianDocumentNumber =
+          "Guardian Aadhaar proof number must be exactly 4 digits.";
+      else if (
+        hasGuardianDocType &&
+        hasGuardianDocNo &&
+        isPanProof(current.guardianDocumentType) &&
+        !PAN_PATTERN.test(current.guardianDocumentNumber.toUpperCase())
+      )
+        e.guardianDocumentNumber =
+          "Please enter a valid guardian PAN in AAAAA1234A format.";
+      else if (
+        hasGuardianDocType &&
+        hasGuardianDocNo &&
+        isPanProof(current.guardianDocumentType) &&
+        current.guardianDocumentNumber.toUpperCase()[3] !== "P"
+      )
+        e.guardianDocumentNumber =
+          "Only personal guardian PAN numbers are accepted.";
     }
     return e;
   };
@@ -822,8 +1181,14 @@ export default function AddNominee() {
     }
     setNominees((prev) => {
       const next = [...prev];
-      if (editingIndex !== null) next[editingIndex] = { ...current };
-      else next.push({ ...current });
+      const isOnlyNominee =
+        (editingIndex === null && next.length === 0) ||
+        (editingIndex !== null && next.length === 1);
+      const nomineeToSave = isOnlyNominee
+        ? { ...current, allocation: "100" }
+        : { ...current };
+      if (editingIndex !== null) next[editingIndex] = nomineeToSave;
+      else next.push(nomineeToSave);
       return next;
     });
     setEditingIndex(null);
@@ -837,20 +1202,22 @@ export default function AddNominee() {
       toast.info("Maximum 3 nominees allowed.");
       return;
     }
+    setNominees((prev) => {
+      if (prev.length === 1) {
+        return prev.map((nominee) => ({
+          ...nominee,
 
-    const usedAllocation = nominees.reduce(
-      (sum, n) => sum + (Number(n.allocation) || 0),
-      0,
-    );
+          allocation: "",
+        }));
+      }
 
-    const remaining = Math.max(100 - usedAllocation, 0);
+      return prev;
+    });
+    setCurrent({
+      ...blankNominee,
 
-    if (remaining <= 0) {
-      toast.warning("Total nominee allocation is already 100%.");
-      return;
-    }
-
-    setCurrent({ ...blankNominee, allocation: String(remaining) });
+      allocation: "",
+    });
     setEditingIndex(null);
     setErrors({});
     setView("form");
@@ -864,7 +1231,12 @@ export default function AddNominee() {
   };
 
   const removeNominee = (index: number) => {
-    setNominees((prev) => prev.filter((_, i) => i !== index));
+    setNominees((prev) => {
+      const remaining = prev.filter((_, i) => i !== index);
+      return remaining.length === 1
+        ? [{ ...remaining[0], allocation: "100" }]
+        : remaining;
+    });
   };
 
   const removeCurrent = () => {
@@ -882,13 +1254,10 @@ export default function AddNominee() {
       return;
     }
 
-    const total = nominees.reduce(
-      (sum, n) => sum + (Number(n.allocation) || 0),
-      0,
-    );
-
-    if (total !== 100) {
-      toast.warning("Total nominee allocation must equal 100%.");
+    try {
+      validateAllocations(nominees);
+    } catch (error: any) {
+      toast.warning(error?.message || "Invalid nominee allocation.");
       return;
     }
 
@@ -940,31 +1309,76 @@ export default function AddNominee() {
     router.push(`/faq?from=${pathname}`);
   };
 
-  const goBack = () => {
-    // Always return to the Add Nominee landing screen, regardless of how the
-    // user arrived here (router.back() could land on an unrelated page).
-    showSpinner();
-    setTimeout(() => {
-      // router.push("/addNominee-landing");
-      router.push("/visa");
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   // Always return to the Add Nominee landing screen, regardless of how the
+  //   // user arrived here (router.back() could land on an unrelated page).
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     // router.push("/addNominee-landing");
+  //     router.push("/visa");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("NOMINEE_DETAILS", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   // ── Shared UI fragments ───────────────────────────────────────────────────
 
+  // const radioGroup = (
+  //   <div className={styles.radioGroup}>
+  //     <p>
+  //       I / We want the details of my / our nominee to be printed in the
+  //       statement of holding or statement of account, provided to me/ us by the
+  //       DP as follows; (please tick, as appropriate)
+  //     </p>
+  //     <div
+  //       className={styles.radiosRow}
+  //       role="radiogroup"
+  //       aria-label="Nominee printing preference"
+  //     >
+  //       {(["Name of the Nominee(S)", "Nomination: Yes /No"] as PrintPref[]).map(
+  //         (value) => (
+  //           <label key={value}>
+  //             <input
+  //               type="radio"
+  //               name="printPreference"
+  //               value={value}
+  //               checked={current.printPreference === value}
+  //               onChange={() => updateCurrent("printPreference", value)}
+  //             />
+  //             <span>{value}</span>
+  //           </label>
+  //         ),
+  //       )}
+  //     </div>
+  //   </div>
+  // );
   const radioGroup = (
     <div className={styles.radioGroup}>
       <p>
         I / We want the details of my / our nominee to be printed in the
         statement of holding or statement of account, provided to me/ us by the
-        DP as follows; (please tick, as appropriate)
+        DP as follows; (please select, as appropriate)
       </p>
-      <p>Nomination</p>
-      <div className={styles.radiosRow}>
-        {(["yes", "no"] as PrintPref[]).map((value) => {
+      <div
+        className={styles.radiosRow}
+        role="radiogroup"
+        aria-label="Nominee printing preference"
+      >
+        {(
+          ["Name of the Nominee(s)", "Nomination: Yes / No"] as PrintPref[]
+        ).map((value) => {
           const selected = current.printPreference === value;
-          const label = value === "yes" ? "Yes" : "No";
           return (
             <label
               key={value}
@@ -983,7 +1397,7 @@ export default function AddNominee() {
               >
                 {selected && <span className={styles.radioDot} />}
               </span>
-              <span>{label}</span>
+              <span>{value}</span>
             </label>
           );
         })}
@@ -1154,7 +1568,7 @@ export default function AddNominee() {
                           className={`${styles.inputHalf} ${errCls("firstName")}`}
                           placeholder="First Name"
                           value={current.firstName}
-                          maxLength={50}
+                          maxLength={15}
                           onChange={(e) =>
                             updateCurrent(
                               "firstName",
@@ -1164,12 +1578,12 @@ export default function AddNominee() {
                         />
                         {errMsg("firstName")}
                       </div>
-                      <div className={styles.fieldStack}>
+                      {/* <div className={styles.fieldStack}>
                         <input
                           className={`${styles.inputHalf} ${errCls("middleName")}`}
                           placeholder="Middle Name (Optional)"
                           value={current.middleName}
-                          maxLength={50}
+                          maxLength={15}
                           onChange={(e) =>
                             updateCurrent(
                               "middleName",
@@ -1178,16 +1592,15 @@ export default function AddNominee() {
                           }
                         />
                         {errMsg("middleName")}
-                      </div>
+                      </div> */}
                     </div>
-                  </div>
-                  <div className={styles.lastNameRow}>
-                    <div className={styles.fieldStack} style={{ flex: "none" }}>
+                    {/* <div className={styles.lastNameRow}> */}
+                    <div className={styles.fieldStack}>
                       <input
                         className={`${styles.inputHalf} ${errCls("lastName")}`}
                         placeholder="Last Name"
                         value={current.lastName}
-                        maxLength={50}
+                        maxLength={15}
                         onChange={(e) =>
                           updateCurrent(
                             "lastName",
@@ -1197,6 +1610,7 @@ export default function AddNominee() {
                       />
                       {errMsg("lastName")}
                     </div>
+                    {/* </div> */}
                   </div>
 
                   {/* Relationship */}
@@ -1210,10 +1624,9 @@ export default function AddNominee() {
                           updateCurrent("relationship", e.target.value)
                         }
                       >
-                        <option value="">Select Relationship</option>
-                        {RELATIONSHIP_OPTIONS.map((r) => (
-                          <option key={r} value={r}>
-                            {r}
+                        {nomineeRelationships.map((r) => (
+                          <option key={r.code} value={r.code}>
+                            {r.displayName}
                           </option>
                         ))}
                       </select>
@@ -1226,15 +1639,20 @@ export default function AddNominee() {
                     <p className={styles.rowLabel}>Allocation</p>
                     <div className={styles.fieldStack}>
                       <input
-                        type="number"
-                        min={1}
-                        max={100}
+                        type="text"
+                        inputMode="decimal"
+                        disabled={
+                          (nominees.length === 0 && editingIndex === null) ||
+                          (nominees.length === 1 && editingIndex !== null)
+                        }
                         className={`${styles.input} ${errCls("allocation")}`}
                         value={current.allocation}
                         onChange={(e) =>
                           updateCurrent(
                             "allocation",
-                            e.target.value.replace(/[^0-9]/g, ""),
+                            /^\d{0,3}(?:\.\d{0,2})?$/.test(e.target.value)
+                              ? e.target.value
+                              : current.allocation,
                           )
                         }
                       />
@@ -1249,7 +1667,7 @@ export default function AddNominee() {
                       <div className={styles.phoneRow}>
                         <div className={styles.codeSelect}>
                           <CountryCodeSelect
-                            countries={COUNTRY_OPTIONS}
+                            countries={COUNTRY_CODE_OPTIONS}
                             value={current.mobileCountryIso2}
                             onChange={handleMobileCountryChange}
                           />
@@ -1315,140 +1733,141 @@ export default function AddNominee() {
                   </div>
 
                   {/* Same as applicant */}
-                  {checkboxGroup}
+                  {SHOW_NOMINEE_ADDRESS && checkboxGroup}
 
                   {/* Address — either preview or extra fields */}
-                  {current.sameAsApplicant ? (
-                    // <div className={styles.addressPreview}>
-                    //   <p>{applicantAddress}</p>
-                    // </div>
-                    ""
-                  ) : (
-                    <>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>
-                          Address Line 1 &amp; 2
-                        </p>
-                        <div className={styles.field}>
-                          <div className={styles.fieldStack}>
-                            <input
-                              className={`${styles.inputHalf} ${errCls("addressLine1")}`}
-                              placeholder="Enter address line 1"
-                              value={current.addressLine1}
-                              onChange={(e) =>
-                                updateCurrent("addressLine1", e.target.value)
-                              }
-                            />
-                            {errMsg("addressLine1")}
-                          </div>
-                          <div className={styles.fieldStack}>
-                            <input
-                              className={`${styles.inputHalf} ${errCls("addressLine2")}`}
-                              placeholder="Enter address line 2"
-                              value={current.addressLine2}
-                              onChange={(e) =>
-                                updateCurrent("addressLine2", e.target.value)
-                              }
-                            />
-                            {errMsg("addressLine2")}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.lastNameRow}>
-                        <div
-                          className={styles.fieldStack}
-                          style={{ flex: "none" }}
-                        >
-                          <input
-                            className={`${styles.input} ${errCls("addressLine3")}`}
-                            placeholder="Address line 3"
-                            value={current.addressLine3}
-                            onChange={(e) =>
-                              updateCurrent("addressLine3", e.target.value)
-                            }
-                          />
-                          {errMsg("addressLine3")}
-                        </div>
-                      </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>City &amp; State</p>
-                        <div className={styles.field}>
-                          <div className={styles.fieldStack}>
-                            <input
-                              className={`${styles.inputHalf} ${errCls("city")}`}
-                              placeholder="Enter city"
-                              value={current.city}
-                              onChange={(e) =>
-                                updateCurrent("city", e.target.value)
-                              }
-                            />
-                            {errMsg("city")}
-                          </div>
-                          <div className={styles.fieldStack}>
-                            <input
-                              className={`${styles.inputHalf} ${errCls("state")}`}
-                              placeholder="Enter state"
-                              value={current.state}
-                              onChange={(e) =>
-                                updateCurrent("state", e.target.value)
-                              }
-                            />
-                            {errMsg("state")}
+                  {SHOW_NOMINEE_ADDRESS &&
+                    (current.sameAsApplicant ? (
+                      // <div className={styles.addressPreview}>
+                      //   <p>{applicantAddress}</p>
+                      // </div>
+                      ""
+                    ) : (
+                      <>
+                        <div className={styles.row}>
+                          <p className={styles.rowLabel}>
+                            Address Line 1 &amp; 2
+                          </p>
+                          <div className={styles.field}>
+                            <div className={styles.fieldStack}>
+                              <input
+                                className={`${styles.inputHalf} ${errCls("addressLine1")}`}
+                                placeholder="Enter address line 1"
+                                value={current.addressLine1}
+                                onChange={(e) =>
+                                  updateCurrent("addressLine1", e.target.value)
+                                }
+                              />
+                              {errMsg("addressLine1")}
+                            </div>
+                            <div className={styles.fieldStack}>
+                              <input
+                                className={`${styles.inputHalf} ${errCls("addressLine2")}`}
+                                placeholder="Enter address line 2"
+                                value={current.addressLine2}
+                                onChange={(e) =>
+                                  updateCurrent("addressLine2", e.target.value)
+                                }
+                              />
+                              {errMsg("addressLine2")}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Country</p>
-                        <div className={styles.fieldStack}>
-                          <select
-                            className={`${styles.select} ${errCls("country")}`}
-                            value={current.country}
-                            onChange={(e) =>
-                              updateCurrent("country", e.target.value)
-                            }
+                        <div className={styles.lastNameRow}>
+                          <div
+                            className={styles.fieldStack}
+                            style={{ flex: "none" }}
                           >
-                            <option value="">Select country</option>
-                            {COUNTRY_OPTIONS.map((c) => (
-                              <option key={c.iso2} value={c.name}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
-                          {errMsg("country")}
+                            <input
+                              className={`${styles.input} ${errCls("addressLine3")}`}
+                              placeholder="Address line 3"
+                              value={current.addressLine3}
+                              onChange={(e) =>
+                                updateCurrent("addressLine3", e.target.value)
+                              }
+                            />
+                            {errMsg("addressLine3")}
+                          </div>
                         </div>
-                      </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Pincode</p>
-                        <div className={styles.fieldStack}>
-                          <input
-                            className={`${styles.input} ${errCls("pincode")}`}
-                            placeholder="Enter pincode"
-                            maxLength={10}
-                            value={current.pincode}
-                            onChange={(e) =>
-                              updateCurrent(
-                                "pincode",
-                                e.target.value.toUpperCase().slice(0, 10),
-                              )
-                            }
-                          />
-                          {errMsg("pincode")}
+                        <div className={styles.row}>
+                          <p className={styles.rowLabel}>City &amp; State</p>
+                          <div className={styles.field}>
+                            <div className={styles.fieldStack}>
+                              <input
+                                className={`${styles.inputHalf} ${errCls("city")}`}
+                                placeholder="Enter city"
+                                value={current.city}
+                                onChange={(e) =>
+                                  updateCurrent("city", e.target.value)
+                                }
+                              />
+                              {errMsg("city")}
+                            </div>
+                            <div className={styles.fieldStack}>
+                              <input
+                                className={`${styles.inputHalf} ${errCls("state")}`}
+                                placeholder="Enter state"
+                                value={current.state}
+                                onChange={(e) =>
+                                  updateCurrent("state", e.target.value)
+                                }
+                              />
+                              {errMsg("state")}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </>
-                  )}
+                        <div className={styles.row}>
+                          <p className={styles.rowLabel}>Country</p>
+                          <div className={styles.fieldStack}>
+                            <select
+                              className={`${styles.select} ${errCls("country")}`}
+                              value={current.country}
+                              onChange={(e) =>
+                                updateCurrent("country", e.target.value)
+                              }
+                            >
+                              {COUNTRY_OPTIONS.map((c) => (
+                                <option key={c.iso2} value={c.name}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                            {errMsg("country")}
+                          </div>
+                        </div>
+                        <div className={styles.row}>
+                          <p className={styles.rowLabel}>Pincode</p>
+                          <div className={styles.fieldStack}>
+                            <input
+                              className={`${styles.input} ${errCls("pincode")}`}
+                              placeholder="Enter pincode"
+                              maxLength={10}
+                              value={current.pincode}
+                              onChange={(e) =>
+                                updateCurrent(
+                                  "pincode",
+                                  e.target.value.toUpperCase().slice(0, 10),
+                                )
+                              }
+                            />
+                            {errMsg("pincode")}
+                          </div>
+                        </div>
+                      </>
+                    ))}
 
                   {/* Guardian (Minor only) */}
                   {isMinor && (
                     <>
                       <p className={styles.nomineeTitle}>Guardian Details</p>
                       <div className={styles.row}>
-                        <p className={styles.rowLabel}>Guardian Name</p>
+                        <p className={styles.rowLabel}>Guardian First Name</p>
                         <div className={styles.fieldStack}>
                           <input
                             className={`${styles.input} ${errCls("guardianFirstName")}`}
-                            placeholder="Guardian full name"
+                            placeholder="Guardian first name (Optional)"
                             value={current.guardianFirstName}
+                            maxLength={15}
                             onChange={(e) =>
                               updateCurrent(
                                 "guardianFirstName",
@@ -1457,6 +1876,142 @@ export default function AddNominee() {
                             }
                           />
                           {errMsg("guardianFirstName")}
+                        </div>
+                      </div>
+                      <div className={styles.row}>
+                        <p className={styles.rowLabel}>Guardian Last Name</p>
+                        <div className={styles.fieldStack}>
+                          <input
+                            className={`${styles.input} ${errCls("guardianLastName")}`}
+                            placeholder="Guardian last name (Optional)"
+                            value={current.guardianLastName}
+                            maxLength={15}
+                            onChange={(e) =>
+                              updateCurrent(
+                                "guardianLastName",
+                                e.target.value.replace(/[^a-zA-Z\s]/g, ""),
+                              )
+                            }
+                          />
+                          {errMsg("guardianLastName")}
+                        </div>
+                      </div>
+                      <div className={styles.row}>
+                        <p className={styles.rowLabel}>
+                          Guardian Mobile Number
+                        </p>
+                        <div className={styles.fieldStack}>
+                          <div className={styles.phoneRow}>
+                            <div className={styles.codeSelect}>
+                              <CountryCodeSelect
+                                countries={COUNTRY_CODE_OPTIONS}
+                                value={current.guardianMobileCountryIso2}
+                                onChange={handleGuardianMobileCountryChange}
+                              />
+                            </div>
+                            <input
+                              className={`${styles.input} ${errCls("guardianMobile")}`}
+                              placeholder="Guardian mobile (Optional)"
+                              inputMode="numeric"
+                              maxLength={
+                                current.guardianMobileCountryIso2 === "in"
+                                  ? 10
+                                  : 15
+                              }
+                              value={current.guardianMobile}
+                              onChange={(e) =>
+                                updateCurrent(
+                                  "guardianMobile",
+                                  sanitizeMobileFor(
+                                    e.target.value,
+                                    current.guardianMobileCountryIso2,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
+                          {errMsg("guardianMobile")}
+                        </div>
+                      </div>
+                      <div className={styles.row}>
+                        <p className={styles.rowLabel}>Guardian Email ID</p>
+                        <div className={styles.fieldStack}>
+                          <input
+                            type="email"
+                            className={`${styles.input} ${errCls("guardianEmail")}`}
+                            placeholder="Guardian email (Optional)"
+                            value={current.guardianEmail}
+                            onChange={(e) =>
+                              updateCurrent("guardianEmail", e.target.value)
+                            }
+                          />
+                          {errMsg("guardianEmail")}
+                        </div>
+                      </div>
+                      <div className={styles.row}>
+                        <p className={styles.rowLabel}>
+                          Guardian Proof of Identity
+                        </p>
+                        <div className={styles.fieldStack}>
+                          <select
+                            className={`${styles.select} ${errCls("guardianDocumentType")}`}
+                            value={current.guardianDocumentType}
+                            onChange={(e) =>
+                              changeGuardianDocumentType(e.target.value)
+                            }
+                          >
+                            {guardianProofTypes.map((d) => (
+                              <option key={d.code} value={d.code}>
+                                {d.displayName}
+                              </option>
+                            ))}
+                          </select>
+                          {errMsg("guardianDocumentType")}
+                        </div>
+                      </div>
+                      <div className={styles.row}>
+                        <p className={styles.rowLabel}>
+                          Guardian Identity Proof No.
+                        </p>
+                        <div className={styles.fieldStack}>
+                          <input
+                            className={`${styles.input} ${errCls("guardianDocumentNumber")}`}
+                            disabled={!current.guardianDocumentType}
+                            placeholder={
+                              current.guardianDocumentType.toUpperCase() ===
+                              "AADHAAR"
+                                ? "Last 4 digits of Aadhaar"
+                                : isPanProof(current.guardianDocumentType)
+                                  ? "e.g. ABCDE1234F"
+                                  : "Identity proof no. (Optional)"
+                            }
+                            inputMode={
+                              current.guardianDocumentType.toUpperCase() ===
+                              "AADHAAR"
+                                ? "numeric"
+                                : isPanProof(current.guardianDocumentType)
+                                  ? getPanInputMode(
+                                      current.guardianDocumentNumber,
+                                    )
+                                  : "text"
+                            }
+                            maxLength={
+                              current.guardianDocumentType.toUpperCase() ===
+                              "AADHAAR"
+                                ? 4
+                                : isPanProof(current.guardianDocumentType)
+                                  ? 10
+                                  : undefined
+                            }
+                            value={current.guardianDocumentNumber}
+                            onChange={(e) =>
+                              updateCurrent(
+                                "guardianDocumentNumber",
+                                sanitizeGuardianDocumentNumber(e.target.value),
+                              )
+                            }
+                          />
+                          {errMsg("guardianDocumentNumber")}
                         </div>
                       </div>
                       <div className={styles.row}>
@@ -1472,43 +2027,44 @@ export default function AddNominee() {
                               )
                             }
                           >
-                            <option value="">Select</option>
-                            {["Father", "Mother", "LegalGuardian"].map((r) => (
-                              <option key={r} value={r}>
-                                {r}
+                            {guardianRelationships.map((r) => (
+                              <option key={r.code} value={r.code}>
+                                {r.displayName}
                               </option>
                             ))}
                           </select>
                           {errMsg("guardianRelationship")}
                         </div>
                       </div>
-                      <div className={styles.row}>
-                        <p className={styles.rowLabel}>Guardian DOB</p>
-                        <div className={styles.fieldStack}>
-                          <div className={styles.deskCalendarWrap}>
-                            <DateField
-                              inputId="desk-guardian-dob"
-                              value={strToDate(current.guardianDob)}
-                              onChange={(d) =>
-                                updateCurrent("guardianDob", dateToStr(d))
-                              }
-                              dateFormat="dd/mm/yy"
-                              placeholder="DD/MM/YYYY"
-                              showIcon
-                              iconPos="right"
-                              touchUI
-                              panelClassName="p-prime-cal-sm"
-                              className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
-                              maxDate={guardianMaxDate}
-                              viewDate={
-                                strToDate(current.guardianDob) ||
-                                guardianMaxDate
-                              }
-                            />
+                      {false && (
+                        <div className={styles.row}>
+                          <p className={styles.rowLabel}>Guardian DOB</p>
+                          <div className={styles.fieldStack}>
+                            <div className={styles.deskCalendarWrap}>
+                              <DateField
+                                inputId="desk-guardian-dob"
+                                value={strToDate(current.guardianDob)}
+                                onChange={(d) =>
+                                  updateCurrent("guardianDob", dateToStr(d))
+                                }
+                                dateFormat="dd/mm/yy"
+                                placeholder="DD/MM/YYYY"
+                                showIcon
+                                iconPos="right"
+                                touchUI
+                                panelClassName="p-prime-cal-sm"
+                                className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
+                                maxDate={guardianMaxDate}
+                                viewDate={
+                                  strToDate(current.guardianDob) ||
+                                  guardianMaxDate
+                                }
+                              />
+                            </div>
+                            {errMsg("guardianDob")}
                           </div>
-                          {errMsg("guardianDob")}
                         </div>
-                      </div>
+                      )}
                       {/* <div className={styles.row}>
                         <p className={styles.rowLabel}>Guardian Address</p>
                         <div className={styles.fieldStack}>
@@ -1538,10 +2094,9 @@ export default function AddNominee() {
                         value={current.documentType}
                         onChange={(e) => changeDocumentType(e.target.value)}
                       >
-                        <option value="">Select</option>
-                        {DOCUMENT_TYPE_OPTIONS.map((d) => (
-                          <option key={d} value={d}>
-                            {d}
+                        {nomineeProofTypes.map((d) => (
+                          <option key={d.code} value={d.code}>
+                            {d.displayName}
                           </option>
                         ))}
                       </select>
@@ -1555,18 +2110,27 @@ export default function AddNominee() {
                     <div className={styles.fieldStack}>
                       <input
                         className={`${styles.input} ${errCls("documentNumber")}`}
+                        disabled={!current.documentType}
                         placeholder={
-                          current.documentType === "Aadhaar"
+                          current.documentType.toUpperCase() === "AADHAAR"
                             ? "Last 4 digits of Aadhaar"
-                            : "Enter number"
+                            : isPanProof(current.documentType)
+                              ? "e.g. ABCDE1234F"
+                              : "Enter number"
                         }
                         inputMode={
-                          current.documentType === "Aadhaar"
+                          current.documentType.toUpperCase() === "AADHAAR"
                             ? "numeric"
-                            : "text"
+                            : isPanProof(current.documentType)
+                              ? getPanInputMode(current.documentNumber)
+                              : "text"
                         }
                         maxLength={
-                          current.documentType === "Aadhaar" ? 4 : undefined
+                          current.documentType.toUpperCase() === "AADHAAR"
+                            ? 4
+                            : isPanProof(current.documentType)
+                              ? 10
+                              : undefined
                         }
                         value={current.documentNumber}
                         onChange={(e) =>
@@ -1740,7 +2304,7 @@ export default function AddNominee() {
                 className={`${styles.mobInput} ${errCls("firstName", true)}`}
                 placeholder="Enter first name"
                 value={current.firstName}
-                maxLength={50}
+                maxLength={15}
                 onChange={(e) =>
                   updateCurrent(
                     "firstName",
@@ -1750,7 +2314,7 @@ export default function AddNominee() {
               />
               {errMsg("firstName")}
             </div>
-            <div className={styles.mobField}>
+            {/* <div className={styles.mobField}>
               <label className={styles.mobLabel}>Middle Name (Optional)</label>
               <input
                 className={`${styles.mobInput} ${errCls("middleName", true)}`}
@@ -1764,13 +2328,14 @@ export default function AddNominee() {
                 }
               />
               {errMsg("middleName")}
-            </div>
+            </div> */}
             <div className={styles.mobField}>
               <label className={styles.mobLabel}>Last Name</label>
               <input
                 className={`${styles.mobInput} ${errCls("lastName", true)}`}
                 placeholder="Enter last name"
                 value={current.lastName}
+                maxLength={15}
                 onChange={(e) =>
                   updateCurrent(
                     "lastName",
@@ -1787,10 +2352,9 @@ export default function AddNominee() {
                 value={current.relationship}
                 onChange={(e) => updateCurrent("relationship", e.target.value)}
               >
-                <option value="">Select</option>
-                {RELATIONSHIP_OPTIONS.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
+                {nomineeRelationships.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.displayName}
                   </option>
                 ))}
               </select>
@@ -1799,15 +2363,20 @@ export default function AddNominee() {
             <div className={styles.mobField}>
               <label className={styles.mobLabel}>Allocation</label>
               <input
-                type="number"
-                min={1}
-                max={100}
+                type="text"
+                inputMode="decimal"
+                disabled={
+                  (nominees.length === 0 && editingIndex === null) ||
+                  (nominees.length === 1 && editingIndex !== null)
+                }
                 className={`${styles.mobInput} ${errCls("allocation", true)}`}
                 value={current.allocation}
                 onChange={(e) =>
                   updateCurrent(
                     "allocation",
-                    e.target.value.replace(/[^0-9]/g, ""),
+                    /^\d{0,3}(?:\.\d{0,2})?$/.test(e.target.value)
+                      ? e.target.value
+                      : current.allocation,
                   )
                 }
               />
@@ -1818,7 +2387,7 @@ export default function AddNominee() {
               <div className={styles.mobPhoneRow}>
                 <div className={styles.codeSelect}>
                   <CountryCodeSelect
-                    countries={COUNTRY_OPTIONS}
+                    countries={COUNTRY_CODE_OPTIONS}
                     value={current.mobileCountryIso2}
                     onChange={handleMobileCountryChange}
                   />
@@ -1867,117 +2436,118 @@ export default function AddNominee() {
               {errMsg("dob")}
             </div>
 
-            {checkboxGroup}
+            {SHOW_NOMINEE_ADDRESS && checkboxGroup}
 
-            {current.sameAsApplicant ? (
-              // <div className={styles.addressPreview}>
-              //   <p>{applicantAddress}</p>
-              // </div>
-              ""
-            ) : (
-              <>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Address Line 1</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("addressLine1", true)}`}
-                    placeholder="Enter address line 1"
-                    value={current.addressLine1}
-                    onChange={(e) =>
-                      updateCurrent("addressLine1", e.target.value)
-                    }
-                  />
-                  {errMsg("addressLine1")}
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Address Line 2</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("addressLine2", true)}`}
-                    placeholder="Enter address line 2"
-                    value={current.addressLine2}
-                    onChange={(e) =>
-                      updateCurrent("addressLine2", e.target.value)
-                    }
-                  />
-                  {errMsg("addressLine2")}
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Address Line 3</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("addressLine3", true)}`}
-                    placeholder="Address line 3"
-                    value={current.addressLine3}
-                    onChange={(e) =>
-                      updateCurrent("addressLine3", e.target.value)
-                    }
-                  />
-                  {errMsg("addressLine3")}
-                </div>
-                <div className={styles.mobFieldRow}>
+            {SHOW_NOMINEE_ADDRESS &&
+              (current.sameAsApplicant ? (
+                // <div className={styles.addressPreview}>
+                //   <p>{applicantAddress}</p>
+                // </div>
+                ""
+              ) : (
+                <>
                   <div className={styles.mobField}>
-                    <label className={styles.mobLabel}>City</label>
+                    <label className={styles.mobLabel}>Address Line 1</label>
                     <input
-                      className={`${styles.mobInput} ${errCls("city", true)}`}
-                      placeholder="Enter city"
-                      value={current.city}
-                      onChange={(e) => updateCurrent("city", e.target.value)}
+                      className={`${styles.mobInput} ${errCls("addressLine1", true)}`}
+                      placeholder="Enter address line 1"
+                      value={current.addressLine1}
+                      onChange={(e) =>
+                        updateCurrent("addressLine1", e.target.value)
+                      }
                     />
-                    {errMsg("city")}
+                    {errMsg("addressLine1")}
                   </div>
                   <div className={styles.mobField}>
-                    <label className={styles.mobLabel}>State</label>
+                    <label className={styles.mobLabel}>Address Line 2</label>
                     <input
-                      className={`${styles.mobInput} ${errCls("state", true)}`}
-                      placeholder="Enter state"
-                      value={current.state}
-                      onChange={(e) => updateCurrent("state", e.target.value)}
+                      className={`${styles.mobInput} ${errCls("addressLine2", true)}`}
+                      placeholder="Enter address line 2"
+                      value={current.addressLine2}
+                      onChange={(e) =>
+                        updateCurrent("addressLine2", e.target.value)
+                      }
                     />
-                    {errMsg("state")}
+                    {errMsg("addressLine2")}
                   </div>
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Country</label>
-                  <select
-                    className={`${styles.mobSelect} ${errCls("country", true)}`}
-                    value={current.country}
-                    onChange={(e) => updateCurrent("country", e.target.value)}
-                  >
-                    <option value="">Select country</option>
-                    {COUNTRY_OPTIONS.map((c) => (
-                      <option key={c.iso2} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                  {errMsg("country")}
-                </div>
-                <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Pincode</label>
-                  <input
-                    className={`${styles.mobInput} ${errCls("pincode", true)}`}
-                    placeholder="Enter pincode"
-                    maxLength={10}
-                    value={current.pincode}
-                    onChange={(e) =>
-                      updateCurrent(
-                        "pincode",
-                        e.target.value.toUpperCase().slice(0, 10),
-                      )
-                    }
-                  />
-                  {errMsg("pincode")}
-                </div>
-              </>
-            )}
+                  <div className={styles.mobField}>
+                    <label className={styles.mobLabel}>Address Line 3</label>
+                    <input
+                      className={`${styles.mobInput} ${errCls("addressLine3", true)}`}
+                      placeholder="Address line 3"
+                      value={current.addressLine3}
+                      onChange={(e) =>
+                        updateCurrent("addressLine3", e.target.value)
+                      }
+                    />
+                    {errMsg("addressLine3")}
+                  </div>
+                  <div className={styles.mobFieldRow}>
+                    <div className={styles.mobField}>
+                      <label className={styles.mobLabel}>City</label>
+                      <input
+                        className={`${styles.mobInput} ${errCls("city", true)}`}
+                        placeholder="Enter city"
+                        value={current.city}
+                        onChange={(e) => updateCurrent("city", e.target.value)}
+                      />
+                      {errMsg("city")}
+                    </div>
+                    <div className={styles.mobField}>
+                      <label className={styles.mobLabel}>State</label>
+                      <input
+                        className={`${styles.mobInput} ${errCls("state", true)}`}
+                        placeholder="Enter state"
+                        value={current.state}
+                        onChange={(e) => updateCurrent("state", e.target.value)}
+                      />
+                      {errMsg("state")}
+                    </div>
+                  </div>
+                  <div className={styles.mobField}>
+                    <label className={styles.mobLabel}>Country</label>
+                    <select
+                      className={`${styles.mobSelect} ${errCls("country", true)}`}
+                      value={current.country}
+                      onChange={(e) => updateCurrent("country", e.target.value)}
+                    >
+                      {COUNTRY_OPTIONS.map((c) => (
+                        <option key={c.iso2} value={c.name}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    {errMsg("country")}
+                  </div>
+                  <div className={styles.mobField}>
+                    <label className={styles.mobLabel}>Pincode</label>
+                    <input
+                      className={`${styles.mobInput} ${errCls("pincode", true)}`}
+                      placeholder="Enter pincode"
+                      maxLength={10}
+                      value={current.pincode}
+                      onChange={(e) =>
+                        updateCurrent(
+                          "pincode",
+                          e.target.value.toUpperCase().slice(0, 10),
+                        )
+                      }
+                    />
+                    {errMsg("pincode")}
+                  </div>
+                </>
+              ))}
 
             {isMinor && (
               <>
                 <p className={styles.nomineeTitle}>Guardian Details</p>
                 <div className={styles.mobField}>
-                  <label className={styles.mobLabel}>Guardian Name</label>
+                  <label className={styles.mobLabel}>Guardian First Name</label>
                   <input
                     className={`${styles.mobInput} ${errCls("guardianFirstName", true)}`}
-                    placeholder="Guardian full name"
+                    placeholder="Guardian first name (Optional)"
                     value={current.guardianFirstName}
+                    maxLength={15}
                     onChange={(e) =>
                       updateCurrent(
                         "guardianFirstName",
@@ -1986,6 +2556,123 @@ export default function AddNominee() {
                     }
                   />
                   {errMsg("guardianFirstName")}
+                </div>
+                <div className={styles.mobField}>
+                  <label className={styles.mobLabel}>Guardian Last Name</label>
+                  <input
+                    className={`${styles.mobInput} ${errCls("guardianLastName", true)}`}
+                    placeholder="Guardian last name (Optional)"
+                    value={current.guardianLastName}
+                    maxLength={15}
+                    onChange={(e) =>
+                      updateCurrent(
+                        "guardianLastName",
+                        e.target.value.replace(/[^a-zA-Z\s]/g, ""),
+                      )
+                    }
+                  />
+                  {errMsg("guardianLastName")}
+                </div>
+                <div className={styles.mobField}>
+                  <label className={styles.mobLabel}>
+                    Guardian Mobile Number
+                  </label>
+                  <div className={styles.mobPhoneRow}>
+                    <div className={styles.codeSelect}>
+                      <CountryCodeSelect
+                        countries={COUNTRY_CODE_OPTIONS}
+                        value={current.guardianMobileCountryIso2}
+                        onChange={handleGuardianMobileCountryChange}
+                      />
+                    </div>
+                    <input
+                      className={`${styles.mobInput} ${errCls("guardianMobile", true)}`}
+                      placeholder="Guardian mobile (Optional)"
+                      inputMode="numeric"
+                      maxLength={
+                        current.guardianMobileCountryIso2 === "in" ? 10 : 15
+                      }
+                      value={current.guardianMobile}
+                      onChange={(e) =>
+                        updateCurrent(
+                          "guardianMobile",
+                          sanitizeMobileFor(
+                            e.target.value,
+                            current.guardianMobileCountryIso2,
+                          ),
+                        )
+                      }
+                    />
+                  </div>
+                  {errMsg("guardianMobile")}
+                </div>
+                <div className={styles.mobField}>
+                  <label className={styles.mobLabel}>Guardian Email ID</label>
+                  <input
+                    type="email"
+                    className={`${styles.mobInput} ${errCls("guardianEmail", true)}`}
+                    placeholder="Guardian email (Optional)"
+                    value={current.guardianEmail}
+                    onChange={(e) =>
+                      updateCurrent("guardianEmail", e.target.value)
+                    }
+                  />
+                  {errMsg("guardianEmail")}
+                </div>
+                <div className={styles.mobField}>
+                  <label className={styles.mobLabel}>
+                    Guardian Proof of Identity
+                  </label>
+                  <select
+                    className={`${styles.mobSelect} ${errCls("guardianDocumentType", true)}`}
+                    value={current.guardianDocumentType}
+                    onChange={(e) => changeGuardianDocumentType(e.target.value)}
+                  >
+                    {guardianProofTypes.map((d) => (
+                      <option key={d.code} value={d.code}>
+                        {d.displayName}
+                      </option>
+                    ))}
+                  </select>
+                  {errMsg("guardianDocumentType")}
+                </div>
+                <div className={styles.mobField}>
+                  <label className={styles.mobLabel}>
+                    Guardian Identity Proof No.
+                  </label>
+                  <input
+                    className={`${styles.mobInput} ${errCls("guardianDocumentNumber", true)}`}
+                    disabled={!current.guardianDocumentType}
+                    placeholder={
+                      current.guardianDocumentType.toUpperCase() === "AADHAAR"
+                        ? "Last 4 digits of Aadhaar"
+                        : isPanProof(current.guardianDocumentType)
+                          ? "e.g. ABCDE1234F"
+                          : "Identity proof no. (Optional)"
+                    }
+                    inputMode={
+                      current.guardianDocumentType.toUpperCase() === "AADHAAR"
+                        ? "numeric"
+                        : isPanProof(current.guardianDocumentType)
+                          ? getPanInputMode(current.guardianDocumentNumber)
+                          : "text"
+                    }
+                    maxLength={
+                      current.guardianDocumentType.toUpperCase() === "AADHAAR"
+                        ? 4
+                        : isPanProof(current.guardianDocumentType)
+                          ? 10
+                          : undefined
+                    }
+                    value={current.guardianDocumentNumber}
+                    onChange={(e) =>
+                      updateCurrent(
+                        "guardianDocumentNumber",
+                        sanitizeGuardianDocumentNumber(e.target.value),
+                      )
+                    }
+                  />
+                  {errMsg("guardianDocumentNumber")}
                 </div>
                 <div className={styles.mobField}>
                   <label className={styles.mobLabel}>
@@ -1998,33 +2685,38 @@ export default function AddNominee() {
                       updateCurrent("guardianRelationship", e.target.value)
                     }
                   >
-                    <option value="">Select</option>
-                    {["Father", "Mother", "LegalGuardian"].map((r) => (
-                      <option key={r} value={r}>
-                        {r}
+                    {guardianRelationships.map((r) => (
+                      <option key={r.code} value={r.code}>
+                        {r.displayName}
                       </option>
                     ))}
                   </select>
                   {errMsg("guardianRelationship")}
                 </div>
-                <div className={styles.mobField}>
-                  <p className={styles.rowLabel}>Guardian DOB</p>
-                  <DateField
-                    inputId="mob-guardian-dob"
-                    value={strToDate(current.guardianDob)}
-                    onChange={(d) => updateCurrent("guardianDob", dateToStr(d))}
-                    dateFormat="dd/mm/yy"
-                    placeholder="DD/MM/YYYY"
-                    showIcon
-                    iconPos="right"
-                    touchUI
-                    panelClassName="p-prime-cal-sm"
-                    className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
-                    maxDate={guardianMaxDate}
-                    viewDate={strToDate(current.guardianDob) || guardianMaxDate}
-                  />
-                  {errMsg("guardianDob")}
-                </div>
+                {false && (
+                  <div className={styles.mobField}>
+                    <p className={styles.rowLabel}>Guardian DOB</p>
+                    <DateField
+                      inputId="mob-guardian-dob"
+                      value={strToDate(current.guardianDob)}
+                      onChange={(d) =>
+                        updateCurrent("guardianDob", dateToStr(d))
+                      }
+                      dateFormat="dd/mm/yy"
+                      placeholder="DD/MM/YYYY"
+                      showIcon
+                      iconPos="right"
+                      touchUI
+                      panelClassName="p-prime-cal-sm"
+                      className={`p-prime-cal${errors.guardianDob ? " p-prime-cal-error" : ""}`}
+                      maxDate={guardianMaxDate}
+                      viewDate={
+                        strToDate(current.guardianDob) || guardianMaxDate
+                      }
+                    />
+                    {errMsg("guardianDob")}
+                  </div>
+                )}
                 {/* <div className={styles.mobField}>
                   <label className={styles.mobLabel}>Guardian Address</label>
                   <input
@@ -2047,10 +2739,9 @@ export default function AddNominee() {
                 value={current.documentType}
                 onChange={(e) => changeDocumentType(e.target.value)}
               >
-                <option value="">Select</option>
-                {DOCUMENT_TYPE_OPTIONS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
+                {nomineeProofTypes.map((d) => (
+                  <option key={d.code} value={d.code}>
+                    {d.displayName}
                   </option>
                 ))}
               </select>
@@ -2060,15 +2751,28 @@ export default function AddNominee() {
               <label className={styles.mobLabel}>Document Number</label>
               <input
                 className={`${styles.mobInput} ${errCls("documentNumber", true)}`}
+                disabled={!current.documentType}
                 placeholder={
-                  current.documentType === "Aadhaar"
+                  current.documentType.toUpperCase() === "AADHAAR"
                     ? "Last 4 digits of Aadhaar"
-                    : "Enter number"
+                    : isPanProof(current.documentType)
+                      ? "e.g. ABCDE1234F"
+                      : "Enter number"
                 }
                 inputMode={
-                  current.documentType === "Aadhaar" ? "numeric" : "text"
+                  current.documentType.toUpperCase() === "AADHAAR"
+                    ? "numeric"
+                    : isPanProof(current.documentType)
+                      ? getPanInputMode(current.documentNumber)
+                      : "text"
                 }
-                maxLength={current.documentType === "Aadhaar" ? 4 : undefined}
+                maxLength={
+                  current.documentType.toUpperCase() === "AADHAAR"
+                    ? 4
+                    : isPanProof(current.documentType)
+                      ? 10
+                      : undefined
+                }
                 value={current.documentNumber}
                 onChange={(e) =>
                   updateCurrent(

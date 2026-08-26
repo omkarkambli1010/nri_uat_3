@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { useSpinner } from '@/components/spinner/Spinner';
 import apiService from '@/services/api.service';
 import styles from './yono-sso.module.scss';
+import secureSessionService from '@/services/secure-session.service';
 
 export default function YonoSso() {
   const router = useRouter();
@@ -33,9 +34,9 @@ export default function YonoSso() {
 
       if (response?.status === true) {
         const data = response.data;
-        sessionStorage.setItem('FormNumber', data?.FormNumber ?? '');
-        sessionStorage.setItem('clientid', data?.ClientId ?? '');
-        sessionStorage.setItem('token', data?.Token ?? '');
+        secureSessionService.setItem('FormNumber', data?.FormNumber ?? '');
+        secureSessionService.setItem('clientid', data?.ClientId ?? '');
+        secureSessionService.setItem('token', data?.Token ?? '');
 
         const nextRoute = data?.NextRoute ?? '/home';
         router.replace(nextRoute);

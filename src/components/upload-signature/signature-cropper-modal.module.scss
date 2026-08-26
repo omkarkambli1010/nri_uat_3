@@ -147,7 +147,10 @@
 .cropArea {
   background: #f6f6f6;
   border-radius: 12px;
-  padding: 8px;
+  // The initial selection covers the whole image, so the corner handles sit on
+  // the image edges and half of each one sticks out. This padding keeps them
+  // clear of the `overflow: hidden` boundary.
+  padding: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,16 +158,21 @@
   max-height: 60vh;
   overflow: hidden;
 
-  // react-image-crop wraps the image in its own div; make sure it scales.
   :global(.ReactCrop) {
     max-width: 100%;
     max-height: 56vh;
+    overflow: visible;
   }
 
   :global(.ReactCrop__image) {
     max-width: 100%;
     max-height: 56vh;
     display: block;
+  }
+
+  :global(.ReactCrop__drag-handle::after) {
+    width: 14px;
+    height: 14px;
   }
 }
 

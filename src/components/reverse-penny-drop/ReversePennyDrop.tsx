@@ -12,6 +12,7 @@ import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { buttonKeyProps } from "@/utils/a11y";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import secureSessionService from "@/services/secure-session.service";
 // ReversePennyDrop — Bank account verification via UPI (reverse penny drop)
 // Equivalent to Angular ReversePennyDropComponent (multi-step)
 // Step 1: Mobile → choose UPI app, Desktop → scan QR code
@@ -53,7 +54,7 @@ export default function ReversePennyDrop() {
 
   const rejectStatus = useSessionValue("RejectStatus");
   const isIos =
-    typeof window !== "undefined" ? sessionStorage.getItem("isIos") : null;
+    typeof window !== "undefined" ? secureSessionService.getItem("isIos") : null;
 
   const rpdWebHookIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const apiStartRef = useRef<number>(0);
@@ -97,7 +98,7 @@ export default function ReversePennyDrop() {
       flag: "Bank",
       formnumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
       Mode: "RPD",
     };
@@ -118,7 +119,7 @@ export default function ReversePennyDrop() {
         setRpdData(d.bankname_address || "");
         if (rejectStatus !== "R") {
           if (typeof window !== "undefined")
-            sessionStorage.setItem("mode", "RevPennyDrop");
+            secureSessionService.setItem("mode", "RevPennyDrop");
         }
       }
       hideSpinner();
@@ -140,7 +141,7 @@ export default function ReversePennyDrop() {
       flag: "GetUPIMasterdetls",
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -220,7 +221,7 @@ export default function ReversePennyDrop() {
     setSelectedUPIBank(data);
     setUpiURL(data.upiLink);
     if (typeof window !== "undefined")
-      sessionStorage.setItem("selectedUPIBank", data.UpiName.replace(/"/g, ""));
+      secureSessionService.setItem("selectedUPIBank", data.UpiName.replace(/"/g, ""));
   };
 
   const launchUPILink = (url: string): Promise<boolean> => {
@@ -271,7 +272,7 @@ export default function ReversePennyDrop() {
       flag: "getrpdewebhookdetls",
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
       request_id: requestID,
     };
@@ -289,12 +290,12 @@ export default function ReversePennyDrop() {
           if (rpdWebHookIntervalRef.current)
             clearInterval(rpdWebHookIntervalRef.current);
           if (typeof window !== "undefined")
-            sessionStorage.setItem("mode", "RevPennyDrop");
+            secureSessionService.setItem("mode", "RevPennyDrop");
           setEnteredIFSCNumber(d?.acc_holder_ifsc || "");
           setAccountNumber(d?.acc_number || "");
           setRpdData(d?.bankname_address || "");
           if (typeof window !== "undefined")
-            sessionStorage.setItem("TriggerEvent", "N");
+            secureSessionService.setItem("TriggerEvent", "N");
           setTimeout(() => {
             setTimeout(() => {
               router.push("/home");
@@ -305,12 +306,12 @@ export default function ReversePennyDrop() {
           if (rpdWebHookIntervalRef.current)
             clearInterval(rpdWebHookIntervalRef.current);
           if (typeof window !== "undefined")
-            sessionStorage.setItem("mode", "RevPennyDrop");
+            secureSessionService.setItem("mode", "RevPennyDrop");
           setEnteredIFSCNumber(d?.acc_holder_ifsc || "");
           setAccountNumber(d?.acc_number || "");
           setRpdData(d?.bankname_address || "");
           if (typeof window !== "undefined")
-            sessionStorage.setItem("TriggerEvent", "N");
+            secureSessionService.setItem("TriggerEvent", "N");
           hideSpinner();
           setShowMismatchModal(true);
         }
@@ -411,7 +412,7 @@ export default function ReversePennyDrop() {
       flag: "changebankflag",
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -421,7 +422,7 @@ export default function ReversePennyDrop() {
         hideSpinner,
       );
       if (response?.status === true) {
-        if (typeof window !== "undefined") sessionStorage.removeItem("mode");
+        if (typeof window !== "undefined") secureSessionService.removeItem("mode");
         setTimeout(() => {
           setTimeout(() => {
             router.push("/home");

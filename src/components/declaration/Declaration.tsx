@@ -8,10 +8,12 @@ import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./declaration.module.scss";
+import { TERMS_AND_CONDITIONS_HTML } from "../../terms-content";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 // Declaration — plan process step 1
 // Figma: Onboarding / Step 4 / Declaration → 0:25471 (mobile) + 0:25592 (desktop)
 
@@ -25,18 +27,24 @@ const lifecycleDays = [
   },
 ];
 
-const DEFAULT_TERMS_TEXT = `
-  <p>Please read and accept the terms and conditions to proceed.</p>
-  <ul>
-    <li>I agree that all information provided is true and correct.</li>
-    <li>I understand that SBI Securities may verify my details for account opening.</li>
-  </ul>`;
-
 const DEFAULT_TAX_PAYER_TEXT = `
   <p>I hereby declare that I am a resident taxpayer in India and my PAN details are correct.</p>`;
 
-const DEFAULT_POLITICAL_EXPOSED_TEXT = `
-  <p>Politically exposed persons include senior government officials, executives of state-owned enterprises, and their close relatives.</p>`;
+// Bullets for the "Who is a politically exposed or related person" modal.
+// Kept as plain strings and rendered with the modal's own .pepBulletItem
+// markup: injecting the raw <ul> from the masters payload lost the bullet
+// dots, because the list styling lives on .pepBulletItem rather than on the
+// injected <ul>/<li>.
+const POLITICAL_EXPOSED_BULLETS = [
+  "Senior executives of state-owned corporations",
+  "Important political party officials",
+  "Family members and close relatives of all of the above",
+  "In case you are a \u201cPolitically exposed Person\u201d (PEP), or related to a PEP, please submit the application in physical mode.",
+];
+
+// Retained for the masters response, which can still overwrite it via
+// getPlanProcess(). Only used when it differs from the bundled default.
+const DEFAULT_POLITICAL_EXPOSED_TEXT = `<div class="text-center my-3">           <div class="plan_details_dot">             <ul>               <li class="text-start">                 Senior executives of state-owned corporations               </li>               <li class="text-start">Important political party officials</li>               <li class="text-start">                 Family members and close relatives of all of the above               </li>               <li class="text-start">                 In case you are a “Politically exposed Person” (PEP), or related to a PEP, please submit the application in physical mode.               </li>             </ul>           </div>         </div>`;
 
 const DEFAULT_QUESTIONNAIRE_RESPONSE = [
   {
@@ -72,7 +80,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-dis",
         Question: "I/We require Delivery Instruction Slip (DIS)",
-        SelectedAns: "Yes",
+        SelectedAns: "No",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
     ],
@@ -85,7 +93,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
         QuestionId: "q-ddpi",
         Question:
           "Account to be operated through Demat Debit And Pledge Instruction (DDPI)",
-        SelectedAns: "No",
+        SelectedAns: "Yes",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
     ],
@@ -124,10 +132,10 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-ecs",
         Question:
-          "Do you wish to receive dividend / interest directly in to your Designated Bank Account through ECS?",
+          "Do you wish to receive dividend / interest directly in to your Designated Bank Account through ECS? (If not marked, the default option would be 'Yes')",
         SelectedAns: "Yes",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
-        note: "ECS (If not marked, the default option would be 'Yes') [ECS is mandatory for locations notified by SEBI from time to time]",
+        note: "",
       },
     ],
   },
@@ -138,7 +146,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-bsda",
         Question: "I/We wish to avail the BSDA facility^",
-        SelectedAns: "No",
+        SelectedAns: "Yes",
         Answer: [{ Key: "Yes" }, { Key: "No" }],
       },
     ],
@@ -150,7 +158,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-acct-stmt",
         Question: "",
-        SelectedAns: "Monthly",
+        SelectedAns: "As per SEBI Regulation",
         Answer: [
           { Key: "As per SEBI Regulation" },
           { Key: "Daily" },
@@ -181,7 +189,7 @@ const DEFAULT_QUESTIONNAIRE_RESPONSE = [
       {
         QuestionId: "q-std-docs",
         Question: "",
-        SelectedAns: "Physical",
+        SelectedAns: "Electronic",
         Answer: [
           { Key: "Electronic" },
           { Key: "Physical" },
@@ -310,8 +318,11 @@ function CheckboxRow({
   onInfoClick,
   infoLabel,
 }: CheckboxRowProps) {
+  // No onClick on the row: it used to toggle from anywhere in the row,
+  // including the empty space to the right of the text. Only the checkbox
+  // itself changes the value now.
   return (
-    <div className={styles.declarationRow} onClick={() => onChange(!checked)}>
+    <div className={styles.declarationRow}>
       <div className={styles.declarationRowLeft}>
         <div className={styles.checkboxWrap}>
           <input
@@ -319,22 +330,17 @@ function CheckboxRow({
             type="checkbox"
             className={styles.customCheckbox}
             checked={checked}
-            onChange={(e) => {
-              e.stopPropagation();
-              onChange(e.target.checked);
-            }}
-            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => onChange(e.target.checked)}
             aria-labelledby={`${id}-label`}
           />
         </div>
-        <label
-          id={`${id}-label`}
-          htmlFor={id}
-          className={styles.itemLabel}
-          onClick={(e) => e.stopPropagation()}
-        >
+        {/* htmlFor removed on purpose: it would make a click anywhere in the
+            label toggle the box, and the label carries its own links
+            (Preferences, Terms & Conditions) that open modals instead. The
+            input stays announced correctly via aria-labelledby. */}
+        <span id={`${id}-label`} className={styles.itemLabel}>
           {label}
-        </label>
+        </span>
       </div>
       {onInfoClick && (
         <button
@@ -377,8 +383,7 @@ export default function Declaration() {
   const [questionnaireResponse, setQuestionnaireResponse] = useState<any[]>(
     DEFAULT_QUESTIONNAIRE_RESPONSE,
   );
-  const [termsConditionData, setTermsConditionData] =
-    useState(DEFAULT_TERMS_TEXT);
+  const termsConditionData = TERMS_AND_CONDITIONS_HTML;
   const [taxPayerData, setTaxPayerData] = useState(DEFAULT_TAX_PAYER_TEXT);
   const [politicalExposedData, setPoliticalExposedData] = useState(
     DEFAULT_POLITICAL_EXPOSED_TEXT,
@@ -392,8 +397,6 @@ export default function Declaration() {
   const [showFundCycleModal, setShowFundCycleModal] = useState(false);
   const [showConfirmPrefModal, setShowConfirmPrefModal] = useState(false);
 
-  // Focus traps for each modal — WAI-ARIA dialog pattern (focus in, trap,
-  // Escape to close, restore focus on close).
   const termsDialogRef = useFocusTrap<HTMLDivElement>(showTermsModal, () =>
     setShowTermsModal(false),
   );
@@ -421,7 +424,7 @@ export default function Declaration() {
   const rejectStatus = useSessionValue("RejectStatus");
   const utmSource =
     typeof window !== "undefined"
-      ? sessionStorage.getItem("UTMSOURCE") || "search-engine"
+      ? secureSessionService.getItem("UTMSOURCE") || "search-engine"
       : "search-engine";
 
   useEffect(() => {
@@ -431,18 +434,13 @@ export default function Declaration() {
     // getPlanProcess();
     selectAllCheckboxes(true, false);
     getDeclarationWorkflowData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Prefill the saved declaration acceptances from the DECLARATION workflow
-  // stage (POST …/get/workflow/stagewisedata { stagename: "DECLARATION" }).
-  // Field → checkbox mapping mirrors the save payload (handleProceed):
-  //   pepAccepted → ispep, preferenceAccepted → istradingPref,
-  //   termsAccepted → istermsandcond, mitcAccepted → issettledfunds.
+
   const getDeclarationWorkflowData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        ? (secureSessionService.getItem("ApplicationId") ?? "")
         : "";
     if (!applicationId) return;
 
@@ -456,8 +454,6 @@ export default function Declaration() {
       if (d) {
         const pref = !!d.preferenceAccepted;
         const terms = !!d.termsAccepted;
-        // pepAccepted / mitcAccepted no longer have visible checkboxes; keep
-        // them true so the save payload always sends them as accepted.
         setIspep(true);
         setIstradingPref(pref);
         setIstermsandcond(terms);
@@ -465,7 +461,6 @@ export default function Declaration() {
         checkAllCheckboxesSelected(true, pref, true, terms, isyono);
       }
     } catch {
-      // Non-fatal — defaults from selectAllCheckboxes(true) remain.
     } finally {
       hideSpinner();
     }
@@ -477,7 +472,7 @@ export default function Declaration() {
       flag: "all",
       formnumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -492,8 +487,6 @@ export default function Declaration() {
         riskModal.forEach((item: any) => {
           if (item.Category === "Tax payer declaration")
             setTaxPayerData(item.Discription);
-          else if (item.Category === "Terms and Conditions")
-            setTermsConditionData(item.Discription);
           else if (
             item.Category === "Who is a politically exposed ot related person"
           )
@@ -517,7 +510,7 @@ export default function Declaration() {
       flag: "declaration",
       formnumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -555,7 +548,7 @@ export default function Declaration() {
     const reqData = {
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -571,7 +564,7 @@ export default function Declaration() {
         });
         setQuestionnaireResponse(qr);
       }
-    } catch {}
+    } catch { }
   };
 
   const selectAllCheckboxes = (checked: boolean, isProceed: boolean) => {
@@ -585,9 +578,9 @@ export default function Declaration() {
       setIsProceedButton(false);
     } else {
       setIsIndianCitizen(false);
-      // ispep / issettledfunds have no visible checkbox anymore; keep them
-      // accepted so pepAccepted / mitcAccepted are always sent as true.
-      setIspep(true);
+      // PEP is a visible checkbox now, so "deselect all" has to clear it as
+      // well - leaving it forced true made Select All look half-applied.
+      setIspep(false);
       setIsyono(false);
       setIstradingPref(false);
       setIssettledfunds(true);
@@ -596,8 +589,6 @@ export default function Declaration() {
     }
   };
 
-  // isIndianCitizen is not a visible checkbox (no UI element for it), so exclude it
-  // from the "all selected" check — the API always sends IsTaxResident: 'Yes' anyway.
   const checkAllCheckboxesSelected = (
     pep: boolean,
     trading: boolean,
@@ -605,9 +596,9 @@ export default function Declaration() {
     terms: boolean,
     yono: boolean,
   ) => {
-    // PEP and Fund Settlement checkboxes were removed from the UI, so only
-    // Preferences + Terms & Conditions (and YONO when shown) gate Select All.
-    const allVisible = trading && terms;
+    // pep is a visible, mandatory declaration, so it counts towards Select All
+    // and gates Proceed like the others.
+    const allVisible = pep && trading && terms;
     const allSelected = IsYonoForm ? allVisible && yono : allVisible;
     setSelectAll(allSelected);
     setIsProceedButton(!allSelected);
@@ -710,7 +701,7 @@ export default function Declaration() {
     const reqData = {
       FormNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
       tradePrefrenceSaveRequestModel: items,
     };
@@ -721,7 +712,7 @@ export default function Declaration() {
         hideSpinner,
       );
       if (typeof window !== "undefined")
-        sessionStorage.setItem("Preference", "Yes");
+        secureSessionService.setItem("Preference", "Yes");
       hideSpinner();
     } catch {
       hideSpinner();
@@ -747,7 +738,7 @@ export default function Declaration() {
   //     Prefernces: 'Yes',
   //     TermsAndCondition: 'Yes',
   //     FundcycleDays: selectedPreferenceDays,
-  //     FormNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+  //     FormNumber: typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '',
   //     utm_source: utmSource,
   //     IsYono: yonoConsentValue,
   //   };
@@ -785,7 +776,7 @@ export default function Declaration() {
       return;
     }
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found", {
@@ -824,7 +815,7 @@ export default function Declaration() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {
@@ -848,11 +839,11 @@ export default function Declaration() {
   // const redirectToBankDetails = () => {
   //   showSpinner();
   //   const mode =
-  //     typeof window !== "undefined" ? sessionStorage.getItem("mode") : "";
+  //     typeof window !== "undefined" ? secureSessionService.getItem("mode") : "";
   //   const isYonoClient =
-  //     typeof window !== "undefined" ? sessionStorage.getItem("IsYono") : "";
+  //     typeof window !== "undefined" ? secureSessionService.getItem("IsYono") : "";
   //   const yonobankstatus =
-  //     typeof window !== "undefined" ? sessionStorage.getItem("yonobank") : "";
+  //     typeof window !== "undefined" ? secureSessionService.getItem("yonobank") : "";
   //   document.querySelectorAll(".modal-backdrop").forEach((el) => el.remove());
   //   if (
   //     yonobankstatus === "UNIQUE" &&
@@ -871,7 +862,7 @@ export default function Declaration() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("DECLARATION", applicationId, {
       push: router.push,
@@ -915,16 +906,7 @@ export default function Declaration() {
   const declarationItemsMobile = (
     <>
       {/* Select All */}
-      <div
-        className={styles.declarationRow}
-        onClick={() => handleSelectAll(!selectAll)}
-        role="checkbox"
-        aria-checked={selectAll}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === " " || e.key === "Enter") handleSelectAll(!selectAll);
-        }}
-      >
+      <div className={styles.declarationRow}>
         <div className={styles.declarationRowLeft}>
           <div className={styles.checkboxWrap}>
             <input
@@ -932,23 +914,23 @@ export default function Declaration() {
               type="checkbox"
               className={styles.customCheckbox}
               checked={selectAll}
-              onChange={(e) => {
-                e.stopPropagation();
-                handleSelectAll(e.target.checked);
-              }}
-              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => handleSelectAll(e.target.checked)}
               aria-label="Select all declarations"
             />
           </div>
-          <label
-            htmlFor="mob-selectAll"
-            className={styles.selectAllLabelMob}
-            onClick={(e) => e.stopPropagation()}
-          >
-            Select All
-          </label>
+          <span className={styles.selectAllLabelMob}>Select All</span>
         </div>
       </div>
+
+      {/* Politically Exposed Person */}
+      <CheckboxRow
+        id="mob-pep"
+        checked={ispep}
+        onChange={(v) => handleCheckbox("ispep", v)}
+        label="I am not politically-exposed (PEP) or related to a PEP"
+        onInfoClick={() => setShowPoliticalModal(true)}
+        infoLabel="Who is a politically exposed or related person"
+      />
 
       {/* Trading Preferences */}
       <CheckboxRow
@@ -960,8 +942,6 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
-                // preventDefault: this link sits inside the row's <label>, so a
-                // plain click would also toggle (uncheck) the checkbox.
                 e.preventDefault();
                 e.stopPropagation();
                 setShowTradingPrefModal(true);
@@ -993,8 +973,6 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
-                // preventDefault: this link sits inside the row's <label>, so a
-                // plain click would also toggle (uncheck) the checkbox.
                 e.preventDefault();
                 e.stopPropagation();
                 setShowTermsModal(true);
@@ -1028,16 +1006,7 @@ export default function Declaration() {
   const declarationItemsDesktop = (
     <>
       {/* Select All */}
-      <div
-        className={styles.declarationRow}
-        onClick={() => handleSelectAll(!selectAll)}
-        role="checkbox"
-        aria-checked={selectAll}
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === " " || e.key === "Enter") handleSelectAll(!selectAll);
-        }}
-      >
+      <div className={styles.declarationRow}>
         <div className={styles.declarationRowLeft}>
           <div className={styles.checkboxWrap}>
             <input
@@ -1045,24 +1014,24 @@ export default function Declaration() {
               type="checkbox"
               className={styles.customCheckbox}
               checked={selectAll}
-              onChange={(e) => {
-                e.stopPropagation();
-                handleSelectAll(e.target.checked);
-              }}
-              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => handleSelectAll(e.target.checked)}
               aria-label="Select all declarations"
             />
           </div>
           {/* Desktop: Select All text is bold purple (Figma) */}
-          <label
-            htmlFor="desk-selectAll"
-            className={styles.selectAllLabelDesk}
-            onClick={(e) => e.stopPropagation()}
-          >
-            Select All
-          </label>
+          <span className={styles.selectAllLabelDesk}>Select All</span>
         </div>
       </div>
+
+      {/* Politically Exposed Person */}
+      <CheckboxRow
+        id="desk-pep"
+        checked={ispep}
+        onChange={(v) => handleCheckbox("ispep", v)}
+        label="I am not politically-exposed (PEP) or related to a PEP"
+        onInfoClick={() => setShowPoliticalModal(true)}
+        infoLabel="Who is a politically exposed or related person"
+      />
 
       {/* Trading Preferences */}
       <CheckboxRow
@@ -1074,8 +1043,6 @@ export default function Declaration() {
             <span
               className={styles.labelLink}
               onClick={(e) => {
-                // preventDefault: this link sits inside the row's <label>, so a
-                // plain click would also toggle (uncheck) the checkbox.
                 e.preventDefault();
                 e.stopPropagation();
                 setShowTradingPrefModal(true);
@@ -1138,8 +1105,6 @@ export default function Declaration() {
       )}
     </>
   );
-
-  // ─── Render ───────────────────────────────────────────────────
 
   return (
     <>
@@ -1277,6 +1242,7 @@ export default function Declaration() {
           aria-labelledby="termsModalTitle"
           tabIndex={-1}
           onClick={() => setShowTermsModal(false)}
+          data-lenis-prevent
         >
           <div className={styles.fscSheet} onClick={(e) => e.stopPropagation()}>
             <button
@@ -1293,7 +1259,6 @@ export default function Declaration() {
               <p id="termsModalTitle" className={styles.pepTitle}>
                 Terms and Conditions
               </p>
-
               <div
                 className={styles.sheetScrollContent}
                 dangerouslySetInnerHTML={{ __html: termsConditionData }}
@@ -1306,7 +1271,7 @@ export default function Declaration() {
               onClick={() => {
                 setShowTermsModal(false);
                 if (typeof window !== "undefined")
-                  sessionStorage.setItem("AcceptTerms", "Yes");
+                  secureSessionService.setItem("AcceptTerms", "Yes");
               }}
             >
               I accept
@@ -1394,16 +1359,15 @@ export default function Declaration() {
                 limited to:
               </p>
 
+              {/* Same .pepBulletItem structure the modal has always used, so
+                  the bullet dots and spacing are unchanged - only the fourth
+                  item ("submit in physical mode") is new. */}
               <div className={styles.pepBulletList}>
-                <div className={styles.pepBulletItem}>
-                  <p>Senior executives of state-owned corporations</p>
-                </div>
-                <div className={styles.pepBulletItem}>
-                  <p>Important political party officials</p>
-                </div>
-                <div className={styles.pepBulletItem}>
-                  <p>Family members and close relatives of all of the above</p>
-                </div>
+                {POLITICAL_EXPOSED_BULLETS.map((text, i) => (
+                  <div key={i} className={styles.pepBulletItem}>
+                    <p>{text}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -1480,22 +1444,33 @@ export default function Declaration() {
                                   (ans: any, ai: number) => (
                                     <label
                                       key={ai}
-                                      className={styles.radioItem}
+                                      className={`${styles.radioItem} ${styles.radioItemLocked}`}
+                                      onClick={(e) => e.preventDefault()}
                                     >
+                                      {/* Read-only: these preferences are set
+                                          by SBI Securities, so the selection is
+                                          shown but cannot be changed.
+                                          `readOnly` is ignored by the spec on
+                                          radios, so the click/keydown handlers
+                                          do the real work, and the label needs
+                                          its own preventDefault because a label
+                                          activates its input even when the
+                                          input ignores the click. onChange is a
+                                          no-op purely to stop React warning
+                                          about a controlled input with no
+                                          handler. */}
                                       <input
                                         type="radio"
                                         name={`radio-${q.QuestionId}`}
                                         value={ans.Key}
                                         checked={q.SelectedAns === ans.Key}
-                                        onChange={() => {
-                                          const updated = [
-                                            ...questionnaireResponse,
-                                          ];
-                                          updated[gi].Questions[
-                                            qi
-                                          ].SelectedAns = ans.Key;
-                                          setQuestionnaireResponse(updated);
-                                        }}
+                                        readOnly
+                                        aria-readonly="true"
+                                        tabIndex={-1}
+                                        className={styles.radioLocked}
+                                        onChange={() => {}}
+                                        onClick={(e) => e.preventDefault()}
+                                        onKeyDown={(e) => e.preventDefault()}
                                       />
                                       {ans.Key}
                                     </label>
@@ -1518,22 +1493,33 @@ export default function Declaration() {
                                   (ans: any, ai: number) => (
                                     <label
                                       key={ai}
-                                      className={styles.radioItem}
+                                      className={`${styles.radioItem} ${styles.radioItemLocked}`}
+                                      onClick={(e) => e.preventDefault()}
                                     >
+                                      {/* Read-only: these preferences are set
+                                          by SBI Securities, so the selection is
+                                          shown but cannot be changed.
+                                          `readOnly` is ignored by the spec on
+                                          radios, so the click/keydown handlers
+                                          do the real work, and the label needs
+                                          its own preventDefault because a label
+                                          activates its input even when the
+                                          input ignores the click. onChange is a
+                                          no-op purely to stop React warning
+                                          about a controlled input with no
+                                          handler. */}
                                       <input
                                         type="radio"
                                         name={`radio-${q.QuestionId}`}
                                         value={ans.Key}
                                         checked={q.SelectedAns === ans.Key}
-                                        onChange={() => {
-                                          const updated = [
-                                            ...questionnaireResponse,
-                                          ];
-                                          updated[gi].Questions[
-                                            qi
-                                          ].SelectedAns = ans.Key;
-                                          setQuestionnaireResponse(updated);
-                                        }}
+                                        readOnly
+                                        aria-readonly="true"
+                                        tabIndex={-1}
+                                        className={styles.radioLocked}
+                                        onChange={() => {}}
+                                        onClick={(e) => e.preventDefault()}
+                                        onKeyDown={(e) => e.preventDefault()}
                                       />
                                       {ans.Key}
                                     </label>

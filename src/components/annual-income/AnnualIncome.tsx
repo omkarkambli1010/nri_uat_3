@@ -9,6 +9,7 @@ import navigationService from "@/services/navigation.service";
 import styles from "./annual-income.module.scss";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const INCOME_OPTIONS = [
   "Below 1 lac",
@@ -73,7 +74,7 @@ export default function AnnualIncome() {
   const getIncomeData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId")
+        ? secureSessionService.getItem("ApplicationId")
         : null;
 
     if (!applicationId) return;
@@ -111,7 +112,7 @@ export default function AnnualIncome() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PERSONAL_DETAILS3", applicationId, {
       push: router.push,
@@ -125,7 +126,7 @@ export default function AnnualIncome() {
   const handleSelect = async (option: string) => {
     setSelected(option);
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
@@ -159,7 +160,7 @@ export default function AnnualIncome() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {

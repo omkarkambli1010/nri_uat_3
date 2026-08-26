@@ -1478,5 +1478,5 @@ Expected: empty — every task has been committed.
   `onConfirm(blob, size, name)` matches `onCropConfirm(blob, _size, name)` (Task 3)
   and the signature caller (Task 1).
 - **Out of scope (unchanged):** OCR / extracted fields stay stubbed; no
-  `sessionStorage` persistence; the sheet's bottom-sheet layout is preserved on
+  `secureSessionService` persistence; the sheet's bottom-sheet layout is preserved on
   all widths (`ImageCropperModal` is given `isDesktop={false}`).

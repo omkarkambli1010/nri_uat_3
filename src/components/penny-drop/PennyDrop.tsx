@@ -11,6 +11,7 @@ import styles from "./penny-drop.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { buttonKeyProps } from "@/utils/a11y";
+import secureSessionService from "@/services/secure-session.service";
 
 // PennyDrop — Bank account verification via IFSC + account number
 // Equivalent to Angular PennyDropComponent (multi-step form)
@@ -36,7 +37,7 @@ export default function PennyDrop() {
   const rejectStatus = useSessionValue("RejectStatus");
   const utmSource =
     typeof window !== "undefined"
-      ? sessionStorage.getItem("UTMSOURCE") || "NA"
+      ? secureSessionService.getItem("UTMSOURCE") || "NA"
       : "NA";
 
   useEffect(() => {
@@ -88,9 +89,9 @@ export default function PennyDrop() {
     setSelectedBankName(bank.BankName);
     setSelectedBankLogo(bank.BankLogo);
     if (typeof window !== "undefined") {
-      sessionStorage.setItem("selectedBankName", bank.BankName);
-      sessionStorage.setItem("selectedBankLogo", bank.BankLogo);
-      sessionStorage.setItem("selectedBankPrefix", bank.BankPrefix || "");
+      secureSessionService.setItem("selectedBankName", bank.BankName);
+      secureSessionService.setItem("selectedBankLogo", bank.BankLogo);
+      secureSessionService.setItem("selectedBankPrefix", bank.BankPrefix || "");
     }
     setTimeout(() => {
       router.push("/home");
@@ -127,7 +128,7 @@ export default function PennyDrop() {
       IFSCCode: enteredIFSCNumber,
       FormNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
       utm_source: utmSource,
     };

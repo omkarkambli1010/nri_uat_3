@@ -19,3 +19,18 @@ $primary-color: #280071;
     object-fit: contain;
   }
 }
+
+.formNumber {
+  color: #222;
+  white-space: nowrap;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+
+  span {
+    color: #666;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 400;
+  }
+}

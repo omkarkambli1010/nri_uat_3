@@ -18,8 +18,8 @@ Two files change:
 
 | File | Change |
 |------|--------|
-| `src/components/plan-preference/PlanPreference.tsx` | Write selected index to sessionStorage before navigating |
-| `src/components/segment-preference/SegmentPreference.tsx` | Read index from sessionStorage, render plan name/icon dynamically |
+| `src/components/plan-preference/PlanPreference.tsx` | Write selected index to secureSessionService before navigating |
+| `src/components/segment-preference/SegmentPreference.tsx` | Read index from secureSessionService, render plan name/icon dynamically |
 
 ---
 
@@ -30,7 +30,7 @@ Two files change:
 In `proceedWithPlan()`, add one line before `router.push`:
 
 ```ts
-sessionStorage.setItem('selectedPlan', String(selectedIndex));
+secureSessionService.setItem('selectedPlan', String(selectedIndex));
 router.push('/planprocess/3');
 ```
 
@@ -38,7 +38,7 @@ Both the mobile "Selected" tab button and the desktop "Proceed" card button alre
 
 ### 2. planprocess/3 — receive and display selected plan
 
-**State passing mechanism:** sessionStorage key `selectedPlan` (integer string, defaulting to `1` if absent).
+**State passing mechanism:** secureSessionService key `selectedPlan` (integer string, defaulting to `1` if absent).
 
 **Constants to add at file top:**
 
@@ -56,7 +56,7 @@ const PLAN_ICONS = [
 ```ts
 const [selectedIndex, setSelectedIndex] = useState<number>(() => {
   const stored = typeof window !== 'undefined'
-    ? sessionStorage.getItem('selectedPlan')
+    ? secureSessionService.getItem('selectedPlan')
     : null;
   return stored !== null ? parseInt(stored, 10) : 1;
 });
@@ -94,11 +94,11 @@ Desktop segment row has no border per Figma — existing style is already correc
 planprocess/2
   └─ user selects plan (index 0/1/2)
   └─ clicks Proceed
-  └─ sessionStorage.setItem('selectedPlan', String(selectedIndex))
+  └─ secureSessionService.setItem('selectedPlan', String(selectedIndex))
   └─ router.push('/planprocess/3')
 
 planprocess/3
-  └─ reads sessionStorage.getItem('selectedPlan') → defaults to 1
+  └─ reads secureSessionService.getItem('selectedPlan') → defaults to 1
   └─ renders PLAN_NAMES[index] and PLAN_ICONS[index]
   └─ "Change" → router.push('/planprocess/2')
   └─ "Proceed" → router.push('/CaptureSelfie/1')

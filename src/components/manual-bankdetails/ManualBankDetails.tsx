@@ -22,6 +22,8 @@ import { publicPath } from "@/utils/publicPath";
 import { getBankStageData } from "../manual-bankinfo/ManualBankInfo";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import styles from "./manual-bankdetails.module.scss";
+import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 interface IFSCEntry {
   code: string;
@@ -101,6 +103,8 @@ const ACCOUNT_TYPES: { id: SelectedAccountType; label: string }[] = [
   { id: "nro", label: "NRO (Savings Account)" },
   { id: "nre", label: "Non PIS NRE (Savings Account)" },
 ];
+
+const delay = (ms: any) => new Promise(resolve => setTimeout(resolve, ms));
 
 const cleanPresignedUrl = (url?: string): string =>
   String(url || "")
@@ -767,7 +771,7 @@ export default function ManualBankDetails() {
   const pathname = usePathname();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
-  const [showModal, setShowModal] = useState(false);
+  // const [showModal, setShowModal] = useState(false);
   const [isStageDataLoading, setIsStageDataLoading] = useState(true);
 
   const modalTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -826,7 +830,7 @@ export default function ManualBankDetails() {
   const getSelectedAccountTypesFromSession = (): SelectedAccountType[] => {
     if (typeof window === "undefined") return [];
 
-    const raw = window.sessionStorage.getItem("SelectedAccountTypes");
+    const raw = secureSessionService.getItem("SelectedAccountTypes");
     if (!raw) return [];
 
     try {
@@ -848,7 +852,7 @@ export default function ManualBankDetails() {
 
   const persistAccountTypes = (types: SelectedAccountType[]) => {
     if (typeof window === "undefined") return;
-    window.sessionStorage.setItem(
+    secureSessionService.setItem(
       "SelectedAccountTypes",
       JSON.stringify(types),
     );
@@ -868,7 +872,7 @@ export default function ManualBankDetails() {
     persistAccountTypes(["nro"]);
   }, [isDigital]);
 
-  // Toggle a type and mirror the selection to sessionStorage — the downstream
+  // Toggle a type and mirror the selection to secureSessionService — the downstream
   // ManualBankInfo screen reads SelectedAccountTypes.
   const toggleAccountType = (id: SelectedAccountType) => {
     setSelectedAccountTypes((prev) => {
@@ -883,7 +887,7 @@ export default function ManualBankDetails() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const applicationId = window.sessionStorage.getItem("ApplicationId") || "";
+    const applicationId = secureSessionService.getItem("ApplicationId") || "";
 
     if (!applicationId) {
       setIsStageDataLoading(false);
@@ -1090,7 +1094,7 @@ export default function ManualBankDetails() {
 
   const getApplicationId = () =>
     typeof window !== "undefined"
-      ? window.sessionStorage.getItem("ApplicationId") || ""
+      ? secureSessionService.getItem("ApplicationId") || ""
       : "";
 
   const uploadNroStatement = async (
@@ -1185,7 +1189,8 @@ export default function ManualBankDetails() {
     }
   };
 
-  const submitManualBankDetails = async () => {
+  const submitManualBankDetails = async (): Promise<any> => {
+    showSpinner();
     const applicationId = getApplicationId();
 
     if (!applicationId) {
@@ -1220,28 +1225,62 @@ export default function ManualBankDetails() {
       });
     }
 
-    await apiService.postNri(
+    const response = await apiService.postNri(
       `applications/${applicationId}/bank/manual`,
-      bankDetails,
-      hideSpinner,
+      bankDetails,      
     );
+
+    console.log("Bank Stage Response:", response);
+
+    hideSpinner();
+    let route = "";
+
+    try {
+      if (response?.status === true) {
+        toast.success("Your Bank details have been added successfully...", {
+          position: "top-center",
+          autoClose: 2500,
+        });
+
+        await delay(200);
+      }
+      const uiMetadata = response?.uiMetadata
+        ? JSON.parse(response.uiMetadata)
+        : null;
+
+      route = uiMetadata?.route || "";
+    } catch (error: any) {
+      route = "";
+      console.log("Bank Route Error:", error);
+    }
+
+    if (route) {
+      return route;
+    } else {
+      toast.error("Next Route Not provided", {
+        position: "bottom-center",
+        autoClose: 3000,
+      });
+      return "";
+    }
   };
 
   const handleProceed = async () => {
+    showSpinner();
     try {
-      showSpinner();
-      setShowModal(true);
-      await submitManualBankDetails();
+      // setShowModal(true);
+      const route = await submitManualBankDetails();
 
       modalTimerRef.current = setTimeout(() => {
-        setShowModal(false);
+        // setShowModal(false);
         setTimeout(() => {
-          router.push("/manualBankInfo");
+          // router.push("/manualBankInfo");
+          router.push(`/${route}`);
           hideSpinner();
         }, 200);
-      }, 2500);
+      }, 600);
     } catch (error) {
-      setShowModal(false);
+      // setShowModal(false);
       hideSpinner();
       console.log("Manual bank details submission failed:", error);
       toast.error("Unable to submit bank details. Please try again.", {
@@ -1420,12 +1459,24 @@ export default function ManualBankDetails() {
     </button>
   );
 
-  const goBack = () => {
-    showSpinner();
-    setTimeout(() => {
-      router.push("/personalDetailsForm/5");
-      hideSpinner();
-    }, 200);
+  // const goBack = () => {
+  //   showSpinner();
+  //   setTimeout(() => {
+  //     router.push("/personalDetailsForm/5");
+  //     hideSpinner();
+  //   }, 200);
+  // };
+
+  const goBack = async () => {
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
+
+    await dynamicBackService("BANK", applicationId, {
+      push: router.push,
+
+      showSpinner,
+
+      hideSpinner,
+    });
   };
 
   return (
@@ -1531,7 +1582,7 @@ export default function ManualBankDetails() {
         </div>
       </section>
 
-      {showModal && (
+      {/* {showModal && (
         <div
           className={styles.modalOverlay}
           role="status"
@@ -1560,7 +1611,7 @@ export default function ManualBankDetails() {
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </>
   );
 }

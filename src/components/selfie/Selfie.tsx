@@ -12,6 +12,7 @@ import apiService from "@/services/api.service";
 import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const DOS = [
   {
@@ -404,7 +405,7 @@ export default function Selfie() {
     let alive = true;
 
     const getSelfieStageWiseData = async () => {
-      const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+      const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
       if (!applicationId) {
         hideSpinner();
@@ -453,10 +454,10 @@ export default function Selfie() {
           setExistingSelfieDocumentId(documentId);
           setIsSelfieStageDataAvailable(true);
 
-          sessionStorage.setItem("SelfieVerified", "Yes");
+          secureSessionService.setItem("SelfieVerified", "Yes");
 
           if (documentId) {
-            sessionStorage.setItem("SelfieDocumentId", documentId);
+            secureSessionService.setItem("SelfieDocumentId", documentId);
           }
         }
 
@@ -614,7 +615,7 @@ export default function Selfie() {
 
   const goBack = async () => {
     showSpinner();
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     if (step === 1) {
       // setTimeout(() => {
       //   router.push("/planprocess/3");
@@ -648,9 +649,9 @@ export default function Selfie() {
       (position) => {
         const { latitude, longitude, accuracy } = position.coords;
 
-        sessionStorage.setItem("SelfieGeoLat", String(latitude));
-        sessionStorage.setItem("SelfieGeoLng", String(longitude));
-        sessionStorage.setItem("SelfieGeoAccuracy", String(accuracy || 0));
+        secureSessionService.setItem("SelfieGeoLat", String(latitude));
+        secureSessionService.setItem("SelfieGeoLng", String(longitude));
+        secureSessionService.setItem("SelfieGeoAccuracy", String(accuracy || 0));
 
         setGeoLat(String(latitude));
         setGeoLng(String(longitude));
@@ -674,7 +675,7 @@ export default function Selfie() {
   };
 
   const continueWithMobile = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Your session has expired, please start again.", {
@@ -722,7 +723,7 @@ export default function Selfie() {
       return;
     }
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     const fileName = blobService.generateFileName(
       `selfie-${applicationId}`,
@@ -763,8 +764,8 @@ export default function Selfie() {
     setIsSelfieStageDataAvailable(false);
     setExistingSelfieDocumentId("");
 
-    sessionStorage.removeItem("SelfieVerified");
-    sessionStorage.removeItem("SelfieDocumentId");
+    secureSessionService.removeItem("SelfieVerified");
+    secureSessionService.removeItem("SelfieDocumentId");
   };
 
   const uploadSelfie = async () => {
@@ -776,18 +777,18 @@ export default function Selfie() {
       return;
     }
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
       return;
     }
 
-    const finalGeoLat = geoLat || sessionStorage.getItem("SelfieGeoLat") || "";
-    const finalGeoLng = geoLng || sessionStorage.getItem("SelfieGeoLng") || "";
+    const finalGeoLat = geoLat || secureSessionService.getItem("SelfieGeoLat") || "";
+    const finalGeoLng = geoLng || secureSessionService.getItem("SelfieGeoLng") || "";
 
     const finalGeoAccuracy =
-      geoAccuracy || sessionStorage.getItem("SelfieGeoAccuracy") || "0";
+      geoAccuracy || secureSessionService.getItem("SelfieGeoAccuracy") || "0";
 
     if (!finalGeoLat || !finalGeoLng) {
       toast.error(
@@ -816,12 +817,12 @@ export default function Selfie() {
 
       console.log("Selfie KYC Verify Response:", response);
 
-      sessionStorage.setItem("SelfieVerified", "Yes");
+      secureSessionService.setItem("SelfieVerified", "Yes");
 
       if (response?.documentId) {
-        sessionStorage.setItem("SelfieDocumentId", response.documentId);
+        secureSessionService.setItem("SelfieDocumentId", response.documentId);
       } else if (existingSelfieDocumentId) {
-        sessionStorage.setItem("SelfieDocumentId", existingSelfieDocumentId);
+        secureSessionService.setItem("SelfieDocumentId", existingSelfieDocumentId);
       }
 
       let route = "";
@@ -834,7 +835,7 @@ export default function Selfie() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {

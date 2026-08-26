@@ -12,6 +12,7 @@ import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { buttonKeyProps } from "@/utils/a11y";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
+import secureSessionService from "@/services/secure-session.service";
 // Rpd — Desktop QR code variant of Reverse Penny Drop
 // Equivalent to Angular RpdComponent
 // Shows UPI QR code, polls for payment status, navigates to reversePennyDrop/2 on success
@@ -62,7 +63,7 @@ export default function Rpd() {
       flag: "GetUPIMasterdetls",
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
     };
     try {
@@ -132,7 +133,7 @@ export default function Rpd() {
       flag: "getrpdewebhookdetls",
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("FormNumber")
+          ? secureSessionService.getItem("FormNumber")
           : "",
       request_id: requestIDRef.current,
     };
@@ -149,7 +150,7 @@ export default function Rpd() {
           if (rpdWebHookIntervalRef.current)
             clearInterval(rpdWebHookIntervalRef.current);
           if (typeof window !== "undefined")
-            sessionStorage.setItem("mode", "RevPennyDrop");
+            secureSessionService.setItem("mode", "RevPennyDrop");
           setEnteredIFSCNumber(d?.acc_holder_ifsc || "");
           setAccountNumber(d?.acc_number || "");
           setRpdData(d?.bankname_address || "");
@@ -163,7 +164,7 @@ export default function Rpd() {
           if (rpdWebHookIntervalRef.current)
             clearInterval(rpdWebHookIntervalRef.current);
           if (typeof window !== "undefined")
-            sessionStorage.setItem("mode", "RevPennyDrop");
+            secureSessionService.setItem("mode", "RevPennyDrop");
           setEnteredIFSCNumber(d?.acc_holder_ifsc || "");
           setAccountNumber(d?.acc_number || "");
           setRpdData(d?.bankname_address || "");

@@ -12,6 +12,7 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
 import { toast } from "@/services/toast.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // ── Upload constraints ──────────────────────────────────────────────────────
 const ACCEPTED_TYPES = [
@@ -29,7 +30,7 @@ const TYPE_ERR =
 
 const getApplicationId = () =>
   typeof window !== "undefined"
-    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    ? (secureSessionService.getItem("ApplicationId") ?? "")
     : "";
 const resolveNextRoute = (response: any): string | null => {
   const raw = response?.nextStageurl;
@@ -133,7 +134,7 @@ export default function AadhaarUploadAll() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("AADHAR_UPLOAD", applicationId, {
       push: router.push,

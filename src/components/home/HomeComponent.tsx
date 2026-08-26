@@ -1,9 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useId,
+  type ChangeEvent,
+  type KeyboardEvent,
+  type CSSProperties,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
-import { Splide, SplideSlide } from "@splidejs/react-splide";
 import { Toast } from "primereact/toast";
 import { useSpinner } from "@/components/spinner/Spinner";
 import { useCountries } from "@/components/country-select/useCountries";
@@ -19,9 +26,8 @@ import { useFocusTrap } from "@/hooks/useFocusTrap";
 import SectionNavigation, {
   type Section,
 } from "@/components/SectionNavigation/SectionNavigation";
+import secureSessionService from "@/services/secure-session.service";
 
-// Rail entries for the marketing sections below. Each id must match a
-// <section id> in the markup; adding a section here adds an indicator.
 const HOME_SECTIONS: Section[] = [
   { id: "overview", label: "Overview" },
   { id: "invest-in-india", label: "Invest in India" },
@@ -30,9 +36,6 @@ const HOME_SECTIONS: Section[] = [
   { id: "account-info", label: "Account info" },
   { id: "need-help", label: "Need help" },
 ];
-
-// Home component — equivalent to Angular HomeComponent
-// Handles: registration form (mobile), mobile OTP, email OTP, Google OAuth
 
 const WHY_DEMAT_CARDS = [
   {
@@ -144,7 +147,7 @@ const NRI_INFO_TABS: {
           text: "Proof of Overseas address (Tenancy Contract, Utility bills etc.)",
         },
         { text: "Indian address proof (as applicable)" },
-        { text: "Aadhar card (as applicable)" },
+        { text: "Aadhaar card (as applicable)" },
         { text: "TIN (Tax Identification Number) Proof of Overseas country" },
         { text: "Latest 3 months' SBI NRE/NRO Bank Account statement" },
         { text: "Two recent passport-sized photographs" },
@@ -204,6 +207,286 @@ const FOOTER_LINKS = [
   },
 ];
 
+export interface RmMasterEntry {
+  workforceId: string;
+  workforceName: string;
+}
+
+// Text shown in the field once an RM is picked, e.g.
+// "FTC11054 - Aaliya Fatema Shaukat Ali".
+const rmLabel = (item: RmMasterEntry): string =>
+  item.workforceName
+    ? `${item.workforceId} - ${item.workforceName}`
+    : item.workforceId;
+
+interface RmCodeSelectProps {
+  value: string;
+  onChange: (code: string, details: RmMasterEntry | null) => void;
+}
+
+function RmCodeSelect({ value, onChange }: RmCodeSelectProps) {
+  const [inputText, setInputText] = useState(value.trim().toUpperCase());
+  const [selectedCode, setSelectedCode] = useState("");
+  // The field holds "CODE - Name" after a pick, so the search effect compares
+  // against the label rather than the bare code to avoid an instant re-query.
+  const [selectedLabel, setSelectedLabel] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const [results, setResults] = useState<RmMasterEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const requestIdRef = useRef(0);
+  const lastEmittedRef = useRef(value.trim().toUpperCase());
+  const uid = useId();
+  const listboxId = `${uid}-rm-listbox`;
+
+  const emitChange = (code: string, details: RmMasterEntry | null) => {
+    lastEmittedRef.current = code;
+    onChange(code, details);
+  };
+
+  useEffect(() => {
+    const normalized = value.trim().toUpperCase();
+    if (normalized === lastEmittedRef.current) return;
+    lastEmittedRef.current = normalized;
+    setInputText(normalized);
+    setSelectedCode("");
+    setSelectedLabel("");
+  }, [value]);
+
+  const handleSelect = (item: RmMasterEntry) => {
+    const label = rmLabel(item);
+    setInputText(label);
+    setSelectedCode(item.workforceId);
+    setSelectedLabel(label);
+    emitChange(item.workforceId, item);
+    setIsOpen(false);
+    setActiveIndex(-1);
+    setApiError("");
+  };
+
+  const fetchRmDetails = async (term: string) => {
+    const requestId = ++requestIdRef.current;
+
+    try {
+      setIsLoading(true);
+      setApiError("");
+
+      const list = await apiService.getRmMasterByCode(term);
+      if (requestId !== requestIdRef.current) return;
+
+      const mapped: RmMasterEntry[] = (Array.isArray(list) ? list : [])
+        .map((item) => ({
+          workforceId: String(item?.workforceId ?? "")
+            .trim()
+            .toUpperCase(),
+          workforceName: String(item?.workforceName ?? "").trim(),
+        }))
+        .filter((item) => item.workforceId);
+
+      const unique = Array.from(
+        new Map(mapped.map((item) => [item.workforceId, item])).values(),
+      );
+      if (!unique.length) throw new Error("No RM found");
+
+      setResults(unique);
+
+      if (unique.length === 1) {
+        handleSelect(unique[0]);
+        return;
+      }
+
+      const exactIndex = unique.findIndex(
+        (item) => item.workforceId === term.toUpperCase(),
+      );
+      setIsOpen(true);
+      setActiveIndex(exactIndex >= 0 ? exactIndex : 0);
+    } catch {
+      if (requestId !== requestIdRef.current) return;
+      setResults([]);
+      setActiveIndex(-1);
+      setApiError("No matching RM found");
+      // Nothing resolved, so the parent must not hold a half-typed value.
+      emitChange("", null);
+    } finally {
+      if (requestId === requestIdRef.current) setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const query = inputText.trim().replace(/\s+/g, " ");
+
+    if (
+      query.length <= 1 ||
+      query === selectedLabel ||
+      query.toUpperCase() === selectedCode
+    ) {
+      if (query.length <= 1) {
+        setResults([]);
+        setApiError("");
+      }
+      return;
+    }
+
+    // Codes are stored upper-case; a name is sent exactly as typed.
+    const term = /^[a-z0-9]+$/i.test(query) ? query.toUpperCase() : query;
+
+    const timer = setTimeout(() => void fetchRmDetails(term), 400);
+    return () => clearTimeout(timer);
+  }, [inputText, selectedCode, selectedLabel]);
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    // Names are searchable too, so spaces and the usual name punctuation are
+    // allowed. Case is left as typed; only runs of whitespace are collapsed and
+    // a leading space is dropped so the value never starts blank.
+    const raw = event.target.value
+      .replace(/[^A-Za-z0-9 .'-]/g, "")
+      .replace(/\s+/g, " ")
+      .replace(/^ /, "")
+      .slice(0, 80);
+    setInputText(raw);
+    setSelectedCode("");
+    setSelectedLabel("");
+    emitChange("", null);
+    setIsOpen(true);
+    setActiveIndex(-1);
+
+    if (raw.trim().length <= 1) {
+      setResults([]);
+      setApiError("");
+    }
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen && (event.key === "ArrowDown" || event.key === "Enter")) {
+      setIsOpen(true);
+      return;
+    }
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setActiveIndex((previous) => Math.min(previous + 1, results.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setActiveIndex((previous) => Math.max(previous - 1, 0));
+    } else if (event.key === "Enter") {
+      event.preventDefault();
+      if (activeIndex >= 0 && results[activeIndex])
+        handleSelect(results[activeIndex]);
+    } else if (event.key === "Escape") {
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
+  };
+
+  const handleBlur = () => {
+    setTimeout(() => {
+      setIsOpen(false);
+      const typed = inputText.trim();
+      const exact = results.find(
+        (item) =>
+          item.workforceId === typed.toUpperCase() || rmLabel(item) === typed,
+      );
+      if (exact) handleSelect(exact);
+    }, 160);
+  };
+
+  return (
+    <div className={styles.rmWrapper}>
+      <input
+        ref={inputRef}
+        type="text"
+        className={`form-control otp_field ${styles.rmInput}`}
+        placeholder="RM Code or Name *"
+        aria-label="RM Code or Name"
+        aria-required="true"
+        inputMode="text"
+        autoCapitalize="words"
+        autoComplete="off"
+        maxLength={80}
+        value={inputText}
+        onChange={handleInputChange}
+        onFocus={() => setIsOpen(true)}
+        onBlur={handleBlur}
+        onKeyDown={handleKeyDown}
+        role="combobox"
+        aria-expanded={isOpen}
+        aria-autocomplete="list"
+        aria-controls={listboxId}
+        aria-activedescendant={
+          activeIndex >= 0 ? `${uid}-rm-opt-${activeIndex}` : undefined
+        }
+        suppressHydrationWarning
+      />
+
+      <span className={styles.rmChevron} aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+          <path
+            d="M6 9l6 6 6-6"
+            stroke="#888"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </span>
+
+      {isOpen && (
+        <ul
+          id={listboxId}
+          className={styles.rmDropdown}
+          role="listbox"
+          aria-label="RM suggestions"
+        >
+          {isLoading ? (
+            <li className={styles.rmNoResults} role="option" aria-selected={false}>
+              Searching RM details...
+            </li>
+          ) : apiError ? (
+            <li className={styles.rmNoResults} role="option" aria-selected={false}>
+              {apiError}
+            </li>
+          ) : inputText.trim().length <= 1 ? (
+            <li className={styles.rmNoResults} role="option" aria-selected={false}>
+              Enter RM code or name to search
+            </li>
+          ) : results.length === 0 ? (
+            <li className={styles.rmNoResults} role="option" aria-selected={false}>
+              Searching RM details...
+            </li>
+          ) : (
+            results.map((item, index) => (
+              <li
+                key={item.workforceId}
+                id={`${uid}-rm-opt-${index}`}
+                className={`${styles.rmOption}${
+                  index === activeIndex ? ` ${styles.rmOptionActive}` : ""
+                }`}
+                role="option"
+                aria-selected={index === activeIndex}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  handleSelect(item);
+                }}
+              >
+                <span className={styles.rmCode}>{item.workforceId}</span>
+                <span className={styles.rmOptionDash} aria-hidden="true">
+                  -
+                </span>
+                <span className={styles.rmName}>
+                  {item.workforceName || "Name not available"}
+                </span>
+              </li>
+            ))
+          )}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export default function HomeComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -232,6 +515,7 @@ export default function HomeComponent() {
   const [rmAssisted, setRmAssisted] = useState(false);
   const [employeeId, setEmployeeId] = useState("");
   const [rmCodeError, setRmCodeError] = useState("");
+  const [rmDetails, setRmDetails] = useState<RmMasterEntry | null>(null);
 
   const RM_CODE_REGEX = /^[a-zA-Z0-9]{1,15}$/;
 
@@ -247,7 +531,6 @@ export default function HomeComponent() {
   const [timeroff, setTimeroff] = useState(true);
   const [displayMobile, setDisplayMobile] = useState(30);
 
-  // FATF Modal state
   const [showFatfModal, setShowFatfModal] = useState(false);
   const fatfDialogRef = useFocusTrap<HTMLDivElement>(
     showFatfModal,
@@ -296,12 +579,9 @@ export default function HomeComponent() {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const clientid =
     typeof window !== "undefined"
-      ? (sessionStorage.getItem("clientid") ?? "")
+      ? (secureSessionService.getItem("clientid") ?? "")
       : "";
 
-  // Reveal-on-scroll: fade + slide each section into view as it enters the
-  // viewport. The first (banner) section is above the fold, so it animates in
-  // on page load. Honours prefers-reduced-motion.
   useEffect(() => {
     const root = homeRef.current;
     if (!root) return;
@@ -345,7 +625,7 @@ export default function HomeComponent() {
       setEmployeeId(urlRmCode);
     }
     if (urlEmail && typeof window !== "undefined") {
-      sessionStorage.setItem("email", urlEmail);
+      secureSessionService.setItem("email", urlEmail);
     }
   }, []);
 
@@ -422,6 +702,7 @@ export default function HomeComponent() {
     setTermsAccepted(false);
     setRmAssisted(false);
     setEmployeeId("");
+    setRmDetails(null);
     setRmCodeError("");
   };
 
@@ -460,7 +741,7 @@ export default function HomeComponent() {
       : null;
     const saved =
       fromUrl ??
-      (typeof window !== "undefined" ? sessionStorage.getItem("mobile") : null);
+      (typeof window !== "undefined" ? secureSessionService.getItem("mobile") : null);
     if (!saved) return;
     prefilledRef.current = true;
 
@@ -489,17 +770,22 @@ export default function HomeComponent() {
     setSelectedIso2(iso2);
     setMobileNational(national);
     applyPhone(iso2, national);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [countries]);
 
-  // Reactive button enable/disable: phone + account type + terms + (when
-  // RM-assisted) a valid RM code.
   useEffect(() => {
-    const rmCodeValid = !rmAssisted || RM_CODE_REGEX.test(employeeId);
+    const rmCodeValid =
+      !rmAssisted || (RM_CODE_REGEX.test(employeeId) && !!rmDetails);
     setIsDisabledLoginBtn(
       !(isPhoneValid && accountType !== "" && termsAccepted && rmCodeValid),
     );
-  }, [isPhoneValid, accountType, termsAccepted, rmAssisted, employeeId]);
+  }, [
+    isPhoneValid,
+    accountType,
+    termsAccepted,
+    rmAssisted,
+    employeeId,
+    rmDetails,
+  ]);
 
   // ===== Mobile OTP =====
   const startTimer = () => {
@@ -520,8 +806,6 @@ export default function HomeComponent() {
     }, 1000);
   };
 
-  // uiMetadata is a JSON string from the register API carrying the next route, e.g.
-  // "{\"route\": \"mobile-home-otp\"}". Returns '' if missing/unparseable.
   const parseRoute = (uiMetadata?: string): string => {
     try {
       return JSON.parse(uiMetadata ?? "{}").route ?? "";
@@ -532,11 +816,10 @@ export default function HomeComponent() {
 
   const handleGetStarted = async () => {
 
-    window.sessionStorage.clear();
+    secureSessionService.removeAll();
 
-    // Block proceeding with an RM-assisted journey unless the RM code is valid.
-    if (rmAssisted && !RM_CODE_REGEX.test(employeeId)) {
-      setRmCodeError("Please enter a valid RM code.");
+    if (rmAssisted && (!RM_CODE_REGEX.test(employeeId) || !rmDetails)) {
+      setRmCodeError("Please enter a valid RM code and select your RM.");
       return;
     }
     const isSemiDigital = accountType === "semi-digital";
@@ -575,16 +858,18 @@ export default function HomeComponent() {
         return;
       }
 
-      sessionStorage.setItem("mobile", sendOtp.mobile);
-      sessionStorage.setItem("accountType", accountType);
-      sessionStorage.setItem("registerPayload", JSON.stringify(payload));
+      secureSessionService.setItem("mobile", sendOtp.mobile);
+      console.log("sendOtp.mobile", sendOtp.mobile);
+      
+      secureSessionService.setItem("accountType", accountType);
+      secureSessionService.setItem("registerPayload", JSON.stringify(payload));
       if (response.applicationId) {
-        sessionStorage.setItem("ApplicationId", response.applicationId);
+        secureSessionService.setItem("ApplicationId", response.applicationId);
       }
       if (response.applicationNumber) {
-        sessionStorage.setItem("applicationNumber", response.applicationNumber);
+        secureSessionService.setItem("applicationNumber", response.applicationNumber);
       }
-      sessionStorage.setItem(
+      secureSessionService.setItem(
         "otpChannel",
         sendOtp.mobile.startsWith("+91") ? "sms" : "whatsapp",
       );
@@ -593,7 +878,7 @@ export default function HomeComponent() {
 
       if (isSemiDigital) {
         if (response.verifiedEmail === true && response.emailAddress) {
-          sessionStorage.setItem("email", response.emailAddress);
+          secureSessionService.setItem("email", response.emailAddress);
           const nextRoute = parseRoute(response.uiMetadata);
           if (nextRoute) {
             router.push(`/${nextRoute}`);
@@ -637,10 +922,10 @@ export default function HomeComponent() {
       if (response) {
         setIsRightOTP(true);
         setIsWrongOTP(false);
-        sessionStorage.setItem("token", response.token ?? "");
+        secureSessionService.setItem("token", response.token ?? "");
         // Navigate to next step
         const routes: string[] = response.routes ?? [];
-        sessionStorage.setItem("allowedRoutes", JSON.stringify(routes));
+        secureSessionService.setItem("allowedRoutes", JSON.stringify(routes));
         router.push(routes[0] ?? "/email");
       } else {
         setIsWrongOTP(true);
@@ -665,9 +950,9 @@ export default function HomeComponent() {
         hideSpinner,
       );
       if (response) {
-        sessionStorage.setItem("token", response.token ?? "");
+        secureSessionService.setItem("token", response.token ?? "");
         const routes: string[] = response.routes ?? [];
-        sessionStorage.setItem("allowedRoutes", JSON.stringify(routes));
+        secureSessionService.setItem("allowedRoutes", JSON.stringify(routes));
         router.push(routes[0] ?? "/uploadProcess/1");
       }
     } catch {
@@ -675,72 +960,100 @@ export default function HomeComponent() {
     }
   };
 
+  const scrollToSection = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    id: string,
+  ) => {
+    const target = document.getElementById(id);
+    if (!target) return;
+    event.preventDefault();
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className={styles.homeRoot} ref={homeRef}>
-      {/* Dark marks: this page is light-themed. */}
       <SectionNavigation
         sections={HOME_SECTIONS}
         tone="onLight"
         ariaLabel="Page sections"
       />
 
-      {/* Banner Section */}
+      {/* Banner Section.
+          The background photo URL is passed down as the --banner-bg CSS
+          variable rather than written in home.module.scss: a url() in CSS
+          resolves against the domain root and ignores the Next basePath, so on
+          /diynri it requested /banner-bg.png and 404'd. publicPath() adds the
+          prefix, exactly as it does for the <img> tags on this page. */}
       <section
         id="overview"
         aria-label="Open Demat and Trading Account"
         className={`${styles.banner} banner ${styles.navTarget}`}
+        style={
+          {
+            "--banner-bg": `url("${publicPath("/banner-bg.png")}")`,
+          } as CSSProperties
+        }
       >
         {/* Decorative circles */}
-        <div className={styles.decorCirclePink} aria-hidden="true" />
-        <div className={styles.decorCircleBlue} aria-hidden="true" />
+        {/* <div className={styles.decorCirclePink} aria-hidden="true" /> */}
+        {/* <div className={styles.decorCircleBlue} aria-hidden="true" /> */}
 
         <div className="container">
           <div className={`row ${styles.bannerImg}`}>
-            {/* Left — headline + phone mockup + floating cards */}
-            <div className="col-md-6 col-lg-6 col-12">
+            {/* Left — NRI hero copy + family artwork.
+                Mirrors the NRI revamp banner: title / accent / sub-heading,
+                two outline CTAs, and the artwork alongside on desktop only. */}
+            <div className="col-md-6 col-lg-7 col-12">
               <div className={styles.bannerLeft}>
-                <h1 className={styles.bannerHeadline}>
-                  Trade Fast,
-                  <br />
-                  Invest Smarter
-                </h1>
-                <div className={styles.phoneContainer}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={publicPath("/assets/images/diy/home-phone-mockup.png")}
-                    alt="SBI Securities Trading App"
-                    className={styles.phoneMockup}
-                  />
-                  {/* ZERO brokerage card */}
-                  <div className={`${styles.floatingCard} ${styles.cardZero}`}>
-                    <span className={styles.cardValuePrimary}>ZERO</span>
-                    <span className={styles.cardDesc}>
-                      Brokerage on Intraday
-                    </span>
+                <div className={styles.heroRow}>
+                  <div className={styles.heroText}>
+                    <h1 className={styles.heroTitle}>
+                      Open an NRI
+                      <br />
+                      <span>3-in-1 account</span>
+                    </h1>
+                    <p className={styles.heroAccent}>PIS + Demat + Trading a/c</p>
+                    <p className={styles.heroSub}>
+                      Investing in Indian Markets
+                      <br />
+                      Now Just a Tap Away
+                    </p>
+
+                    {/* <div className={styles.heroCtaRow}>
+                      <a
+                        href="#get-callback"
+                        className={styles.heroCta}
+                        onClick={(e) => scrollToSection(e, "get-callback")}
+                      >
+                        Get a Call Back
+                      </a>
+                      <a
+                        href="#account-info"
+                        className={styles.heroCta}
+                        onClick={(e) => scrollToSection(e, "account-info")}
+                      >
+                        Account Opening Documents
+                      </a>
+                    </div> */}
                   </div>
-                  {/* ₹20 per order card */}
-                  <div className={`${styles.floatingCard} ${styles.cardRate}`}>
-                    <span className={styles.cardValueBlue}>
-                      <span className={styles.rupeeSymbol}>₹</span>20
-                    </span>
-                    <span className={styles.cardDesc}>
-                      per order for carry forward trades
-                    </span>
-                  </div>
-                  {/* Free 1st Year AMC card */}
-                  <div className={`${styles.floatingCard} ${styles.cardFree}`}>
-                    <span className={styles.cardValueRed}>Free</span>
-                    <span className={styles.cardDesc}>
-                      1<sup>st</sup> Year AMC
-                    </span>
+
+                  <div className={styles.heroArt}>
+                    <img
+                      src={publicPath(
+                        "/banner-fg.svg",
+                      )}
+                      alt=""
+                      aria-hidden="true"
+                      className="img-fluid"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Right — NRI form card */}
-            <div className="col-md-6 col-lg-6 col-12">
-              <div className={styles.mobileForm}>
+            <div className="col-md-6 col-lg-5 col-12">
+              <div className={styles.mobileForm} id="get-callback">
                 <form aria-label="Open NRI Account Registration Form">
                   <h1>Open Your NRI Account Now!</h1>
 
@@ -885,6 +1198,7 @@ export default function HomeComponent() {
                           setRmAssisted(e.target.checked);
                           if (!e.target.checked) {
                             setEmployeeId("");
+                            setRmDetails(null);
                             setRmCodeError("");
                           }
                         }}
@@ -895,31 +1209,13 @@ export default function HomeComponent() {
                     </div>
                     {rmAssisted && (
                       <div style={{ marginTop: "0.75rem" }}>
-                        <input
-                          type="text"
-                          className="form-control otp_field"
-                          placeholder="RM Code *"
-                          aria-label="RM Code"
-                          aria-required="true"
-                          inputMode="text"
-                          autoCapitalize="characters"
+                        <RmCodeSelect
                           value={employeeId}
-                          onChange={(e) => {
-                            // Allow only alphanumeric, capped at 15 characters.
-                            const cleaned = e.target.value
-                              .replace(/[^a-zA-Z0-9]/g, "")
-                              .slice(0, 15);
-                            setEmployeeId(cleaned);
-                            if (RM_CODE_REGEX.test(cleaned)) setRmCodeError("");
+                          onChange={(code, details) => {
+                            setEmployeeId(code);
+                            setRmDetails(details);
+                            if (details) setRmCodeError("");
                           }}
-                          onBlur={() => {
-                            setRmCodeError(
-                              RM_CODE_REGEX.test(employeeId)
-                                ? ""
-                                : "Please enter a valid RM code.",
-                            );
-                          }}
-                          maxLength={15}
                         />
                         {rmCodeError && (
                           <span className="red_warning">*{rmCodeError}</span>

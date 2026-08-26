@@ -8,6 +8,15 @@ import styles from "./country-code-select.module.scss";
 // no flags). Data is supplied by the caller (Country Master API). The trigger
 // shows the selected dial code (or a "Code" placeholder); the panel has a
 // search box that filters by country name or dial code.
+
+// Search box character policy: letters, digits, spaces and "+" only. Every
+// other special character is rejected. Two regexes on purpose — the global one
+// is for .replace(), the non-global one for .test() (a /g regex is stateful
+// across .test() calls and would alternate true/false on the same input).
+const SEARCH_STRIP = /[^a-zA-Z0-9+ ]/g;
+const SEARCH_DISALLOWED = /[^a-zA-Z0-9+ ]/;
+const sanitizeSearch = (v: string) => v.replace(SEARCH_STRIP, "");
+
 interface Props {
   countries: Country[];
   value: string; // selected iso2
@@ -94,9 +103,28 @@ export default function CountryCodeSelect({ countries, value, onChange }: Props)
             className={styles.search}
             placeholder="Search"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(sanitizeSearch(e.target.value))}
+            onPaste={(e) => {
+              // Sanitise pasted text before it reaches the field.
+              e.preventDefault();
+              setQuery((prev) =>
+                sanitizeSearch(prev + e.clipboardData.getData("text")),
+              );
+            }}
             onKeyDown={(e) => {
-              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Escape") {
+                setOpen(false);
+                return;
+              }
+              if (
+                e.key.length === 1 &&
+                !e.ctrlKey &&
+                !e.metaKey &&
+                !e.altKey &&
+                SEARCH_DISALLOWED.test(e.key)
+              ) {
+                e.preventDefault();
+              }
             }}
           />
           <ul className={styles.list} role="listbox" data-lenis-prevent>

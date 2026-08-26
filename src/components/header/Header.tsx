@@ -1,21 +1,36 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { useSpinner } from "@/components/spinner/Spinner";
 import styles from "./header.module.scss";
 import { publicPath } from "@/utils/publicPath";
+import secureSessionService from "@/services/secure-session.service";
 
 export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { show, hide } = useSpinner();
+  const { show: showSpinner, hide: hideSpinner } = useSpinner();
+
+  const [personalFormNumber, setPersonalFormNumber] = useState("");
+
+  useEffect(() => {
+    const sync = () =>
+      setPersonalFormNumber(
+        secureSessionService.getItem("applicationNumber") ?? ""
+      );
+    sync();
+    window.addEventListener("storage", sync);
+    return () => window.removeEventListener("storage", sync);
+  }, [pathname]);
 
   const redirectHome = () => {
     show();
     if (pathname === "/page-not-found") {
       localStorage.clear();
-      sessionStorage.clear();
+      secureSessionService.removeAll();
       setTimeout(() => {
         router.push("/home");
       }, 200);
@@ -51,6 +66,11 @@ export default function Header() {
             style={{ objectFit: "contain" }}
           />
         </button>
+        {personalFormNumber && (
+          <p className={styles.formNumber}>
+            Ref No. - <span>{personalFormNumber}</span>
+          </p>
+        )}
       </div>
     </nav>
   );

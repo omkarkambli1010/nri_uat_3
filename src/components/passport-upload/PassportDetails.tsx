@@ -7,10 +7,11 @@ import LoadingButton from "@/components/ui/LoadingButton";
 import apiService from "@/services/api.service";
 import dynamicBackService from "@/services/back-navigation.service";
 import { useSpinner } from "../spinner/Spinner";
+import secureSessionService from "@/services/secure-session.service";
 
 const getApplicationId = (): string =>
   typeof window !== "undefined"
-    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    ? (secureSessionService.getItem("ApplicationId") ?? "")
     : "";
 
 // PassportDetails — Passport type selection screen
@@ -118,7 +119,7 @@ export default function PassportDetails() {
   // const handleBack = () => router.push('/manual-document-screen');
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PASSPORT", applicationId, {
       push: router.push,

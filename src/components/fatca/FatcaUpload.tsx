@@ -12,6 +12,7 @@ import styles from '@/components/oci/oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useCountries } from '@/components/country-select/useCountries';
 import { useSpinner } from '@/components/spinner/Spinner';
+import secureSessionService from '@/services/secure-session.service';
 
 // FatcaUpload — /fatca/upload
 // One upload section per TIN entry captured on /fatca. Each section has three
@@ -29,7 +30,7 @@ const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG
 const SLOTS = 3;
 
 const getApplicationId = (): string =>
-  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+  typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
 
 // Pull a document's presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
@@ -92,14 +93,14 @@ export default function FatcaUpload() {
 
   // Load the TIN entries captured on /fatca, and prefill the previously-saved
   // TIN proof document ids + previews from the FATCA stage (POST …/get/workflow/
-  // stagewisedata { stagename: "FATCA" }). The sessionStorage entries (fresh from
-  // /fatca) take precedence; on a direct revisit (no sessionStorage) the saved
+  // stagewisedata { stagename: "FATCA" }). The secureSessionService entries (fresh from
+  // /fatca) take precedence; on a direct revisit (no secureSessionService) the saved
   // tax residencies are used instead. Redirect back only if neither has any.
   useEffect(() => {
     let alive = true;
 
     let loaded: TinEntry[] = [];
-    try { loaded = JSON.parse(sessionStorage.getItem('fatca_tins') ?? '[]'); } catch { loaded = []; }
+    try { loaded = JSON.parse(secureSessionService.getItem('fatca_tins') ?? '[]'); } catch { loaded = []; }
     if (!Array.isArray(loaded)) loaded = [];
 
     // Per-slot document ids persisted on upload (fatca_docids[entry][slot]).
@@ -108,7 +109,7 @@ export default function FatcaUpload() {
     // revisit this is empty, and the slot is recovered from the residency's
     // tinProofDocumentId / …2 / …3 fields instead.
     let storedDocIds: string[][] = [];
-    try { storedDocIds = JSON.parse(sessionStorage.getItem('fatca_docids') ?? '[]'); } catch { storedDocIds = []; }
+    try { storedDocIds = JSON.parse(secureSessionService.getItem('fatca_docids') ?? '[]'); } catch { storedDocIds = []; }
     if (!Array.isArray(storedDocIds)) storedDocIds = [];
 
     (async () => {
@@ -135,12 +136,12 @@ export default function FatcaUpload() {
             ? (res.documents as Record<string, unknown>[])
             : [];
         } catch {
-          // Non-fatal — fall back to sessionStorage only.
+          // Non-fatal — fall back to secureSessionService only.
         }
       }
       if (!alive) return;
 
-      // Saved residencies → TIN entries (used when sessionStorage is empty).
+      // Saved residencies → TIN entries (used when secureSessionService is empty).
       const serverTins: TinEntry[] = residencies.map((r) => ({
         taxResidence: str(r.countryofTaxResidence ?? r.countryOfTaxResidence ?? r.taxResidence),
         tinIssuingCountry: str(r.tinIssuingCountry),
@@ -156,7 +157,7 @@ export default function FatcaUpload() {
       setTins(tinsToUse);
 
       // Match each TIN entry to its saved residency by TIN number (with the two
-      // countries as tie-breakers), NOT by array position: the sessionStorage
+      // countries as tie-breakers), NOT by array position: the secureSessionService
       // tin order (raw API order, from /fatca) and the entryIndex-sorted
       // residencies order can differ, and a positional match then pairs an entry
       // with the wrong residency — the TIN guard trips and no document binds.
@@ -190,9 +191,9 @@ export default function FatcaUpload() {
         return residencies[bestIdx];
       };
 
-      // Per-slot document ids. Prefer the sessionStorage record (it knows the
+      // Per-slot document ids. Prefer the secureSessionService record (it knows the
       // exact slot of every upload from this session); fall back to the saved
-      // residency (tin-matched) when sessionStorage has none.
+      // residency (tin-matched) when secureSessionService has none.
       const ids: string[][] = tinsToUse.map((t, i) => {
         const stored = Array.isArray(storedDocIds[i]) ? storedDocIds[i] : null;
         if (stored && stored.some(Boolean)) {
@@ -266,7 +267,7 @@ export default function FatcaUpload() {
   // which slot (the API documents[] is slot-less) and the submit always has them.
   useEffect(() => {
     if (!prefillDone) return;
-    try { sessionStorage.setItem('fatca_docids', JSON.stringify(docIds)); } catch { /* ignore */ }
+    try { secureSessionService.setItem('fatca_docids', JSON.stringify(docIds)); } catch { /* ignore */ }
   }, [docIds, prefillDone]);
 
   const setSlotDoc = (entry: number, slot: number, id: string) =>
@@ -334,20 +335,20 @@ export default function FatcaUpload() {
     }
 
     // Source the Tax Residency & TIN Details and their per-slot doc ids from
-    // sessionStorage (the durable copy that survives a refresh on this page);
+    // secureSessionService (the durable copy that survives a refresh on this page);
     // fall back to React state if anything is missing.
     let meta: { countryOfBirth?: string; citizenship?: string } = {};
-    try { meta = JSON.parse(sessionStorage.getItem('fatca_meta') ?? '{}'); } catch { meta = {}; }
+    try { meta = JSON.parse(secureSessionService.getItem('fatca_meta') ?? '{}'); } catch { meta = {}; }
 
     let savedTins: TinEntry[] = tins;
     try {
-      const t = JSON.parse(sessionStorage.getItem('fatca_tins') ?? 'null');
+      const t = JSON.parse(secureSessionService.getItem('fatca_tins') ?? 'null');
       if (Array.isArray(t) && t.length > 0) savedTins = t;
     } catch { /* keep state */ }
 
     let savedDocIds: string[][] = docIds;
     try {
-      const d = JSON.parse(sessionStorage.getItem('fatca_docids') ?? 'null');
+      const d = JSON.parse(secureSessionService.getItem('fatca_docids') ?? 'null');
       if (Array.isArray(d) && d.length > 0) savedDocIds = d;
     } catch { /* keep state */ }
 

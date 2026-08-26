@@ -11,6 +11,7 @@ import styles from "./digilocker-screen.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import LoadingButton from "@/components/ui/LoadingButton";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // DigilockerScreen — Aadhaar & PAN verification via DigiLocker
 // Figma: ExXo1tRiZv7Zcb9DGMnyiI
@@ -61,7 +62,7 @@ export default function DigilockerScreen() {
   const getDigilockerName = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        ? (secureSessionService.getItem("ApplicationId") ?? "")
         : "";
     if (!applicationId) return;
     try {
@@ -81,7 +82,7 @@ export default function DigilockerScreen() {
   const redirectDigiLocker = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        ? (secureSessionService.getItem("ApplicationId") ?? "")
         : "";
     if (!applicationId) {
       toast.error("Your session has expired, please start again.");
@@ -107,7 +108,7 @@ export default function DigilockerScreen() {
   // const handleBack = () => router.push('/permanent-address-details');
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("DIGILOCKER", applicationId, {
       push: router.push,

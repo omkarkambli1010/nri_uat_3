@@ -6,47 +6,31 @@
 // usually end up with an active state that flickers on hover.
 
 .nav {
-  // ---- tokens -------------------------------------------------------------
-  // Scale factors are unitless on purpose: `calc()` cannot divide two lengths,
-  // so the line has one fixed width and we scale it.
-  --sn-line-width: 48px;
-  --sn-thickness: 3px;
+  // --sn-line-width: 40px;
+  // --sn-thickness: 2px;
+  // --sn-scale-inactive: 0.42; 
+  // --sn-scale-peek: 0.62;
+  // --sn-scale-hover: 0.8;
+  // --sn-scale-active: 1; 
 
-  --sn-scale-inactive: 0.42; // ~20px
-  --sn-scale-peek: 0.62; // ~30px, when the rail is hovered
-  --sn-scale-hover: 0.8; // ~38px, the line under the cursor
-  --sn-scale-active: 1; // 48px
-
-  --sn-color-inactive: rgb(255 255 255 / 55%);
-  --sn-color-hover: rgb(255 255 255 / 80%);
-  --sn-color-active: #fff;
-
-  // Only the active line glows. It carries the "you are here" signal, so it is
-  // the one place worth spending contrast; the idle lines stay quiet.
-  --sn-glow: 0 0 14px rgb(255 255 255 / 45%);
-
-  // A long, decelerating curve — the motion should settle, not snap.
-  --sn-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --sn-duration: 420ms;
-
-  position: fixed;
-  top: 50%;
-  right: clamp(0.75rem, 2.5vw, 2.5rem);
-  z-index: 50;
-  transform: translateY(-50%);
+  // --sn-color-inactive: rgb(255 255 255 / 55%);
+  // --sn-color-hover: rgb(255 255 255 / 80%);
+  // --sn-color-active: #fff;
+  // --sn-glow: 0 0 14px rgb(255 255 255 / 45%);
+  // --sn-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  // --sn-duration: 420ms;
+  // position: fixed;
+  // top: 50%;
+  // right: clamp(0.75rem, 2.5vw, 2.5rem);
+  // z-index: 50;
+  // transform: translateY(-50%);
+  display: none;
 }
 
-// Tone is a property of the BACKGROUND this rail sits on, which the page author
-// knows and the OS does not. Keying this off `prefers-color-scheme` was wrong:
-// a light page viewed on a dark-mode OS would render white marks on white.
-// The default above suits a dark backdrop; `tone="onLight"` flips it.
 .onLight {
   --sn-color-inactive: rgb(15 23 42 / 45%);
   --sn-color-hover: rgb(15 23 42 / 75%);
   --sn-color-active: #0f172a;
-
-  // A white halo would vanish on a light page; a soft dark one separates the
-  // active line from the background just as well.
   --sn-glow: 0 0 10px rgb(15 23 42 / 30%);
 }
 

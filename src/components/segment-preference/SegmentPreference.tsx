@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { publicPath } from "@/utils/publicPath";
 import LoadingButton from '@/components/ui/LoadingButton';
+import secureSessionService from '@/services/secure-session.service';
 
 const PLAN_NAMES = ['Basic', 'Special', 'Premium'];
 const PLAN_ICONS = [
@@ -81,7 +82,7 @@ export default function SegmentPreference() {
   const [selectedIndex, setSelectedIndex] = useState<number>(1);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem('selectedPlan');
+    const stored = secureSessionService.getItem('selectedPlan');
     if (stored !== null) setSelectedIndex(parseInt(stored, 10));
   }, []);
 

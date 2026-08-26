@@ -15,6 +15,7 @@ import { buildInitialFileFromUrl } from "@/components/file-upload/buildInitialFi
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
 
@@ -53,7 +54,13 @@ const OVD_DOCUMENT_TYPES = new Set<string>([
 
 const isOvd = (key: string): boolean => OVD_DOCUMENT_TYPES.has(key);
 
-const POSTAL_RE = /^[A-Za-z0-9\s-]{3,12}$/;
+// Pincode: 6 alphanumeric characters (letters and digits only - no spaces,
+// hyphens or other special characters). Change {6} to {3,6} below if shorter
+// codes should be accepted.
+const POSTAL_RE = /^[A-Z0-9]{6}$/;
+const PINCODE_MAX = 6;
+const cleanPincode = (v: string) =>
+  v.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, PINCODE_MAX);
 const PROOF_NUMBER_RE = /^[A-Za-z0-9\s-]+$/;
 
 // ── Upload constraints (front + back proof) ──────────────────────────────────
@@ -73,7 +80,7 @@ const TYPE_ERR =
 
 const getApplicationId = (): string =>
   typeof window !== "undefined"
-    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    ? (secureSessionService.getItem("ApplicationId") ?? "")
     : "";
 
 const routeFromUiMetadata = (res: unknown): string | null => {
@@ -204,10 +211,72 @@ interface SavedProofSnapshot {
   backDocumentId: string;
 }
 
+const COUNTRIES_TO_EXCLUDE = ["india"];
+
+const normCountry = (v: string): string =>
+  v.toLowerCase().replace(/[^a-z]/g, "");
+
+const COUNTRY_ALIASES: Record<string, string> = {
+  easttimor: "timorleste",
+  timorleste: "timorleste",
+  ivorycoast: "cotedivoire",
+  cotedivoire: "cotedivoire",
+  burma: "myanmar",
+  myanmar: "myanmar",
+  holland: "netherlands",
+  netherlands: "netherlands",
+  southkorea: "koreasouth",
+  republicofkorea: "koreasouth",
+  koreasouth: "koreasouth",
+  northkorea: "koreanorth",
+  koreanorth: "koreanorth",
+  uae: "unitedarabemirates",
+  unitedarabemirates: "unitedarabemirates",
+  uk: "unitedkingdom",
+  greatbritain: "unitedkingdom",
+  unitedkingdom: "unitedkingdom",
+  usa: "unitedstates",
+  unitedstatesofamerica: "unitedstates",
+  unitedstates: "unitedstates",
+  czechia: "czechrepublic",
+  czechrepublic: "czechrepublic",
+  swaziland: "eswatini",
+  eswatini: "eswatini",
+  macedonia: "northmacedonia",
+  northmacedonia: "northmacedonia",
+  capeverde: "caboverde",
+  caboverde: "caboverde",
+};
+
+const countryKey = (v: string): string => {
+  const n = normCountry(v);
+  return COUNTRY_ALIASES[n] ?? n;
+};
+
+const resolveCountry = (raw: string, list: string[]): string => {
+  if (!raw) return "";
+  const exact = list.find((c) => c === raw);
+  if (exact) return exact;
+  const key = countryKey(raw);
+  return list.find((c) => countryKey(c) === key) ?? "";
+};
+
 export default function ForeignAddress() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const { names: countryNames, loading: countryLoading } = useCountryNames();
+
+  // "India" is not a valid choice on the foreign address screen.
+  const countryOptions = useMemo(
+    () =>
+      (countryNames ?? []).filter(
+        (c) => !COUNTRIES_TO_EXCLUDE.includes(normCountry(c)),
+      ),
+    [countryNames],
+  );
+
+  // raw country string as received from the API, before list matching
+  const rawCountryRef = useRef("");
 
   const [prefillDone, setPrefillDone] = useState(false);
 
@@ -292,8 +361,12 @@ export default function ForeignAddress() {
         if (str(d.stateProvince) || str(d.state))
           setAddrState(str(d.stateProvince) || str(d.state));
         if (str(d.postalCode) || str(d.pincode))
-          setPincode(str(d.postalCode).toUpperCase() || str(d.pincode));
-        if (str(d.country)) setSelCountry(str(d.country));
+          setPincode(cleanPincode(str(d.postalCode) || str(d.pincode)));
+        if (str(d.country)) {
+          rawCountryRef.current = str(d.country);
+          // re-resolved in the effect below once the country list has loaded
+          setSelCountry(resolveCountry(str(d.country), countryOptions));
+        }
         if (str(d.proofNumber)) setDocNumber(str(d.proofNumber));
         if (str(d.expiryDate)) setExpiryDate(str(d.expiryDate).slice(0, 10));
         const docs = Array.isArray(res?.documents)
@@ -364,8 +437,19 @@ export default function ForeignAddress() {
     if (prefillDone && !countryLoading) hideSpinner();
   }, [prefillDone, countryLoading]);
 
+  // The country list loads asynchronously, so the saved value is matched again
+  // as soon as the options are available. Without this the <select> silently
+  // shows the first option in the list instead of the saved country.
+  useEffect(() => {
+    if (countryLoading || countryOptions.length === 0) return;
+    const raw = rawCountryRef.current;
+    if (!raw) return;
+    if (countryOptions.includes(selCountry)) return;
+    setSelCountry(resolveCountry(raw, countryOptions));
+  }, [countryLoading, countryOptions, selCountry]);
+
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("FOREIGN_ADDRESS", applicationId, {
       push: router.push,
@@ -412,8 +496,8 @@ export default function ForeignAddress() {
       e.addrState = "State is required.";
     }
 
-    if (!pincode.trim() || !POSTAL_RE.test(pincode.trim())) {
-      e.pincode = "Please enter a valid Postal/ZIP Code.";
+    if (!pincode.trim() || !POSTAL_RE.test(pincode.trim().toUpperCase())) {
+      e.pincode = "Please enter a valid 6-character pincode (letters and numbers only).";
     }
 
     return e;
@@ -667,7 +751,7 @@ export default function ForeignAddress() {
       <div className={styles.mobileCard} data-lenis-prevent>
         {/* BRD note — English translation required for non-English documents */}
         <p className={styles.translationNote}>
-          Note: Requiring English translated copy for non-English documents.
+          Note: Please upload an English-translated copy for non-English documents.
         </p>
 
         {/* Document Type */}
@@ -765,7 +849,7 @@ export default function ForeignAddress() {
               <option value="" disabled>
                 Select
               </option>
-              {countryNames.map((c) => (
+              {countryOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -875,18 +959,24 @@ export default function ForeignAddress() {
           <input
             id="mob-pincode"
             type="text"
-            maxLength={12}
+            inputMode="text"
+            autoComplete="postal-code"
+            maxLength={PINCODE_MAX}
             className={styles.fieldInput}
             placeholder="Enter pincode"
-            value={pincode.toUpperCase()}
-            onChange={(e) => setPincode(e.target.value.toUpperCase())}
+            value={pincode}
+            onChange={(e) => setPincode(cleanPincode(e.target.value))}
+            onPaste={(e) => {
+              e.preventDefault();
+              setPincode(cleanPincode(e.clipboardData.getData("text")));
+            }}
             onBlur={() => markTouched("pincode")}
           />
           {errFor("pincode") && (
             <p className={styles.fieldError}>{errFor("pincode")}</p>
           )}
           <div className={styles.pincodeHint}>
-            <InfoIcon color="#999999" />
+            {/* <InfoIcon color="#999999" /> */}
             <p className={styles.pincodeHintText}>
               In absence of PIN for foreign address, Enter pincode as
               &apos;111111&apos;.
@@ -946,7 +1036,7 @@ export default function ForeignAddress() {
           <div className={styles.desktopFormArea} data-lenis-prevent>
             {/* BRD note — English translation required for non-English documents */}
             <p className={styles.translationNote}>
-              Note: Requiring English translated copy for non-English documents.
+              Note: Please upload an English-translated copy for non-English documents.
             </p>
 
             {/* Document Type */}
@@ -1041,7 +1131,7 @@ export default function ForeignAddress() {
                   <option value="" disabled>
                     Select
                   </option>
-                  {countryNames.map((c) => (
+                  {countryOptions.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
@@ -1134,11 +1224,17 @@ export default function ForeignAddress() {
                 <p className={styles.desktopLabel}>Pincode *</p>
                 <input
                   type="text"
-                  maxLength={12}
+                  inputMode="text"
+                  autoComplete="postal-code"
+                  maxLength={PINCODE_MAX}
                   className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                   placeholder="Enter pincode"
-                  value={pincode.toUpperCase()}
-                  onChange={(e) => setPincode(e.target.value.toUpperCase())}
+                  value={pincode}
+                  onChange={(e) => setPincode(cleanPincode(e.target.value))}
+                  onPaste={(e) => {
+                    e.preventDefault();
+                    setPincode(cleanPincode(e.clipboardData.getData("text")));
+                  }}
                   onBlur={() => markTouched("pincode")}
                   aria-label="Pincode"
                 />
@@ -1149,7 +1245,7 @@ export default function ForeignAddress() {
                 </p>
               )}
               <div className={styles.desktopPincodeHint}>
-                <InfoIcon color="#3b4c72" />
+                {/* <InfoIcon color="#3b4c72" /> */}
                 <p className={styles.desktopPincodeHintText}>
                   In absence of PIN for foreign address, Enter pincode as
                   &apos;111111&apos;.

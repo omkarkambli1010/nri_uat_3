@@ -8,6 +8,7 @@ import apiService, { BankRpdStatusResponse } from "@/services/api.service";
 import { toast } from "@/services/toast.service";
 import styles from "./manual-bankinfo.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
+import secureSessionService from "@/services/secure-session.service";
 
 // ── Types for Bank Stage API Response ─────────────────────────────────────────
 
@@ -233,7 +234,7 @@ export default function ManualBankInfo() {
   const getSelectedAccountTypesFromSession = (): SelectedAccountType[] => {
     if (typeof window === "undefined") return ["nre", "nro"];
 
-    const rawSelectedAccountTypes = window.sessionStorage.getItem(
+    const rawSelectedAccountTypes = secureSessionService.getItem(
       "SelectedAccountTypes",
     );
 
@@ -308,7 +309,7 @@ export default function ManualBankInfo() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const applicationId = window.sessionStorage.getItem("ApplicationId") || "";
+    const applicationId = secureSessionService.getItem("ApplicationId") || "";
 
     if (!applicationId) {
       toast.error("Your session has expired, please start again.", {

@@ -7,6 +7,7 @@ import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import navigationService from '@/services/navigation.service';
 import styles from './nominee-callback.module.scss';
+import secureSessionService from '@/services/secure-session.service';
 
 // NomineeCallback — Handles callback after nominee e-sign or external verification
 // Equivalent to Angular NomineeCallbackComponent
@@ -24,7 +25,7 @@ export default function NomineeCallback() {
   const handleCallback = async () => {
     showSpinner();
     const status = searchParams.get('status') || searchParams.get('Status') || '';
-    const formNumber = typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '';
+    const formNumber = typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '';
 
     try {
       const reqData = {

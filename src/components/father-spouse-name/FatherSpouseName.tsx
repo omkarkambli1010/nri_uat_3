@@ -10,6 +10,7 @@ import styles from "./father-spouse-name.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // FatherSpouseName — step 5: Father/Spouse Name (KYC)
 // Equivalent to Angular FatherSpouseNameComponent
@@ -36,7 +37,7 @@ export default function FatherSpouseName() {
   const getFatherSpouseData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId")
+        ? secureSessionService.getItem("ApplicationId")
         : null;
 
     if (!applicationId) return;
@@ -114,7 +115,7 @@ export default function FatherSpouseName() {
       return;
     }
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found", {
@@ -151,7 +152,7 @@ export default function FatherSpouseName() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {
@@ -181,7 +182,7 @@ export default function FatherSpouseName() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PERSONAL_DETAILS5", applicationId, {
       push: router.push,

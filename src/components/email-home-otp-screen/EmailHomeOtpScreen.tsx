@@ -1,35 +1,88 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { InputOtp } from "primereact/inputotp";
 import { useSpinner } from "@/components/spinner/Spinner";
 import { toast } from "@/services/toast.service";
 import apiService from "@/services/api.service";
+import aesService from "@/services/aes.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./email-home-otp-screen.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
+import { setRejectStatus } from "@/lib/reject-status";
+import secureSessionService from "@/services/secure-session.service";
 
-// EmailHomeOtpScreen — equivalent to Angular EmailHomeOtpScreenComponent
-// OTP verification for email — Figma: Email-UI-Revamp nodes 0:18445, 0:18194, 0:19259, 0:18708, 0:18971
+const OTP_LENGTH = 6;
+const RESEND_SECONDS = 30;
 
-const BackArrowSvg = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="#2B2B2B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+const MAX_RESEND_ERROR_CODE = "OTP_002";
+
+const TOAST_OPTS = {
+  position: "bottom-center" as const,
+  autoClose: 2000,
+};
+
+const DEEP_LINK_KEYS = [
+  "applicationId",
+  "emailAddress",
+  "rmCode",
+  "journeyType",
+  "nextStage",
+  "loginProvider",
+  "idempotencyKey",
+  "utmSource",
+  "utmCampaign",
+  "utmMedium",
+  "iSmartId",
+  "promocode",
+  "request",
+  "name_submitted",
+] as const;
+
+type DeepLinkParams = Record<(typeof DEEP_LINK_KEYS)[number], string>;
+
+const KEY_ALIASES: Partial<Record<(typeof DEEP_LINK_KEYS)[number], string[]>> = {
+  emailAddress: ["email"],
+  utmSource: ["utm_source"],
+  utmCampaign: ["utm_campaign"],
+  utmMedium: ["utm_medium"],
+};
+
+function BackArrow() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12H19"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 18"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 6"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const EditSvg = () => (
   <svg
@@ -38,6 +91,7 @@ const EditSvg = () => (
     height="16"
     viewBox="0 0 20 20"
     fill="none"
+    aria-hidden="true"
   >
     <path
       fillRule="evenodd"
@@ -54,27 +108,6 @@ const EditSvg = () => (
   </svg>
 );
 
-// Figma node 0:19259 — exclamation circle for wrong OTP state. Unused now that
-// the inline "Incorrect OTP." message is removed (backend toasts the message).
-// const ExclamationCircleSvg = () => (
-//   <svg
-//     xmlns="http://www.w3.org/2000/svg"
-//     width="20"
-//     height="20"
-//     viewBox="0 0 24 24"
-//     fill="none"
-//     stroke="#ff2e00"
-//     strokeWidth="2"
-//     strokeLinecap="round"
-//     strokeLinejoin="round"
-//   >
-//     <circle cx="12" cy="12" r="10" />
-//     <line x1="12" y1="8" x2="12" y2="12" />
-//     <line x1="12" y1="16" x2="12.01" y2="16" />
-//   </svg>
-// );
-
-// Figma node 0:18971 — success check circle
 const SuccessCheckSvg = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -107,9 +140,81 @@ const SuccessCheckSvg = () => (
   </svg>
 );
 
+// ─── Pure helpers (no React, no component state) ─────────────────────────────
+
+const readQueryParams = (): DeepLinkParams => {
+  const out = {} as DeepLinkParams;
+  const search =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search);
+
+  DEEP_LINK_KEYS.forEach((key) => {
+    const candidates = [key, ...(KEY_ALIASES[key] ?? [])];
+    const value =
+      candidates.map((name) => search?.get(name) ?? "").find(Boolean) ?? "";
+    out[key] = value.trim();
+  });
+  return out;
+};
+
+const normalizeCipher = (value: string): string =>
+  value
+    .replace(/\/slash\/g/g, "/")
+    .replace(/\/plus\/g/g, "+")
+    .replace(/\/equal\/g/g, "=");
+
+const decryptParam = (raw: string, clientid: string): string => {
+  if (!raw) return "";
+  try {
+    return (
+      aesService.decrypt(
+        normalizeCipher(decodeURIComponent(raw)),
+        clientid,
+        clientid,
+      ) ?? ""
+    );
+  } catch {
+    return "";
+  }
+};
+
+const parseRoute = (uiMetadata?: string): string => {
+  try {
+    return JSON.parse(uiMetadata ?? "{}").route ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const storeDeepLinkParams = (q: DeepLinkParams) => {
+  const entries: Array<[string, string]> = [
+    ["ApplicationId", q.applicationId],
+    ["email", q.emailAddress],
+    ["journeyType", q.journeyType],
+    ["accountType", q.journeyType === "NroDigital" ? "digital" : "semi-digital"],
+    ["rmCode", q.rmCode],
+    ["nextStage", q.nextStage],
+    ["loginProvider", q.loginProvider],
+    ["idempotencyKey", q.idempotencyKey],
+    ["UTMSOURCE", q.utmSource],
+    ["UTMCAMP", q.utmCampaign],
+    ["UTMMEDIUM", q.utmMedium],
+    ["iSmartId", q.iSmartId],
+    ["promocode", q.promocode],
+  ];
+  entries.forEach(([key, value]) => {
+    if (value) secureSessionService.setItem(key, value);
+  });
+
+  secureSessionService.setItem("deepLinkParams", JSON.stringify(q));
+  secureSessionService.setItem("deepLinkUrl", window.location.href);
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
 export default function EmailHomeOtpScreen() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   const [otp, setOtp] = useState("");
@@ -117,67 +222,116 @@ export default function EmailHomeOtpScreen() {
   const [timeroff1, setTimeroff1] = useState(true);
   const [isWrongOTP, setIsWrongOTP] = useState(false);
   const [isRightOTP, setIsRightOTP] = useState(false);
-  // Re-triggerable flag for the wrong-OTP shake. Cleared on animationend so the
-  // next failed attempt can replay it even if isWrongOTP was already true.
   const [shakeOtp, setShakeOtp] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  // True once the backend reports OTP_002 ("Maximum resend limit reached"); we
-  // then replace the Resend option with a Home button.
   const [maxResendReached, setMaxResendReached] = useState(false);
-
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  // Email is rendered on screen, so it must live in state — a ref update would
-  // not re-render, leaving the address blank until some other state change
-  // (the resend timer tick) happened to repaint it.
   const [email, setEmail] = useState("");
+  const [isFromUrl, setIsFromUrl] = useState(false);
+
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initRef = useRef(false);
+  const applicationIdRef = useRef("");
   const mobileRef = useRef("");
 
-  const utmSource = searchParams.get("utm_source") || "NA";
-  const utmMedium = searchParams.get("utm_medium") || "NA";
-  const utmCampaign = searchParams.get("utm_campaign") || "NA";
+  const isVerifyDisabled = otp.length !== OTP_LENGTH;
 
-  const applicationId =
-    typeof window !== "undefined"
-      ? (sessionStorage.getItem("ApplicationId") ?? "")
-      : "";
+  const getApplicationId = useCallback(
+    (): string =>
+      applicationIdRef.current ||
+      secureSessionService.getItem("ApplicationId") ||
+      "",
+    [],
+  );
 
-  const isVerifyDisabled = otp.length !== 6;
-
-  useEffect(() => {
-    navigationService.setRouter(router, hideSpinner);
-    if (typeof window !== "undefined") {
-      // 'email' is set by HomeComponent for Semi-Digital (response.emailAddress)
-      // or by email-home-textpage for the manual entry flow.
-      setEmail(sessionStorage.getItem("email") || "");
-      mobileRef.current = sessionStorage.getItem("mobile") || "";
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    // The OTP is already sent during registration on the previous screen, so we
-    // do NOT call the send API on page load — just start the resend countdown.
-    startTimerEmail();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, []);
 
-  const startTimerEmail = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    let seconds = 30;
-    let statSec = 30;
-    setDisplayEmail("00:30");
+  const startTimerEmail = useCallback(() => {
+    clearTimer();
+    let seconds = RESEND_SECONDS;
+    setDisplayEmail(`00:${RESEND_SECONDS}`);
     setTimeroff1(true);
 
     intervalRef.current = setInterval(() => {
       seconds--;
-      if (statSec !== 0) statSec--;
-      else statSec = 29;
-      const textSec = statSec < 10 ? "0" + statSec : String(statSec);
+      const textSec = seconds < 10 ? `0${seconds}` : String(seconds);
       setDisplayEmail(`00:${textSec}`);
-      if (seconds === 0) {
+      if (seconds <= 0) {
         setTimeroff1(false);
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        clearTimer();
       }
     }, 1000);
-  };
+  }, [clearTimer]);
+
+  const redirectToHome = useCallback(
+    (message?: string) => {
+      if (message) toast.error(message, TOAST_OPTS);
+      setTimeout(() => router.push("/home"), 200);
+    },
+    [router],
+  );
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    navigationService.setRouter(router, hideSpinner);
+
+    const q = readQueryParams();
+    const isDeepLink = Boolean(q.applicationId);
+    setIsFromUrl(isDeepLink);
+
+    const clientid = secureSessionService.getItem("clientid") ?? "";
+    const decryptedEmail = decryptParam(q.request, clientid);
+    const decryptedFullname = decryptParam(q.name_submitted, clientid);
+
+    if (decryptedEmail) {
+      secureSessionService.setItem("request", decryptedEmail);
+    }
+    if (decryptedFullname) {
+      secureSessionService.setItem("NameSubmitted", decryptedFullname);
+    }
+
+    if (isDeepLink) {
+      applicationIdRef.current = q.applicationId;
+      storeDeepLinkParams(q);
+    }
+
+    const resolvedEmail =
+      (isDeepLink ? q.emailAddress : "") ||
+      decryptedEmail ||
+      secureSessionService.getItem("request") ||
+      "";
+
+    setEmail(resolvedEmail);
+    mobileRef.current = secureSessionService.getItem("request") || "";
+
+    secureSessionService.setItem(
+      "deepLinkResolved",
+      JSON.stringify({
+        applicationId: q.applicationId,
+        request: resolvedEmail,
+        isDeepLink,
+      }),
+    );
+
+    if (isDeepLink) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
+    startTimerEmail();
+
+    return clearTimer;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleOtpChange = (value: string | null | undefined) => {
     const val = value ?? "";
@@ -194,48 +348,50 @@ export default function EmailHomeOtpScreen() {
     }, 200);
   };
 
+  const markOtpInvalid = () => {
+    setIsWrongOTP(true);
+    setIsRightOTP(false);
+    setShakeOtp(true);
+  };
+
   const getEmailOtp = async (isResend: boolean) => {
-    showSpinner();
+    const applicationId = getApplicationId();
     if (!applicationId) {
-      toast.error("Your session has expired, please start again.", {
-        position: "bottom-center",
-        autoClose: 2000,
-      });
-      setTimeout(() => {
-        router.push("/home");
-        hideSpinner();
-      }, 200);
+      redirectToHome("Your session has expired, please start again.");
       return;
     }
+
+    showSpinner();
     setOtp("");
     setIsWrongOTP(false);
     setIsRightOTP(false);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    clearTimer();
+
     try {
       const response = await apiService.sendNriOtp(
         applicationId,
         "Email",
         hideSpinner,
-        {
-          emailAddress: email,
-        },
+        { emailAddress: email },
       );
       hideSpinner();
       // Keep the countdown running regardless of the send status.
       startTimerEmail();
       setOtp("");
       if (response && isResend) {
-        toast.success("OTP sent successfully!", {
-          position: "bottom-center",
-          autoClose: 2000,
-        });
+        toast.success("OTP sent successfully!", TOAST_OPTS);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       hideSpinner();
-      // OTP_002 = max resend limit reached → replace the timer with the Home option.
-      if (error?.response?.data?.errorCode === "OTP_002") {
+
+      const errorCode = (
+        error as { response?: { data?: { errorCode?: string } } }
+      )?.response?.data?.errorCode;
+
+      // OTP_002 = max resend limit reached -> replace the timer with the notice.
+      if (errorCode === MAX_RESEND_ERROR_CODE) {
         setMaxResendReached(true);
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        clearTimer();
         return;
       }
       // Any other failure: keep the timer running so the user can retry resend.
@@ -244,20 +400,16 @@ export default function EmailHomeOtpScreen() {
   };
 
   const getEmailOtpVerify = async () => {
-    showSpinner();
+    const applicationId = getApplicationId();
     if (!applicationId) {
-      toast.error("Your session has expired, please start again.", {
-        position: "bottom-center",
-        autoClose: 2000,
-      });
-      setTimeout(() => {
-        router.push("/home");
-        hideSpinner();
-      }, 200);
+      redirectToHome("Your session has expired, please start again.");
       return;
     }
+
+    showSpinner();
     setIsWrongOTP(false);
     setIsRightOTP(false);
+
     try {
       const response = await apiService.verifyNriOtp(
         applicationId,
@@ -266,65 +418,103 @@ export default function EmailHomeOtpScreen() {
         hideSpinner,
       );
       hideSpinner();
-      // A 200 response can still carry { verified: false } - only treat an
+
+      // A 200 response can still carry { verified: false } — only treat an
       // explicitly verified response as success.
-      if (response?.verified) {
-        if (response.applicationNumber) {
-          sessionStorage.setItem("applicationNumber", response.applicationNumber);
-        }
-        if (response.nextStage) {
-          sessionStorage.setItem("nextStage", response.nextStage);
-        }
-        setIsRightOTP(true);
-        setIsWrongOTP(false);
-        if (typeof window !== "undefined") sessionStorage.removeItem("email");
-        if (intervalRef.current) clearInterval(intervalRef.current);
-        setShowSuccessModal(true);
-        setTimeout(() => {
-          setShowSuccessModal(false);
-          // router.push("/uploadProcess/1");
-          let route = "";
-          try {
-            const uiMetadata = response?.uiMetadata
-              ? JSON.parse(response.uiMetadata)
-              : null;
-
-            route = uiMetadata?.route || "";
-          } catch (error: any) {
-            route = "";
-          }
-
-          if (route) {
-            router.push(`/${route}`);
-            return;
-          } else {
-            toast.error("Next Route Not provided", {
-              position: "bottom-center",
-              autoClose: 3000,
-            });
-          }
-        }, 2000);
-      } else {
-        setIsWrongOTP(true);
-        setIsRightOTP(false);
-        setShakeOtp(true);
+      if (!response?.verified) {
+        markOtpInvalid();
+        return;
       }
+
+      if (response.applicationNumber) {
+        secureSessionService.setItem(
+          "applicationNumber",
+          response.applicationNumber,
+        );
+      }
+      if (response.nextStage) {
+        secureSessionService.setItem("nextStage", response.nextStage);
+      }
+      secureSessionService.setItem(
+        "NomineeOptOut",
+        response?.NomineeOptOut?.toString() ?? "true",
+      );
+      secureSessionService.setItem(
+        "AccT",
+        response?.accessToken?.toString() ?? "",
+      );
+
+      setRejectStatus(response?.rejectStatus);
+      setIsRightOTP(true);
+      setIsWrongOTP(false);
+
+      if (typeof window !== "undefined") {
+        secureSessionService.removeItem("email");
+      }
+      clearTimer();
+      setShowSuccessModal(true);
+
+      setTimeout(() => {
+        setShowSuccessModal(false);
+        const route = parseRoute(response?.uiMetadata);
+        if (route) {
+          router.push(`/${route}`);
+          return;
+        }
+        toast.error("Next Route Not provided", {
+          position: "bottom-center",
+          autoClose: 3000,
+        });
+      }, 2000);
     } catch {
-      setIsWrongOTP(true);
-      setIsRightOTP(false);
-      setShakeOtp(true);
+      markOtpInvalid();
       hideSpinner();
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   // Figma 0:19259 — wrong OTP: #ff2e00 border + text
-  const otpInputClass = `${styles.otpBox}${isWrongOTP ? ` ${styles.otpBoxError}` : isRightOTP ? ` ${styles.otpBoxSuccess}` : ""}`;
+  const otpInputClass = `${styles.otpBox}${
+    isWrongOTP
+      ? ` ${styles.otpBoxError}`
+      : isRightOTP
+        ? ` ${styles.otpBoxSuccess}`
+        : ""
+  }`;
+
+  // Arrived via deep link -> there is no previous screen, so no back button.
+  const backButton = (className: string) =>
+    !isFromUrl && (
+      <button
+        type="button"
+        className={className}
+        onClick={editEmailID}
+        aria-label="Go back"
+      >
+        <BackArrow />
+      </button>
+    );
+
+  const verifyButton = (base: string, disabledClass: string) => (
+    <LoadingButton
+      type="button"
+      className={`${base}${isVerifyDisabled ? ` ${disabledClass}` : ""}`}
+      onClick={getEmailOtpVerify}
+      disabled={isVerifyDisabled}
+    >
+      Verify
+    </LoadingButton>
+  );
 
   const otpForm = (
     <div className={styles.otpBody}>
       {/* Email address + Edit */}
       <div className={styles.emailRow}>
         <span className={styles.emailAddress}>{email}</span>
+        {/* Matches the mobile screen: Edit stays available even on a deep
+            link. Wrap this in `!isFromUrl && (...)` if the email that arrived
+            in the URL must not be changed. */}
         <button type="button" className={styles.editBtn} onClick={editEmailID}>
           <EditSvg />
           <span>Edit</span>
@@ -333,7 +523,9 @@ export default function EmailHomeOtpScreen() {
 
       {/* OTP input */}
       <div className={styles.otpField}>
-        <span id="email-otp-label" className={styles.otpLabel}>Enter OTP</span>
+        <span id="email-otp-label" className={styles.otpLabel}>
+          Enter OTP
+        </span>
         <div
           className={`${styles.otpInputWrap}${shakeOtp ? ` ${styles.shake}` : ""}`}
           onAnimationEnd={() => setShakeOtp(false)}
@@ -343,9 +535,9 @@ export default function EmailHomeOtpScreen() {
           <InputOtp
             value={otp}
             onChange={(e) => handleOtpChange(e.value as string)}
-            length={6}
+            length={OTP_LENGTH}
             integerOnly
-            aria-label="Enter the 6 digit OTP sent to your email"
+            aria-label={`Enter the ${OTP_LENGTH} digit OTP sent to your email`}
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
@@ -390,18 +582,11 @@ export default function EmailHomeOtpScreen() {
       >
         <div className={styles.mobileHeader}>
           <div className={styles.mobileHeaderInner}>
-            <button
-              type="button"
-              className={styles.mobileBackBtn}
-              onClick={editEmailID}
-              aria-label="Go back"
-            >
-              <BackArrowSvg />
-            </button>
+            {backButton(styles.mobileBackBtn)}
             <div className={styles.mobileTitleBlock}>
               <h5 className={styles.mobileTitle}>OTP Verification</h5>
               <p className={styles.mobileSubtitle}>
-                You will receive OTP on your registered Email ID
+                You will receive OTP on your Email ID
               </p>
             </div>
           </div>
@@ -410,14 +595,10 @@ export default function EmailHomeOtpScreen() {
         <div className={styles.mobileCard}>{otpForm}</div>
 
         <div className={styles.mobileProceedArea}>
-          <LoadingButton
-            type="button"
-            className={`${styles.mobileProceedBtn}${isVerifyDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ""}`}
-            onClick={getEmailOtpVerify}
-            disabled={isVerifyDisabled}
-          >
-            Verify
-          </LoadingButton>
+          {verifyButton(
+            styles.mobileProceedBtn,
+            styles.mobileProceedBtnDisabled,
+          )}
         </div>
       </section>
 
@@ -428,18 +609,11 @@ export default function EmailHomeOtpScreen() {
       >
         <div className={styles.desktopCard}>
           <div className={styles.desktopCardHeader}>
-            <button
-              type="button"
-              className={styles.desktopBackBtn}
-              onClick={editEmailID}
-              aria-label="Go back"
-            >
-              <BackArrowSvg />
-            </button>
+            {backButton(styles.desktopBackBtn)}
             <div className={styles.desktopTitleBlock}>
               <h5 className={styles.desktopCardTitle}>OTP Verification</h5>
               <p className={styles.desktopCardSubtitle}>
-                You will receive OTP on your registered Email ID
+                You will receive OTP on your Email ID
               </p>
             </div>
           </div>
@@ -447,14 +621,10 @@ export default function EmailHomeOtpScreen() {
           <div className={styles.desktopCardBody}>
             {otpForm}
             <div className={styles.desktopProceedWrapper}>
-              <LoadingButton
-                type="button"
-                className={`${styles.desktopProceedBtn}${isVerifyDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ""}`}
-                onClick={getEmailOtpVerify}
-                disabled={isVerifyDisabled}
-              >
-                Verify
-              </LoadingButton>
+              {verifyButton(
+                styles.desktopProceedBtn,
+                styles.desktopProceedBtnDisabled,
+              )}
             </div>
           </div>
         </div>
@@ -466,11 +636,7 @@ export default function EmailHomeOtpScreen() {
           a focus-trapping dialog: role="status" lets screen readers read the
           confirmation without stranding keyboard users (WCAG 4.1.3). */}
       {showSuccessModal && (
-        <div
-          className={styles.modalOverlay}
-          role="status"
-          aria-live="polite"
-        >
+        <div className={styles.modalOverlay} role="status" aria-live="polite">
           <div className={styles.modalCard}>
             <SuccessCheckSvg />
             <h5 className={styles.modalTitle}>Email Verification</h5>

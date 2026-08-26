@@ -9,6 +9,7 @@ import navigationService from "@/services/navigation.service";
 import styles from "./trading-exp.module.scss";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // Dummy values matching Figma — swap with API data when ready
 const TRADING_OPTIONS = [
@@ -74,7 +75,7 @@ export default function TradingExp() {
   const getTradingExpData = async () => {
     const applicationId =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId")
+        ? secureSessionService.getItem("ApplicationId")
         : null;
 
     if (!applicationId) return;
@@ -121,7 +122,7 @@ export default function TradingExp() {
   //   const reqData = {
   //     Flag: flag,
   //     TreadingExp: declaration,
-  //     FormNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+  //     FormNumber: typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '',
   //     utm_source: 'search-engine',
   //     utm_medium: 'organic',
   //     utm_campaign: 'Onboarding-DIY',
@@ -153,7 +154,7 @@ export default function TradingExp() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PERSONAL_DETAILS2", applicationId, {
       push: router.push,
@@ -167,7 +168,7 @@ export default function TradingExp() {
   const handleSelect = async (option: string) => {
     setSelected(option);
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
@@ -201,7 +202,7 @@ export default function TradingExp() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {

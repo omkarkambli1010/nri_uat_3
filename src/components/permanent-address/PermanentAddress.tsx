@@ -18,6 +18,7 @@ import { buildInitialFileFromUrl } from "@/components/file-upload/buildInitialFi
 import apiService from "@/services/api.service";
 import { toast } from "@/services/toast.service";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const pickUrl = (doc: Record<string, unknown>): string => {
   const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
@@ -77,7 +78,7 @@ const TYPE_ERR =
 
 const getApplicationId = (): string =>
   typeof window !== "undefined"
-    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    ? (secureSessionService.getItem("ApplicationId") ?? "")
     : "";
 
 // uiMetadata JSON → next route (e.g. '{"route":"esign"}' → '/esign').
@@ -173,11 +174,6 @@ function BackArrow() {
   );
 }
 
-// ── Reusable documents (from the workflow response) ──────────────────────────
-// The INDIANADDRESS workflow GET returns `reusableDocuments`: documents already
-// uploaded on an earlier stage (e.g. sourceStage "PASSPORT") that can be bound
-// into this form when the user selects the matching Document Type — mirrors the
-// Foreign Address behaviour.
 interface ReusableDocEntry {
   documentType?: string;
   documentID?: string;
@@ -195,8 +191,6 @@ interface ReusableGroup {
   documents?: ReusableDocEntry[];
 }
 
-// The user's own previously-saved proof, captured on prefill so switching the
-// Document Type away and back restores it instead of leaving the form empty.
 interface SavedProofSnapshot {
   docType: string;
   docNumber: string;
@@ -211,6 +205,13 @@ export default function PermanentAddress() {
   const router = useRouter();
   const { names: countryNames } = useCountryNames();
 
+  const indiaOptions = useMemo(() => {
+    const matches = countryNames.filter(
+      (c) => c.trim().toLowerCase() === "india",
+    );
+    return matches.length ? matches : ["India"];
+  }, [countryNames]);
+
   const [docType, setDocType] = useState("");
   const [docNumber, setDocNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -222,6 +223,11 @@ export default function PermanentAddress() {
   const [city, setCity] = useState("");
   const [addrState, setAddrState] = useState("");
   const [pincode, setPincode] = useState("");
+
+  // Pincode is a 6-digit numeric PIN — strip non-digits and cap length at 6 so
+  // the field can never hold more than 6 digits or any letters/symbols.
+  const handlePincodeChange = (value: string) =>
+    setPincode(value.replace(/\D/g, "").slice(0, 6));
 
   // Proof files (front + back), selected on this same page and submitted with
   // the address fields in one multipart request on Proceed.
@@ -358,6 +364,19 @@ export default function PermanentAddress() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillDone]);
 
+  // Only India is allowed here. Default-select it once the option resolves, and
+  // normalize an India-ish prefilled value (e.g. "INDIA") to the master's exact
+  // spelling so the <select> matches an option. Never forces a non-India value.
+  useEffect(() => {
+    if (indiaOptions.length !== 1) return;
+    const canonical = indiaOptions[0];
+    const isIndiaish = selCountry.trim().toLowerCase() === "india";
+    if (selCountry !== canonical && (!selCountry || isIndiaish)) {
+      setSelCountry(canonical);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [indiaOptions, selCountry]);
+
   // A freshly-picked file: a real File with bytes that isn't the byte-less
   // saved-document preview (those carry an id prefixed "saved-").
   const getFreshFile = (files: UploadedFile[]): File | null =>
@@ -389,19 +408,10 @@ export default function PermanentAddress() {
   // Expiry only applies to documents that have one (Driving License, Passport).
   const showExpiry = hasExpiry(docType);
 
-  // Earliest acceptable expiry — today + 3 months (BRD: the document must be
-  // valid for at least 3 more months). Used to constrain the picker (minDate)
-  // and to validate. minExpiryDisplay is the DD/MM/YYYY form for the message.
   const minExpiryDate = useMemo(() => addMonthsClamped(new Date(), 3), []);
   const minExpiryStr = dateToStr(minExpiryDate);
   const minExpiryDisplay = minExpiryStr.split("-").reverse().join("/"); // DD/MM/YYYY
 
-  // ── Reusable-document binding (mirrors Foreign Address) ─────────────────────
-  // Find the reusable group matching the selected Document Type. The backend
-  // states the match explicitly via `bindWhenProofTypeContains` (e.g. the
-  // PASSPORT group lists ["PASSPORT", "PASSPORTADDRESS", "PASSPORT_ADDRESS"],
-  // which matches this page's "PassportAddress" key). Falls back to comparing
-  // against sourceStage for groups without that list.
   const normalizeKey = (s: string): string => s.toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   const reusableGroupFor = (docTypeKey: string): ReusableGroup | undefined => {
@@ -493,7 +503,7 @@ export default function PermanentAddress() {
   };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("INDIAN_ADDRESS", applicationId, {
       push: router.push,
@@ -513,7 +523,7 @@ export default function PermanentAddress() {
     !selCountry ||
     !addrLine1.trim() ||
     !city.trim() ||
-    !pincode.trim();
+    !/^\d{6}$/.test(pincode.trim());
 
   // Proceed is enabled once all fields are filled AND both proof files are
   // selected. It submits everything (fields + files) in one multipart request.
@@ -522,9 +532,6 @@ export default function PermanentAddress() {
   const handleProceed = async () => {
     if (isDisabled) return;
 
-    // BRD: documents that carry an expiry must be valid for at least 3 more
-    // months. Skipped for documents without an expiry date. (Mirrors Foreign
-    // Address — compares the YYYY-MM-DD strings against the min expiry.)
     if (showExpiry) {
       if (!expiryDate) {
         setExpiryError("Please Select Expiry date");
@@ -704,9 +711,6 @@ export default function PermanentAddress() {
               Document Expiry Date *
             </label>
             <DateField
-              // Remount when the document type changes so a programmatic expiry
-              // reset (e.g. binding a reused doc whose expiry is empty) is
-              // reflected — DateField otherwise ignores a value cleared to null.
               key={`mob-expiry-${docType}`}
               inputId="mob-expiry"
               value={strToDate(expiryDate)}
@@ -746,7 +750,7 @@ export default function PermanentAddress() {
               <option value="" disabled>
                 Select
               </option>
-              {countryNames.map((c) => (
+              {indiaOptions.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
@@ -842,14 +846,14 @@ export default function PermanentAddress() {
             id="mob-pincode"
             type="text"
             inputMode="numeric"
-            maxLength={10}
+            maxLength={6}
             className={styles.fieldInput}
             placeholder="Enter pincode"
             value={pincode}
-            onChange={(e) => setPincode(e.target.value)}
+            onChange={(e) => handlePincodeChange(e.target.value)}
           />
           <div className={styles.pincodeHint}>
-            <InfoIcon color="#999999" />
+            {/* <InfoIcon color="#999999" /> */}
             <p className={styles.pincodeHintText}>
               In absence of PIN for permanent address, Enter pincode as
               &apos;111111&apos;.
@@ -993,7 +997,7 @@ export default function PermanentAddress() {
                   <option value="" disabled>
                     Select
                   </option>
-                  {countryNames.map((c) => (
+                  {indiaOptions.map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
@@ -1070,16 +1074,16 @@ export default function PermanentAddress() {
                 <input
                   type="text"
                   inputMode="numeric"
-                  maxLength={10}
+                  maxLength={6}
                   className={`${styles.deskInput} ${styles.desktopInputSingle}`}
                   placeholder="Enter pincode"
                   value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
                   aria-label="Pincode"
                 />
               </div>
               <div className={styles.desktopPincodeHint}>
-                <InfoIcon color="#3b4c72" />
+                {/* <InfoIcon color="#3b4c72" /> */}
                 <p className={styles.desktopPincodeHintText}>
                   In absence of PIN for permanent address, Enter pincode as
                   &apos;111111&apos;.

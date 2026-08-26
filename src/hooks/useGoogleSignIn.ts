@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { environment } from '@/environments/environment';
+import secureSessionService from '@/services/secure-session.service';
 
 export type GooglePayload = {
   email: string;
@@ -212,7 +213,7 @@ export function useGoogleSignIn({
       deleteCookie('g_state', '//');
 
       const previousGoogleError =
-        sessionStorage.getItem(googleErrorSessionKey) || '';
+        secureSessionService.getItem(googleErrorSessionKey) || '';
 
       /**
        * Your required flow:
@@ -247,7 +248,7 @@ export function useGoogleSignIn({
               'Prompt Skipped';
           }
 
-          sessionStorage.setItem(googleErrorSessionKey, reason);
+          secureSessionService.setItem(googleErrorSessionKey, reason);
 
           onPromptBlocked?.({
             type,
@@ -283,7 +284,7 @@ export function useGoogleSignIn({
 
   const clearGoogleError = useCallback(() => {
     if (typeof window === 'undefined') return;
-    sessionStorage.removeItem(googleErrorSessionKey);
+    secureSessionService.removeItem(googleErrorSessionKey);
   }, [googleErrorSessionKey]);
 
   return {

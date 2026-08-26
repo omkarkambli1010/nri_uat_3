@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./fatca.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
@@ -8,13 +8,17 @@ import { useCountries } from "@/components/country-select/useCountries";
 import apiService from "@/services/api.service";
 import dynamicBackService from "@/services/back-navigation.service";
 import { useSpinner } from "../spinner/Spinner";
+import secureSessionService from "@/services/secure-session.service";
 
 const getApplicationId = (): string =>
   typeof window !== "undefined"
-    ? (sessionStorage.getItem("ApplicationId") ?? "")
+    ? (secureSessionService.getItem("ApplicationId") ?? "")
     : "";
 
 const MAX_TINS = 3;
+
+const isIndia = (c: { iso2: string; name: string }): boolean =>
+  c.iso2.toUpperCase() === "IN" || c.name.trim().toLowerCase() === "india";
 const TIN_RE = /^[A-Za-z0-9]+$/;
 
 type TinEntry = {
@@ -100,6 +104,7 @@ function SelectField({
   onChange,
   groupClass,
   error,
+  excludeIndia = false,
 }: {
   id: string;
   label: string;
@@ -107,8 +112,13 @@ function SelectField({
   onChange: (v: string) => void;
   groupClass: string;
   error?: string;
+  excludeIndia?: boolean;
 }) {
   const { selectable } = useCountries();
+  const options = useMemo(
+    () => (excludeIndia ? selectable.filter((c) => !isIndia(c)) : selectable),
+    [selectable, excludeIndia],
+  );
   return (
     <div className={groupClass}>
       <label className={styles.fieldLabel} htmlFor={id}>
@@ -125,7 +135,7 @@ function SelectField({
           <option value="" disabled>
             Select
           </option>
-          {selectable.map((c) => (
+          {options.map((c) => (
             <option key={c.iso2} value={c.name}>
               {c.name}
             </option>
@@ -182,6 +192,7 @@ function TinRow({
         onChange={onTaxResidenceChange}
         groupClass={fullGroupClass}
         error={taxResidenceError}
+        excludeIndia
       />
       <SelectField
         id={`${idPrefix}-tinCountry-${index}`}
@@ -190,6 +201,7 @@ function TinRow({
         onChange={onCountryChange}
         groupClass={groupClass}
         error={countryError}
+        excludeIndia
       />
       <div className={groupClass}>
         <label
@@ -275,18 +287,21 @@ export default function FatcaDetails() {
       return hit?.name ?? v;
     };
 
-    // Each saved residency mirrors the submit payload; read defensively across
-    // the plausible key casings.
+    const resolveTinCountry = (v: string): string => {
+      const resolved = resolveCountry(v);
+      return resolved.trim().toLowerCase() === "india" ? "" : resolved;
+    };
+
     const rawTins = Array.isArray(d.taxResidencies)
       ? (d.taxResidencies as Record<string, unknown>[])
       : [];
     const tins: TinEntry[] = rawTins.map((r) => ({
-      taxResidence: resolveCountry(
+      taxResidence: resolveTinCountry(
         str(
           r.countryofTaxResidence ?? r.countryOfTaxResidence ?? r.taxResidence,
         ),
       ),
-      tinIssuingCountry: resolveCountry(str(r.tinIssuingCountry)),
+      tinIssuingCountry: resolveTinCountry(str(r.tinIssuingCountry)),
       tinNumber: str(r.tin ?? r.tinNumber),
     }));
     const safeTins = tins.length > 0 ? tins : [emptyTin()];
@@ -378,11 +393,11 @@ export default function FatcaDetails() {
 
     if (typeof window !== "undefined") {
       const tinsJson = JSON.stringify(form.tins);
-      if (sessionStorage.getItem("fatca_tins") !== tinsJson) {
-        sessionStorage.removeItem("fatca_docids");
+      if (secureSessionService.getItem("fatca_tins") !== tinsJson) {
+        secureSessionService.removeItem("fatca_docids");
       }
-      sessionStorage.setItem("fatca_tins", tinsJson);
-      sessionStorage.setItem(
+      secureSessionService.setItem("fatca_tins", tinsJson);
+      secureSessionService.setItem(
         "fatca_meta",
         JSON.stringify({
           countryOfBirth: form.countryOfBirth,
@@ -394,7 +409,7 @@ export default function FatcaDetails() {
   };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("FATCA", applicationId, {
       push: router.push,
@@ -515,8 +530,8 @@ export default function FatcaDetails() {
     </>
   );
 
-  const title = "Enter FATCA Details";
-  const subtitle = "Enter your overseas address details manually.";
+  const title = "FATCA Details";
+  const subtitle = "Enter your FATCA details.";
 
   return (
     <>

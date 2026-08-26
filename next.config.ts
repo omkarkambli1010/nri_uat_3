@@ -16,12 +16,6 @@ const nextConfig: NextConfig = {
   //trailingSlash: true,
   output: "standalone",
 
-  // /personalDetailsForm/6 (Link Bank Account) was merged into
-  // /manual-bankdetails. The next route is server-driven — the API still returns
-  // the old path after PERSONAL_DETAILS5, and users mid-application have it
-  // cached in sessionStorage.allowedRoutes — so catch it here rather than in
-  // each of the 24 components that push uiMetadata.route. Not permanent: remove
-  // once the backend stops emitting it.
   async redirects() {
     return [
       {
@@ -105,6 +99,28 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.figma.com" },
     ],
     unoptimized: true,
+  },
+
+  // Next 16 builds with Turbopack by default. An empty config is enough here:
+  // Turbopack does not polyfill Node builtins into client bundles, so the old
+  // `webpack.resolve.fallback` stubbing of fs/net/tls is no longer needed.
+  // Declaring this key also silences the "webpack config with no turbopack
+  // config" build error. The `webpack` block below is kept only so `next build
+  // --webpack` remains a working escape hatch if a Turbopack issue turns up.
+  turbopack: {
+    // @splidejs/react-splide@0.7.12 is a broken dual package: its `exports.import`
+    // entry (dist/js/react-splide.esm.js) uses ESM syntax but carries a .js
+    // extension in a package with no `"type": "module"`, so by spec that file is
+    // CommonJS. Webpack sniffed the syntax and coped; Turbopack (the Next 16
+    // default) does not — it resolved `Splide`/`SplideSlide` to `undefined`,
+    // inlined `void 0` into the JSX and tree-shook the package away, so every
+    // <Splide> render threw "Element type is invalid". Point the resolver at the
+    // CJS build, which exports all three components correctly.
+    // Remove once react-splide ships a correctly declared ESM entry.
+    resolveAlias: {
+      "@splidejs/react-splide":
+        "./node_modules/@splidejs/react-splide/dist/js/react-splide.cjs.js",
+    },
   },
 
   webpack: (config) => {

@@ -173,7 +173,7 @@ for consistency; a shared util is possible future cleanup):
 - **OCR / extracted passport fields stay stubbed.** Only the *image* becomes real.
   The Front/Back/Edit screens keep their hard-coded `EXTRACTED_DATA` /
   `INITIAL_FIELDS` — there is no OCR backend.
-- **No `sessionStorage` base64 persistence.** The signature flow caches one ~4 MB
+- **No `secureSessionService` base64 persistence.** The signature flow caches one ~4 MB
   file as base64; two ~5 MB passport files would risk the storage quota. The
   module store covers in-session navigation instead. Hard reload of a preview
   screen redirects back to `/passportUpload/details`.

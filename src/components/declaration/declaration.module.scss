@@ -623,7 +623,21 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   }
 }
 
-// easi / Ideas note — styled as a card to match the questionnaire cards
+.radioItemLocked {
+  cursor: default;
+  user-select: none;
+
+  input[type='radio'] {
+    cursor: default;
+  }
+}
+
+.radioLocked {
+  cursor: default;
+  opacity: 1;
+  pointer-events: none;
+}
+
 .noteBox {
   background: $bg-white;
   border: 1px solid rgba(128, 128, 128, 0.22);
@@ -759,18 +773,35 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 // Figma: 0:105487 (desktop) / 0:105189 (mobile)
 
 @keyframes decl-fsc-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes decl-fsc-scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes decl-fsc-slide-up {
-  from { transform: translateY(100%); }
-  to   { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
 }
 
 .fscOverlay {
@@ -1052,5 +1083,41 @@ $shadow-card-desk: 0px 2px 10px 0px rgba(0, 0, 0, 0.05);
     &:hover {
       background: rgba(128, 128, 128, 0.5);
     }
+  }
+}
+
+
+.pepBulletList {
+  :global(.text-center) {
+    text-align: left;
+  }
+
+  :global(.my-3) {
+    margin-top: 12px;
+    margin-bottom: 12px;
+  }
+
+  :global(.plan_details_dot) {
+    ul {
+      margin: 0;
+      padding-left: 20px;
+      list-style: disc;
+    }
+
+    li {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.55;
+      color: #2b2b2b;
+      margin-bottom: 10px;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  :global(.text-start) {
+    text-align: left;
   }
 }

@@ -1,10 +1,13 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useRouter } from "next/navigation";
 import { useSpinner } from "@/components/spinner/Spinner";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import styles from "./nominee.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { buttonKeyProps } from "@/utils/a11y";
+import secureSessionService from "@/services/secure-session.service";
 // Nominee — Nominee option selection screen (add or opt-out)
 // Equivalent to Angular NomineeComponent
 
@@ -14,7 +17,7 @@ export default function Nominee() {
 
   const formNumber =
     typeof window !== "undefined"
-      ? (sessionStorage.getItem("ApplicationId") ?? "")
+      ? (secureSessionService.getItem("ApplicationId") ?? "")
       : "";
 
   const goToAddNominee = () => {

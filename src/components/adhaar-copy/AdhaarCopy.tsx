@@ -9,6 +9,7 @@ import styles from './adhaar-copy.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import LoadingButton from '@/components/ui/LoadingButton';
 import { useSessionValue } from '@/hooks/useSessionValue';
+import secureSessionService from '@/services/secure-session.service';
 
 function BackArrow() {
   return (
@@ -123,7 +124,7 @@ export default function AdhaarCopy() {
   useEffect(() => {
     navigationService.setRouter(router, hideSpinner);
 
-    const applicationId = sessionStorage.getItem('ApplicationId') ?? '';
+    const applicationId = secureSessionService.getItem('ApplicationId') ?? '';
 
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code') ?? '';
@@ -131,9 +132,9 @@ export default function AdhaarCopy() {
     const hmac = params.get('hmac') ?? '';
     const error = params.get('error') ?? '';
 
-    sessionStorage.setItem('digilockerCallback', JSON.stringify({ code, state, hmac, error }));
-    if (code) sessionStorage.setItem('digilocker_code', code);
-    if (state) sessionStorage.setItem('digilocker_state', state);
+    secureSessionService.setItem('digilockerCallback', JSON.stringify({ code, state, hmac, error }));
+    if (code) secureSessionService.setItem('digilocker_code', code);
+    if (state) secureSessionService.setItem('digilocker_state', state);
     clearDigilockerQueryParams();
     void initAadhaar(applicationId, code);
   }, []);
@@ -154,7 +155,7 @@ export default function AdhaarCopy() {
     showSpinner();
     try {
       const callbackRes = await apiService.digilockerCallback(applicationId, code);
-      sessionStorage.setItem('digilockerCallbackResult', JSON.stringify(callbackRes ?? {}));
+      secureSessionService.setItem('digilockerCallbackResult', JSON.stringify(callbackRes ?? {}));
       if (callbackRes?.status === true) {
         await bindDigilockerWorkflow(applicationId);
       }
@@ -217,7 +218,7 @@ export default function AdhaarCopy() {
     setTimeout(() => {
       let stored: unknown = null;
       try {
-        stored = JSON.parse(sessionStorage.getItem('digilockerCallbackResult') ?? 'null');
+        stored = JSON.parse(secureSessionService.getItem('digilockerCallbackResult') ?? 'null');
       } catch {
         stored = null;
       }

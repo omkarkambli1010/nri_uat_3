@@ -11,29 +11,46 @@ import { publicPath } from "@/utils/publicPath";
 import { useGoogleSignIn } from "@/hooks/useGoogleSignIn";
 import { environment } from "@/environments/environment";
 import { buttonKeyProps } from "@/utils/a11y";
+import secureSessionService from "@/services/secure-session.service";
 
 // EmailHomeScreen — equivalent to Angular EmailHomeScreenComponent
 // Email ID Verification — choose Google OAuth or manual email entry
 // Figma: SEMI--FULL-NRE-NRO — Desktop 1:76220, Mobile 1:72658
 
-const BackArrowSvg = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="#2B2B2B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+function BackArrow() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12H19"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 18"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 6"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function EmailHomeScreen() {
   const router = useRouter();
@@ -67,7 +84,7 @@ export default function EmailHomeScreen() {
   }, []);
 
   const getEmailOtpVerify = async (payload: any) => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!payload) return;
     const reqData = {
@@ -87,6 +104,13 @@ export default function EmailHomeScreen() {
       let route = "";
 
       try {
+        if (response) {
+          secureSessionService.setItem(
+            "AccT",
+            response?.accessToken.toString() ?? "",
+          );
+        }
+
         const uiMetadata = response?.uiMetadata
           ? JSON.parse(response.uiMetadata)
           : null;
@@ -94,7 +118,7 @@ export default function EmailHomeScreen() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {
@@ -124,7 +148,7 @@ export default function EmailHomeScreen() {
 
     fallbackClientCode:
       typeof window !== "undefined"
-        ? sessionStorage.getItem("ApplicationId")
+        ? secureSessionService.getItem("ApplicationId")
         : "",
 
     fallbackflag: "DIYNRI",
@@ -187,8 +211,8 @@ export default function EmailHomeScreen() {
   };
 
   const goBack = () => {
-    sessionStorage.removeItem("mobile");
-    sessionStorage.removeItem("NameSubmitted");
+    secureSessionService.removeItem("mobile");
+    secureSessionService.removeItem("NameSubmitted");
     setTimeout(() => {
       router.push("/home");
       hideSpinner();
@@ -246,7 +270,8 @@ export default function EmailHomeScreen() {
               onClick={goBack}
               aria-label="Go back"
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.mobileTitleBlock}>
               <h5 className={styles.mobileTitle}>Email ID Verification</h5>
@@ -277,7 +302,8 @@ export default function EmailHomeScreen() {
               onClick={goBack}
               aria-label="Go back"
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.desktopTitleBlock}>
               <h5 className={styles.desktopCardTitle}>Email ID Verification</h5>

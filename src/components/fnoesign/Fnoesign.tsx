@@ -9,6 +9,7 @@ import apiService from '@/services/api.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './fnoesign.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import secureSessionService from '@/services/secure-session.service';
 
 export default function Fnoesign() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function Fnoesign() {
 
   useEffect(() => {
     document.title = 'FNO E-Sign | SBI Securities';
-    const fn = sessionStorage.getItem('ApplicationId') ?? '';
+    const fn = secureSessionService.getItem('ApplicationId') ?? '';
     setFormNumber(fn);
     getFnoEsignData(fn);
   }, []);

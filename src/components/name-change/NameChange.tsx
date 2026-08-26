@@ -10,6 +10,7 @@ import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './name-change.module.scss';
 import { useSessionValue } from '@/hooks/useSessionValue';
 import { buttonKeyProps } from "@/utils/a11y";
+import secureSessionService from '@/services/secure-session.service';
 
 // NameChange — Upload name change document (gazette/marriage certificate etc.)
 // Equivalent to Angular NameChangeComponent
@@ -34,7 +35,7 @@ export default function NameChange() {
     showSpinner();
     const reqData = {
       flag: 'NAMECHANGE',
-      formnumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+      formnumber: typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '',
     };
     try {
       const response = await apiService.postRequest('api/v1/WorkflowDetails/getworkflowdata', reqData, hideSpinner);
@@ -62,7 +63,7 @@ export default function NameChange() {
   const upload = async () => {
     showSpinner();
     const reqData = {
-      formNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+      formNumber: typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '',
       flag: 'docBase64String',
       docType: 'NAMECHANGE',
       base64String: imageBase64 || imagePreview,

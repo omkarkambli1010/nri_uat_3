@@ -8,27 +8,45 @@ import apiService from "@/services/api.service";
 import navigationService from "@/services/navigation.service";
 import styles from "./email-home-page.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
+import secureSessionService from "@/services/secure-session.service";
 
 // EmailHomePage — Figma: SEMI--FULL-NRE-NRO / Email ID Verification (text entry)
 // Desktop: 1:76966   Mobile: 1:72753
 
-const BackArrowSvg = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="#2B2B2B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+function BackArrow() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12H19"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 18"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 6"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 // Figma 0:17705 — exclamation circle for invalid email state
 const ExclamationCircleSvg = () => (
@@ -72,7 +90,7 @@ export default function EmailHomePage() {
     navigationService.setRouter(router, hideSpinner);
     const saved =
       typeof window !== "undefined"
-        ? sessionStorage.getItem("email") || ""
+        ? secureSessionService.getItem("email") || ""
         : "";
     setEmail(saved);
   }, []);
@@ -96,12 +114,12 @@ export default function EmailHomePage() {
 
   const getEmailOtp = async () => {
     if (isSendDisabled) return;
-    if (typeof window !== "undefined") sessionStorage.setItem("email", email);
+    if (typeof window !== "undefined") secureSessionService.setItem("email", email);
     showSpinner();
 
     const applicationId =
       typeof window !== "undefined"
-        ? (sessionStorage.getItem("ApplicationId") ?? "")
+        ? (secureSessionService.getItem("ApplicationId") ?? "")
         : "";
     if (!applicationId) {
       toast.error("Your session has expired, please start again.", {
@@ -153,7 +171,8 @@ export default function EmailHomePage() {
               onClick={goBack}
               aria-label="Go back"
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.mobileTitleBlock}>
               <h5 className={styles.mobileTitle}>Email ID Verification</h5>
@@ -219,7 +238,8 @@ export default function EmailHomePage() {
               onClick={goBack}
               aria-label="Go back"
             >
-              <BackArrowSvg />
+              {/* <BackArrowSvg /> */}
+              <BackArrow />
             </button>
             <div className={styles.desktopTitleBlock}>
               <h5 className={styles.desktopCardTitle}>Email ID Verification</h5>

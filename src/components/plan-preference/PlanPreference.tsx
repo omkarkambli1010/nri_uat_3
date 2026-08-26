@@ -6,11 +6,12 @@ import { useSpinner } from "@/components/spinner/Spinner";
 import styles from "./plan-preference.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import apiService from "@/services/api.service";
-import { Splide, SplideSlide } from "@splidejs/react-splide";
+import PlanCarousel from "./PlanCarousel";
 import LoadingButton from "@/components/ui/LoadingButton";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -18,11 +19,13 @@ interface ApiPlan {
   id: string;
   name: string;
   description: string;
-  feeInPaise: number; // raw value from API — displayed as-is, no conversion
+  feeInPaise: number; 
   depository: "NSDL" | "CDSL";
   journeyType: string;
   isCurrent: boolean;
   version: number;
+  etf?: string;
+  schemecharges?: string;
 }
 
 type BenefitKind = "solid" | "carry" | "open";
@@ -37,8 +40,6 @@ interface StaticPlanData {
   equity: { val: string; lbl: string }[];
   derivatives: { val: string; lbl: string }[];
 }
-
-// ─── Static display data keyed by plan name keyword ──────────────────────────
 
 const STATIC_BY_KEY: Record<string, StaticPlanData> = {
   basic: {
@@ -208,9 +209,6 @@ export default function PlanPreference() {
   const [plansLoading, setPlansLoading] = useState(true);
   const [plansError, setPlansError] = useState<string | null>(null);
 
-  // Depository the plans are fetched for. Defaults to NSDL; the radio at the top
-  // switches it (persisted to sessionStorage) and re-fetches. Seeded from the
-  // stored value after mount to avoid a hydration mismatch.
   const [depository, setDepository] = useState<"NSDL" | "CDSL">("NSDL");
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -225,27 +223,20 @@ export default function PlanPreference() {
   );
 
   const rejectStatus = useSessionValue("RejectStatus");
-  // Mobile layout selection by plan count:
-  //   1 plan      → single full-detail card (no carousel)
-  //   2–3 plans   → tab strip + comparison table
-  //   4+ plans    → swipeable carousel of plan cards
   const isSinglePlan = apiPlans.length === 1;
   const isCarousel = apiPlans.length > 3;
 
   useEffect(() => {
-    // Seed the depository from the stored value (default NSDL) and fetch that
-    // depository's plans.
     const stored =
-      sessionStorage.getItem("depository") === "CDSL" ? "CDSL" : "NSDL";
+      secureSessionService.getItem("depository") === "CDSL" ? "CDSL" : "NSDL";
     setDepository(stored);
     void fetchPlans(stored);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPlans = async (dep: "NSDL" | "CDSL" = depository) => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     const journeyType =
-      sessionStorage.getItem("accountType") === "semi-digital"
+      secureSessionService.getItem("accountType") === "semi-digital"
         ? "NriSemiDigital"
         : "NroDigital";
 
@@ -269,10 +260,6 @@ export default function PlanPreference() {
         const sorted = [...plans].sort((a, b) => a.feeInPaise - b.feeInPaise);
         setApiPlans(sorted);
 
-        // No plan is pre-selected by default — the user must actively pick one,
-        // so nothing shows as "Selected" on load or after switching depository.
-        // The only exception is restoring a previously-saved plan (PLANSELECTION
-        // stage) that still exists in THIS depository's list.
         let selectedIdx: number | null = null;
         try {
           const saved =
@@ -283,7 +270,6 @@ export default function PlanPreference() {
             if (matchIdx >= 0) selectedIdx = matchIdx;
           }
         } catch {
-          // Non-fatal — leave nothing selected.
         }
 
         setSelectedIndex(selectedIdx);
@@ -298,11 +284,10 @@ export default function PlanPreference() {
     }
   };
 
-  // Radio change → persist the depository and re-fetch that depository's plans.
   const handleDepositoryChange = (dep: "NSDL" | "CDSL") => {
     if (dep === depository || plansLoading) return;
     setDepository(dep);
-    sessionStorage.setItem("depository", dep);
+    secureSessionService.setItem("depository", dep);
     void fetchPlans(dep);
   };
 
@@ -310,7 +295,7 @@ export default function PlanPreference() {
     const plan = apiPlans[idx];
     if (!plan) return;
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     if (!applicationId) {
       setProceedError("Session expired. Please start again.");
       return;
@@ -326,9 +311,9 @@ export default function PlanPreference() {
         planId: plan.id,
         depository: plan.depository,
       });
-      sessionStorage.setItem("selectedPlan", String(idx));
-      sessionStorage.setItem("planId", plan.id);
-      sessionStorage.setItem("depository", plan.depository);
+      secureSessionService.setItem("selectedPlan", String(idx));
+      secureSessionService.setItem("planId", plan.id);
+      secureSessionService.setItem("depository", plan.depository);
       const route =
         routeFromUiMetadata(response?.uiMetadata) ?? "/CaptureSelfie/1";
       router.push(route);
@@ -346,10 +331,8 @@ export default function PlanPreference() {
     }
   };
 
-  // const backToDeclaration = () => router.push('/planprocess/1');
-
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PLAN_SELECTION", applicationId, {
       push: router.push,
@@ -390,12 +373,29 @@ export default function PlanPreference() {
 
   const middleIndex = Math.floor(apiPlans.length / 2);
 
-  // Depository selector — NSDL / CDSL. Changing it re-fetches the plans for the
-  // chosen depository. Rendered at the top of both the mobile and desktop views
-  // (distinct radio-group names so the two copies don't collide).
   const renderDepositoryRadio = (idSuffix: string) => (
     <div className={styles.depositoryGroup}>
-      <p className={styles.depositoryTitle}>Select Repository:</p>
+      {/* Segment — always selected, not editable */}
+      <div className={styles.segmentGroup}>
+        <label
+          className={`${styles.segmentOption} ${styles.segmentOptionActive}`}
+          htmlFor={`segment-equity-mf-${idSuffix}`}
+        >
+          <input
+            id={`segment-equity-mf-${idSuffix}`}
+            type="checkbox"
+            checked
+            disabled
+            readOnly
+            className={styles.segmentCheckboxInput}
+          />
+          <span className={styles.segmentLabelText}>
+            Equity &amp; Mutual Funds
+          </span>
+        </label>
+      </div>
+
+      <p className={styles.depositoryTitle}>Select Depository:</p>
       <div
         className={styles.depositoryRow}
         role="radiogroup"
@@ -422,8 +422,6 @@ export default function PlanPreference() {
     </div>
   );
 
-  // Full plan card used by the mobile carousel (4+ plans). Reuses the existing
-  // slide-card styles; tap selects, Proceed submits, Know More opens the modal.
   const renderCarouselCard = (plan: ApiPlan, i: number) => {
     const s = getStaticData(plan.name);
     const isSelected = selectedIndex === i;
@@ -488,8 +486,6 @@ export default function PlanPreference() {
     );
   };
 
-  // Desktop plan card. Rendered in a centered flex row for ≤3 plans, or inside
-  // a Splide carousel for 4+ plans.
   const renderDesktopCard = (plan: ApiPlan, i: number) => {
     const s = getStaticData(plan.name);
     const isSelected = selectedIndex === i;
@@ -503,9 +499,6 @@ export default function PlanPreference() {
         onClick={() => setSelectedIndex(i)}
         style={{ cursor: "pointer" }}
       >
-        {/* Floating "Selected" badge — absolutely positioned above the card so it
-            never occupies internal space; every card keeps identical height and
-            row alignment whether or not it's selected (no layout shift). */}
         {isSelected && (
           <span className={styles.dSelectedBadge}>
             <svg
@@ -709,30 +702,24 @@ export default function PlanPreference() {
           {isCarousel && (
             <>
               <div className={styles.splideWrapper}>
-                <Splide
+                <PlanCarousel
                   options={{
                     perPage: 1,
-                    // Center the active card so the previous & next cards peek
-                    // in equally on both sides. The ~22% side padding is what
-                    // controls how much of the neighbours shows — increase it to
-                    // reveal more of the adjacent cards (towards half each).
                     focus: "center",
                     arrows: false,
                     pagination: true,
                     rewind: false,
                     gap: "12px",
                     padding: { left: "22%", right: "22%" },
-                    speed: 300, // smooth-but-quick slide between cards
+                    speed: 300,
                     start: selectedIndex ?? 0,
                   }}
-                  aria-label="Plan options"
-                >
-                  {apiPlans.map((plan, i) => (
-                    <SplideSlide key={plan.id}>
-                      {renderCarouselCard(plan, i)}
-                    </SplideSlide>
-                  ))}
-                </Splide>
+                  ariaLabel="Plan options"
+                  items={apiPlans.map((plan, i) => ({
+                    id: plan.id,
+                    content: renderCarouselCard(plan, i),
+                  }))}
+                />
               </div>
 
               {proceedError && (
@@ -946,7 +933,7 @@ export default function PlanPreference() {
 
             {isCarousel ? (
               <div className={styles.dCarouselWrapper}>
-                <Splide
+                <PlanCarousel
                   options={{
                     perPage: 3,
                     perMove: 1,
@@ -959,14 +946,12 @@ export default function PlanPreference() {
                     speed: 500,
                     easing: "cubic-bezier(0.22, 1, 0.36, 1)",
                   }}
-                  aria-label="Plan options"
-                >
-                  {apiPlans.map((plan, i) => (
-                    <SplideSlide key={plan.id}>
-                      {renderDesktopCard(plan, i)}
-                    </SplideSlide>
-                  ))}
-                </Splide>
+                  ariaLabel="Plan options"
+                  items={apiPlans.map((plan, i) => ({
+                    id: plan.id,
+                    content: renderDesktopCard(plan, i),
+                  }))}
+                />
               </div>
             ) : (
               <div className={styles.dCardsRow}>
@@ -1025,21 +1010,22 @@ export default function PlanPreference() {
             <div className={styles.modalScrollContent}>
               <div className={styles.modalColumnsRow}>
                 <div style={{ flex: 1 }}>
-                  <p className={styles.modalColumnHeader}>Equity</p>
+                  <p className={styles.modalColumnHeader}>Charges</p>
                   <div className={styles.modalList}>
-                    {kmStatic.equity.map((item, fi) => (
-                      <div key={fi}>
-                        <div className={styles.modalListItem}>
-                          <ModalDoneIcon />
-                          <p>
-                            <strong>{item.val}</strong> {item.lbl}
-                          </p>
-                        </div>
-                        {fi < kmStatic.equity.length - 1 && (
-                          <div className={styles.modalItemDivider} />
-                        )}
-                      </div>
-                    ))}
+                    <div className={styles.modalListItem}>
+                      <ModalDoneIcon />
+                      <p>
+                        <strong>ETF:</strong> {kmPlan.etf ?? "-"}
+                      </p>
+                    </div>
+                    <div className={styles.modalItemDivider} />
+                    <div className={styles.modalListItem}>
+                      <ModalDoneIcon />
+                      <p>
+                        <strong>Scheme Charges:</strong>{" "}
+                        {kmPlan.schemecharges ?? "-"}
+                      </p>
+                    </div>
                   </div>
                 </div>
                 {/* <div style={{ flex: 1 }}>
@@ -1062,18 +1048,19 @@ export default function PlanPreference() {
                 </div> */}
               </div>
               <div className={styles.modalListMobile}>
-                {[...kmStatic.equity, ...kmStatic.derivatives].map(
-                  (item, fi) => (
-                    <div key={fi}>
-                      <div className={styles.modalListItem}>
-                        <ModalDoneIcon size={16} />
-                        <p>
-                          <strong>{item.val}</strong> {item.lbl}
-                        </p>
-                      </div>
-                    </div>
-                  ),
-                )}
+                <div className={styles.modalListItem}>
+                  <ModalDoneIcon size={16} />
+                  <p>
+                    <strong>ETF:</strong> {kmPlan.etf ?? "-"}
+                  </p>
+                </div>
+                <div className={styles.modalListItem}>
+                  <ModalDoneIcon size={16} />
+                  <p>
+                    <strong>Scheme Charges:</strong>{" "}
+                    {kmPlan.schemecharges ?? "-"}
+                  </p>
+                </div>
               </div>
             </div>
             <button

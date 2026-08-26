@@ -1,4 +1,5 @@
 import { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
+import secureSessionService from './secure-session.service';
 
 // Navigation Service — equivalent to Angular NavigationService
 // Manages allowed route stack for step-by-step onboarding flow
@@ -24,7 +25,7 @@ class NavigationService {
   private isSemiDigital(): boolean {
     return (
       typeof window !== 'undefined' &&
-      sessionStorage.getItem('accountType') === 'semi-digital'
+      secureSessionService.getItem('accountType') === 'semi-digital'
     );
   }
 
@@ -35,7 +36,7 @@ class NavigationService {
 
   navigateToNextStep(): void {
     if (!this.allowedRoutes.length) {
-      const storedRoutes = sessionStorage.getItem('allowedRoutes');
+      const storedRoutes = secureSessionService.getItem('allowedRoutes');
       if (storedRoutes) {
         this.allowedRoutes = JSON.parse(storedRoutes);
       } else {
@@ -51,11 +52,11 @@ class NavigationService {
     while (this.allowedRoutes.length > 0 && this.shouldSkip(this.allowedRoutes[0])) {
       this.allowedRoutes.shift();
     }
-    sessionStorage.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
+    secureSessionService.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
 
     if (this.allowedRoutes.length > 0) {
       const nextRoute = this.allowedRoutes.shift()!;
-      sessionStorage.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
+      secureSessionService.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
 
       if (nextRoute) {
         this.historyStack.push(nextRoute);
@@ -80,7 +81,7 @@ class NavigationService {
 
   fetchRejectedRoutes(rejectedRoutes: string[], location: string): void {
     this.allowedRoutes = rejectedRoutes;
-    sessionStorage.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
+    secureSessionService.setItem('allowedRoutes', JSON.stringify(this.allowedRoutes));
 
     if (location !== 'Aadhar') {
       this.navigateToNextStep();

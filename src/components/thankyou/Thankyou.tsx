@@ -9,6 +9,7 @@ import { toast } from "@/services/toast.service";
 import LoadingButton from "@/components/ui/LoadingButton";
 import styles from "./thankyou.module.scss";
 import { publicPath } from "@/utils/publicPath";
+import secureSessionService from "@/services/secure-session.service";
 
 // Thankyou component — equivalent to Angular ThankyouComponent
 // Shows application submission confirmation
@@ -17,7 +18,7 @@ export default function Thankyou() {
   const router = useRouter();
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
-  const [personalFormOne, setPersonalFormOne] = useState(true);
+  const [personalFormOne, setPersonalFormOne] = useState(false);
   const [personalFormTwo, setPersonalFormTwo] = useState(false);
   const [personalFormNumber, setPersonalFormNumber] = useState("");
   const [isFno, setIsFno] = useState(false);
@@ -27,32 +28,35 @@ export default function Thankyou() {
   useEffect(() => {
     document.title = "Thank You | SBI Securities";
 
-    const formNumber = sessionStorage.getItem("applicationNumber") ?? "";
+    const formNumber = secureSessionService.getItem("applicationNumber") ?? "";
     setPersonalFormNumber(formNumber);
 
     const queryParams = new URLSearchParams(window.location.search);
     const esign = queryParams.get("esign");
-    const error = queryParams.get("error") ?? "";
+    const errorMessage = queryParams.get("error") ?? "";
 
     if (esign === "n") {
       showSpinner();
 
       setPersonalFormOne(false);
       setPersonalFormTwo(true);
-
-      if (error.includes("is not matched")) {
-        setErrorValue(
-          "Please e-Sign this application using your own Aadhaar details",
-        );
-      } else {
-        setErrorValue(
-          "Looks like the e-sign couldn’t be completed. Please try again. Contact us on 022 6854 5555/ 022 4001 4155",
-        );
-      }
+      setErrorValue(
+        errorMessage ||
+          "Looks like the e-sign couldn’t be completed. Please try again. Contact us on 022 6854 5555 / 022 4001 4155",
+      );
 
       hideSpinner();
     }
-  }, []);
+    else
+    {
+      showSpinner();
+
+      setPersonalFormOne(true);
+      setPersonalFormTwo(false);
+
+      hideSpinner()
+    }
+  }, [showSpinner, hideSpinner]);
 
   const getThankYouData = async () => {
     showSpinner();
@@ -62,7 +66,7 @@ export default function Thankyou() {
         "api/v1/masters/get",
         {
           flag: "GetThankyouDetails",
-          FormNumber: sessionStorage.getItem("applicationNumber"),
+          FormNumber: secureSessionService.getItem("applicationNumber"),
         },
         hideSpinner,
       );
@@ -173,8 +177,8 @@ export default function Thankyou() {
     event.preventDefault();
 
     const applicationId =
-      window.sessionStorage.getItem("ApplicationId") ||
-      window.sessionStorage.getItem("applicationId") ||
+      secureSessionService.getItem("ApplicationId") ||
+      secureSessionService.getItem("applicationId") ||
       "";
 
     if (!applicationId) {
@@ -270,8 +274,8 @@ export default function Thankyou() {
                             marginRight: 6,
                           }}
                         />
-                        If all details are found in order, your account will
-                        be activated within 48 hours.
+                        If all details are found in order, your account will be
+                        activated within 48 hours.
                       </p>
 
                       <p className={styles.successMessage}>
@@ -298,8 +302,7 @@ export default function Thankyou() {
                       )}
 
                       <p className={styles.successMessage}>
-                        Application No. -{" "}
-                        <strong>{personalFormNumber}</strong>
+                        Application No. - <strong>{personalFormNumber}</strong>
                       </p>
 
                       <p className={styles.successMessage}>
@@ -406,7 +409,7 @@ export default function Thankyou() {
           <div className="container">
             <div className="row">
               <div className="col-lg-10 col-12 m-auto">
-                <h5 className="text-center my-3">Thank you</h5>
+                {/* <h5 className="text-center my-3">Thank you</h5> */}
 
                 <form aria-label="Error Form" method="post">
                   <div className="text-center">

@@ -9,6 +9,7 @@ import aesService from '@/services/aes.service';
 import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './fnothankyou.module.scss';
 import { publicPath } from "@/utils/publicPath";
+import secureSessionService from '@/services/secure-session.service';
 
 export default function Fnothankyou() {
   const router = useRouter();
@@ -20,11 +21,11 @@ export default function Fnothankyou() {
   const [errorValue, setErrorValue] = useState('');
 
   const clientid =
-    typeof window !== 'undefined' ? sessionStorage.getItem('clientid') ?? '' : '';
+    typeof window !== 'undefined' ? secureSessionService.getItem('clientid') ?? '' : '';
 
   useEffect(() => {
     document.title = 'FNO Thank You | SBI Securities';
-    const formNumber = sessionStorage.getItem('ApplicationId') ?? '';
+    const formNumber = secureSessionService.getItem('ApplicationId') ?? '';
     setPersonalFormNumber(formNumber);
     getFnoThankYouData();
   }, []);
@@ -34,7 +35,7 @@ export default function Fnothankyou() {
     try {
       const response = await apiService.postRequest('api/v1/masters/get', {
         flag: 'GetFnoThankyouDetails',
-        FormNumber: sessionStorage.getItem('ApplicationId'),
+        FormNumber: secureSessionService.getItem('ApplicationId'),
       }, hideSpinner);
 
       if (response?.status === true) {

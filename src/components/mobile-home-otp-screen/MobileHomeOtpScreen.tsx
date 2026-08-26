@@ -1,57 +1,222 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { InputOtp } from "primereact/inputotp";
 import { toast } from "@/services/toast.service";
 import { useSpinner } from "@/components/spinner/Spinner";
 import apiService from "@/services/api.service";
+import aesService from "@/services/aes.service";
 import styles from "./mobile-home-otp-screen.module.scss";
-// publicPath no longer needed — the inline wrong-OTP message (which used the
-// invalid_otp.png asset) was removed; the backend toasts the OTP error instead.
-// import { publicPath } from "@/utils/publicPath";
 import LoadingButton from "@/components/ui/LoadingButton";
+import { setRejectStatus } from "@/lib/reject-status";
+import secureSessionService from "@/services/secure-session.service";
 
-const BackArrowSvg = () => (
-  <svg
-    width="24"
-    height="24"
-    viewBox="0 0 24 24"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
-    <path
-      d="M15 18L9 12L15 6"
-      stroke="#2B2B2B"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+// ─── Constants ───────────────────────────────────────────────────────────────
 
-const EditSvg = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 20 20"
-    fill="none"
-  >
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M12.6087 3.49506C12.9705 3.3452 13.3583 3.26807 13.7499 3.26807C14.1415 3.26807 14.5293 3.3452 14.8911 3.49506C15.2529 3.64492 15.5816 3.86457 15.8585 4.14148C16.1354 4.41839 16.3551 4.74712 16.5049 5.10892C16.6548 5.47072 16.7319 5.85849 16.7319 6.25009C16.7319 6.64169 16.6548 7.02946 16.5049 7.39126C16.3551 7.75306 16.1354 8.08179 15.8585 8.3587L7.10853 17.1087C6.99132 17.2259 6.83235 17.2918 6.66659 17.2918H3.33325C2.98807 17.2918 2.70825 17.0119 2.70825 16.6668V13.3334C2.70825 13.1677 2.7741 13.0087 2.89131 12.8915L11.6413 4.14148C11.9182 3.86457 12.247 3.64492 12.6087 3.49506Z"
-      fill="#280071"
-    />
-    <path
-      fillRule="evenodd"
-      clipRule="evenodd"
-      d="M10.8081 4.97481C11.0521 4.73073 11.4479 4.73073 11.6919 4.97481L15.0253 8.30814C15.2694 8.55222 15.2694 8.94795 15.0253 9.19202C14.7812 9.4361 14.3855 9.4361 14.1414 9.19202L10.8081 5.85869C10.564 5.61461 10.564 5.21888 10.8081 4.97481Z"
-      fill="#280071"
-    />
-  </svg>
-);
+const OTP_LENGTH = 6;
+const RESEND_SECONDS = 30;
+const PAGE_TITLE =
+  "Open Demat Account - Free Demat & Trading Account Opening Online | SBI Securities";
+
+const MAX_RESEND_ERROR_CODE = "OTP_002";
+
+const TOAST_OPTS = {
+  position: "bottom-center" as const,
+  autoClose: 2000,
+};
+
+const DEEP_LINK_KEYS = [
+  "applicationId",
+  "mobileNumber",
+  "rmCode",
+  "countryCode",
+  "journeyType",
+  "nextStage",
+  "loginProvider",
+  "idempotencyKey",
+  "utmSource",
+  "utmCampaign",
+  "utmMedium",
+  "iSmartId",
+  "promocode",
+  "otpChannel",
+  "request",
+  "name_submitted",
+] as const;
+
+type DeepLinkParams = Record<(typeof DEEP_LINK_KEYS)[number], string>;
+
+type OtpChannel = "sms" | "whatsapp";
+
+// ─── Icons ───────────────────────────────────────────────────────────────────
+
+function BackArrow() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <path
+        d="M5 12H19"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 18"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M5 12L11 6"
+        stroke="#2B2B2B"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function EditSvg() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="16"
+      height="16"
+      viewBox="0 0 20 20"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M12.6087 3.49506C12.9705 3.3452 13.3583 3.26807 13.7499 3.26807C14.1415 3.26807 14.5293 3.3452 14.8911 3.49506C15.2529 3.64492 15.5816 3.86457 15.8585 4.14148C16.1354 4.41839 16.3551 4.74712 16.5049 5.10892C16.6548 5.47072 16.7319 5.85849 16.7319 6.25009C16.7319 6.64169 16.6548 7.02946 16.5049 7.39126C16.3551 7.75306 16.1354 8.08179 15.8585 8.3587L7.10853 17.1087C6.99132 17.2259 6.83235 17.2918 6.66659 17.2918H3.33325C2.98807 17.2918 2.70825 17.0119 2.70825 16.6668V13.3334C2.70825 13.1677 2.7741 13.0087 2.89131 12.8915L11.6413 4.14148C11.9182 3.86457 12.247 3.64492 12.6087 3.49506Z"
+        fill="#280071"
+      />
+      <path
+        fillRule="evenodd"
+        clipRule="evenodd"
+        d="M10.8081 4.97481C11.0521 4.73073 11.4479 4.73073 11.6919 4.97481L15.0253 8.30814C15.2694 8.55222 15.2694 8.94795 15.0253 9.19202C14.7812 9.4361 14.3855 9.4361 14.1414 9.19202L10.8081 5.85869C10.564 5.61461 10.564 5.21888 10.8081 4.97481Z"
+        fill="#280071"
+      />
+    </svg>
+  );
+}
+
+// ─── Pure helpers (no React, no component state) ─────────────────────────────
+
+const readQueryParams = (): DeepLinkParams => {
+  const out = {} as DeepLinkParams;
+  const search =
+    typeof window === "undefined"
+      ? null
+      : new URLSearchParams(window.location.search);
+
+  DEEP_LINK_KEYS.forEach((key) => {
+    out[key] = (search?.get(key) ?? "").trim();
+  });
+  return out;
+};
+
+// Ciphertext arrives URL-safe: the encoder swaps the characters that break in a
+// query string. Mirrors the Angular replaceAll chain in
+// MobileHomeOtpScreenComponent.ngOnInit.
+const normalizeCipher = (value: string): string =>
+  value
+    .replace(/\/slash\/g/g, "/")
+    .replace(/\/plus\/g/g, "+")
+    .replace(/\/equal\/g/g, "=");
+
+// Decrypts an AES param the same way the Angular screen does (clientid used as
+// both key and IV). Returns "" when the param is absent or undecryptable, so a
+// plaintext link is unaffected.
+const decryptParam = (raw: string, clientid: string): string => {
+  if (!raw) return "";
+  try {
+    return aesService.decrypt(
+      normalizeCipher(decodeURIComponent(raw)),
+      clientid,
+      clientid,
+    ) ?? "";
+  } catch {
+    return "";
+  }
+};
+
+// Same rule the home screen uses: Indian numbers get SMS, everyone else
+// WhatsApp.
+const channelForMobile = (mobileNumber: string): OtpChannel =>
+  mobileNumber.startsWith("+91") ? "sms" : "whatsapp";
+
+// The API expects the channel capitalised; the session stores it lower-case.
+const toApiChannel = (channel: string): string =>
+  channel === "whatsapp" ? "WhatsApp" : "Sms";
+
+const parseRoute = (uiMetadata?: string): string => {
+  try {
+    return JSON.parse(uiMetadata ?? "{}").route ?? "";
+  } catch {
+    return "";
+  }
+};
+
+const storeDeepLinkParams = (q: DeepLinkParams, otpChannel: string) => {
+  const entries: Array<[string, string]> = [
+    ["ApplicationId", q.applicationId],
+    ["mobile", q.mobileNumber],
+    ["otpChannel", otpChannel],
+    ["accountType", q.journeyType === "NroDigital" ? "digital" : "semi-digital"],
+    ["journeyType", q.journeyType],
+    ["countryCode", q.countryCode],
+    ["rmCode", q.rmCode],
+    ["nextStage", q.nextStage],
+    ["loginProvider", q.loginProvider],
+    ["idempotencyKey", q.idempotencyKey],
+    ["UTMSOURCE", q.utmSource],
+    ["UTMCAMP", q.utmCampaign],
+    ["UTMMEDIUM", q.utmMedium],
+    ["iSmartId", q.iSmartId],
+    ["promocode", q.promocode],
+  ];
+  // Blank params (rmCode=, idempotencyKey=) are skipped rather than written:
+  // secureSessionService.setItem(key, "") stores an encrypted empty string and
+  // getItem then reports null for it, so writing a blank silently destroys
+  // whatever the previous screen saved under that key.
+  entries.forEach(([key, value]) => {
+    if (value) secureSessionService.setItem(key, value);
+  });
+
+  secureSessionService.setItem(
+    "registerPayload",
+    JSON.stringify({
+      mobileNumber: q.mobileNumber,
+      countryCode: q.countryCode,
+      journeyType: q.journeyType,
+      loginProvider: q.loginProvider || "Mobile",
+      rmCode: q.rmCode || null,
+      idempotencyKey: q.idempotencyKey || null,
+      utmSource: q.utmSource || "NA",
+      utmCampaign: q.utmCampaign || "NA",
+      utmMedium: q.utmMedium || "NA",
+      iSmartId: q.iSmartId || null,
+      promocode: q.promocode || "NA",
+    }),
+  );
+
+  secureSessionService.setItem("deepLinkParams", JSON.stringify(q));
+  secureSessionService.setItem("deepLinkUrl", window.location.href);
+};
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MobileHomeOtpScreen() {
   const router = useRouter();
@@ -60,96 +225,148 @@ export default function MobileHomeOtpScreen() {
   const [otp, setOtp] = useState("");
   const [isWrongOTP, setIsWrongOTP] = useState(false);
   const [isRightOTP, setIsRightOTP] = useState(false);
-  // Re-triggerable flag for the wrong-OTP shake. Cleared on animationend so the
-  // next failed attempt can replay it even if isWrongOTP was already true.
   const [shakeOtp, setShakeOtp] = useState(false);
   const [timeroff, setTimeroff] = useState(true);
-  const [displayMobile, setDisplayMobile] = useState(30);
-  // True once the backend reports OTP_002 ("Maximum resend limit reached"); we
-  // then hide the Resend OTP option since further sends are blocked.
+  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [maxResendReached, setMaxResendReached] = useState(false);
-
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  // mobile and isWhatsApp are rendered, so they must match the server's HTML on
-  // the first client render. sessionStorage only exists on the client, so start
-  // them empty and hydrate the real values in the effect below — reading during
-  // render produces server/client divergence and a hydration mismatch.
   const [mobile, setMobile] = useState("");
   const [isWhatsApp, setIsWhatsApp] = useState(false);
-  // applicationId is only used in handlers (never rendered), so a render-time
-  // read is safe and keeps it available synchronously for the auto-send below.
-  const applicationId =
-    typeof window !== "undefined"
-      ? (sessionStorage.getItem("ApplicationId") ?? "")
-      : "";
-  const channel = isWhatsApp ? "WhatsApp" : "Sms";
+  const [isFromUrl, setIsFromUrl] = useState(false);
 
-  const isVerifyDisabled = otp.length !== 6;
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initRef = useRef(false);
+  const applicationIdRef = useRef("");
 
-  // uiMetadata is a JSON string from the API carrying the next route. Returns '' if absent.
-  const parseRoute = (uiMetadata?: string): string => {
-    try {
-      return JSON.parse(uiMetadata ?? "{}").route ?? "";
-    } catch {
-      return "";
+  const isVerifyDisabled = otp.length !== OTP_LENGTH;
+  const channel = toApiChannel(isWhatsApp ? "whatsapp" : "sms");
+
+  const getApplicationId = useCallback(
+    (): string =>
+      applicationIdRef.current ||
+      secureSessionService.getItem("ApplicationId") ||
+      "",
+    [],
+  );
+  const clearTimer = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-  };
-
-  useEffect(() => {
-    document.title =
-      "Open Demat Account - Free Demat & Trading Account Opening Online | SBI Securities";
-    setMobile(sessionStorage.getItem("mobile") ?? "");
-    setIsWhatsApp(sessionStorage.getItem("otpChannel") === "whatsapp");
-    // The OTP is already sent during registration on the previous screen, so we
-    // do NOT call the send API on page load — just start the resend countdown.
-    startTimer();
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
   }, []);
 
-  const startTimer = () => {
+  const startTimer = useCallback(() => {
     setTimeroff(true);
-    setDisplayMobile(30);
-    if (intervalRef.current) clearInterval(intervalRef.current);
+    setSecondsLeft(RESEND_SECONDS);
+    clearTimer();
     intervalRef.current = setInterval(() => {
-      setDisplayMobile((prev) => {
+      setSecondsLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(intervalRef.current!);
+          clearTimer();
           setTimeroff(false);
           return 0;
         }
         return prev - 1;
       });
     }, 1000);
-  };
+  }, [clearTimer]);
+
+  const redirectToHome = useCallback(
+    (message?: string) => {
+      if (message) toast.error(message, TOAST_OPTS);
+      setTimeout(() => router.push("/home"), 200);
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    document.title = PAGE_TITLE;
+
+    const q = readQueryParams();
+    const isDeepLink = Boolean(q.applicationId);
+
+    setIsFromUrl(isDeepLink);
+
+    const clientid = secureSessionService.getItem("clientid") ?? "";
+
+    const decryptedMobile = decryptParam(q.request, clientid);
+    const decryptedFullname = decryptParam(q.name_submitted, clientid);
+
+    if (decryptedMobile) {
+      secureSessionService.setItem("request", decryptedMobile);
+    }
+    if (decryptedFullname) {
+      secureSessionService.setItem("NameSubmitted", decryptedFullname);
+    }
+
+    const resolvedChannel: OtpChannel = isDeepLink
+      ? q.otpChannel === "whatsapp" || q.otpChannel === "sms"
+        ? q.otpChannel
+        : channelForMobile(q.mobileNumber)
+      : secureSessionService.getItem("otpChannel") === "whatsapp"
+        ? "whatsapp"
+        : "sms";
+
+    if (isDeepLink) {
+      applicationIdRef.current = q.applicationId;
+      storeDeepLinkParams(q, resolvedChannel);
+    }
+
+    const resolvedMobile =
+      (isDeepLink ? q.mobileNumber : "") ||
+      decryptedMobile ||
+      secureSessionService.getItem("request") ||
+      "";
+
+    setMobile(resolvedMobile);
+    setIsWhatsApp(resolvedChannel === "whatsapp");
+
+    secureSessionService.setItem(
+      "deepLinkResolved",
+      JSON.stringify({
+        applicationId: q.applicationId,
+        request: resolvedMobile,
+        channel: resolvedChannel,
+        isDeepLink,
+      }),
+    );
+
+    if (isDeepLink) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
+    startTimer();
+
+    return clearTimer;
+  }, [startTimer, clearTimer]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
 
   const handleOtpChange = (value: string | null | undefined) => {
-    const val = value ?? "";
-    setOtp(val);
+    setOtp(value ?? "");
     if (isWrongOTP) setIsWrongOTP(false);
   };
 
-  const editMobileNumber = () =>
-    setTimeout(() => {
-      router.push("/home");
-    }, 200);
+  const editMobileNumber = () => redirectToHome();
+
+  const markOtpInvalid = () => {
+    setIsWrongOTP(true);
+    setIsRightOTP(false);
+    setShakeOtp(true);
+  };
 
   const getMobileOtp = async (
     isResend: boolean,
     otpChannel: string = channel,
   ) => {
+    const applicationId = getApplicationId();
     if (!applicationId) {
-      toast.error("Your session has expired, please start again.", {
-        position: "bottom-center",
-        autoClose: 2000,
-      });
-      setTimeout(() => {
-        router.push("/home");
-      }, 200);
+      redirectToHome("Your session has expired, please start again.");
       return;
     }
+
     showSpinner();
     try {
       const response = await apiService.sendNriOtp(
@@ -158,39 +375,34 @@ export default function MobileHomeOtpScreen() {
         hideSpinner,
       );
       hideSpinner();
-      // Keep the countdown running regardless of the send status.
       startTimer();
       setOtp("");
       if (response && isResend) {
-        toast.success("OTP sent successfully!", {
-          position: "bottom-center",
-          autoClose: 2000,
-        });
+        toast.success("OTP sent successfully!", TOAST_OPTS);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       hideSpinner();
-      // OTP_002 = max resend limit reached → replace the timer with the Home option.
-      if (error?.response?.data?.errorCode === "OTP_002") {
+
+      const errorCode = (
+        error as { response?: { data?: { errorCode?: string } } }
+      )?.response?.data?.errorCode;
+
+      if (errorCode === MAX_RESEND_ERROR_CODE) {
         setMaxResendReached(true);
-        if (intervalRef.current) clearInterval(intervalRef.current);
+        clearTimer();
         return;
       }
-      // Any other failure: keep the timer running so the user can retry resend.
       startTimer();
     }
   };
 
   const getMobileOtpVerify = async () => {
+    const applicationId = getApplicationId();
     if (!applicationId) {
-      toast.error("Your session has expired, please start again.", {
-        position: "bottom-center",
-        autoClose: 2000,
-      });
-      setTimeout(() => {
-        router.push("/home");
-      }, 200);
+      redirectToHome("Your session has expired, please start again.");
       return;
     }
+
     showSpinner();
     try {
       const response = await apiService.verifyNriOtp(
@@ -200,31 +412,69 @@ export default function MobileHomeOtpScreen() {
         hideSpinner,
       );
       hideSpinner();
-      if (response) {
-        setIsRightOTP(true);
-        setIsWrongOTP(false);
-        toast.success("OTP verified successfully!", {
-          position: "bottom-center",
-          autoClose: 2000,
-        });
-        // Routing is driven by the API via uiMetadata; fall back to /email.
-        const nextRoute = parseRoute(response.uiMetadata);
-        router.push(nextRoute ? `/${nextRoute}` : "/email");
-      } else {
-        setIsWrongOTP(true);
-        setIsRightOTP(false);
-        setShakeOtp(true);
+
+      if (!response) {
+        markOtpInvalid();
+        return;
       }
+
+      secureSessionService.setItem(
+        "AccT",
+        response?.accessToken?.toString() ?? "",
+      );
+      secureSessionService.setItem(
+        "NomineeOptOut",
+        response?.NomineeOptOut?.toString() ?? "true",
+      );
+      setRejectStatus(response?.rejectStatus);
+      setIsRightOTP(true);
+      setIsWrongOTP(false);
+      toast.success("OTP verified successfully!", TOAST_OPTS);
+
+      const nextRoute = parseRoute(response.uiMetadata);
+      router.push(nextRoute ? `/${nextRoute}` : "/email");
     } catch {
-      // The backend message is already toasted by apiService.handleError.
-      setIsWrongOTP(true);
-      setIsRightOTP(false);
-      setShakeOtp(true);
+      markOtpInvalid();
       hideSpinner();
     }
   };
 
-  const otpInputClass = `${styles.otpBox}${isWrongOTP ? ` ${styles.otpBoxError}` : isRightOTP ? ` ${styles.otpBoxSuccess}` : ""}`;
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const otpInputClass = [
+    styles.otpBox,
+    isWrongOTP ? styles.otpBoxError : "",
+    !isWrongOTP && isRightOTP ? styles.otpBoxSuccess : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const channelHint = isWhatsApp
+    ? "You will receive OTP on your WhatsApp"
+    : "You will receive OTP on your mobile number";
+
+  const backButton = (className: string) =>
+    !isFromUrl && (
+      <button
+        type="button"
+        className={className}
+        onClick={editMobileNumber}
+        aria-label="Go back"
+      >
+        <BackArrow />
+      </button>
+    );
+
+  const verifyButton = (base: string, disabledClass: string) => (
+    <LoadingButton
+      type="button"
+      className={`${base}${isVerifyDisabled ? ` ${disabledClass}` : ""}`}
+      onClick={getMobileOtpVerify}
+      disabled={isVerifyDisabled}
+    >
+      Verify
+    </LoadingButton>
+  );
 
   const otpForm = (
     <div className={styles.otpBody}>
@@ -243,10 +493,9 @@ export default function MobileHomeOtpScreen() {
 
       {/* OTP input */}
       <div className={styles.otpField}>
-        {/* The label is a group label (InputOtp renders 6 separate inputs, so a
-            single htmlFor can't target them); the wrapper is a labelled group so
-            screen readers announce "Enter OTP, group" on entry. */}
-        <span id="mob-otp-label" className={styles.otpLabel}>Enter OTP</span>
+        <span id="mob-otp-label" className={styles.otpLabel}>
+          Enter OTP
+        </span>
         <div
           className={`${styles.otpInputWrap}${shakeOtp ? ` ${styles.shake}` : ""}`}
           onAnimationEnd={() => setShakeOtp(false)}
@@ -256,35 +505,17 @@ export default function MobileHomeOtpScreen() {
           <InputOtp
             value={otp}
             onChange={(e) => handleOtpChange(e.value as string)}
-            length={6}
+            length={OTP_LENGTH}
             integerOnly
-            aria-label="Enter the 6 digit OTP sent to your mobile number"
+            aria-label={`Enter the ${OTP_LENGTH} digit OTP sent to your mobile number`}
             pt={{ input: { root: { className: otpInputClass } } }}
           />
         </div>
-        {/* Inline OTP error message removed per BRD: the backend already toasts
-            "Incorrect OTP. Please try again." via apiService.handleError, so this
-            hardcoded message caused two messages to show for one failure.
-        {isWrongOTP && (
-          <div className={styles.otpError}>
-            <img
-              src={publicPath("/assets/images/diy/invalid_otp.png")}
-              alt=""
-              aria-hidden
-            />
-            <span>
-              Please enter the valid 6 digit OTP sent to your mobile number.
-            </span>
-          </div>
-        )}
-        */}
       </div>
 
       {/* Resend row */}
       <div className={styles.resendRow}>
         {maxResendReached ? (
-          // BRD: on hitting the resend limit, show only this message — no Home
-          // (or any) button. Resend is locked for 15 minutes.
           <span className={styles.resendTimer}>
             Maximum resend attempts reached. Please try again after 15 mins.
           </span>
@@ -295,7 +526,7 @@ export default function MobileHomeOtpScreen() {
             </span>
             {timeroff ? (
               <span className={styles.resendTimer}>
-                Resend OTP : {displayMobile} sec
+                Resend OTP : {secondsLeft} sec
               </span>
             ) : (
               <button
@@ -321,21 +552,10 @@ export default function MobileHomeOtpScreen() {
       >
         <div className={styles.mobileHeader}>
           <div className={styles.mobileHeaderInner}>
-            <button
-              type="button"
-              className={styles.mobileBackBtn}
-              onClick={editMobileNumber}
-              aria-label="Go back"
-            >
-              <BackArrowSvg />
-            </button>
+            {backButton(styles.mobileBackBtn)}
             <div className={styles.mobileTitleBlock}>
               <h5 className={styles.mobileTitle}>OTP Verification</h5>
-              <p className={styles.mobileSubtitle}>
-                {isWhatsApp
-                  ? "You will receive OTP on your WhatsApp"
-                  : "You will receive OTP on your mobile number"}
-              </p>
+              <p className={styles.mobileSubtitle}>{channelHint}</p>
             </div>
           </div>
         </div>
@@ -343,14 +563,10 @@ export default function MobileHomeOtpScreen() {
         <div className={styles.mobileCard}>{otpForm}</div>
 
         <div className={styles.mobileProceedArea}>
-          <LoadingButton
-            type="button"
-            className={`${styles.mobileProceedBtn}${isVerifyDisabled ? ` ${styles.mobileProceedBtnDisabled}` : ""}`}
-            onClick={getMobileOtpVerify}
-            disabled={isVerifyDisabled}
-          >
-            Verify
-          </LoadingButton>
+          {verifyButton(
+            styles.mobileProceedBtn,
+            styles.mobileProceedBtnDisabled,
+          )}
         </div>
       </section>
 
@@ -361,35 +577,20 @@ export default function MobileHomeOtpScreen() {
       >
         <div className={styles.desktopCard}>
           <div className={styles.desktopCardHeader}>
-            <button
-              type="button"
-              className={styles.desktopBackBtn}
-              onClick={editMobileNumber}
-              aria-label="Go back"
-            >
-              <BackArrowSvg />
-            </button>
+            {backButton(styles.desktopBackBtn)}
             <div className={styles.desktopTitleBlock}>
               <h5 className={styles.desktopCardTitle}>OTP Verification</h5>
-              <p className={styles.desktopCardSubtitle}>
-                {isWhatsApp
-                  ? "You will receive OTP on your WhatsApp"
-                  : "You will receive OTP on your mobile number"}
-              </p>
+              <p className={styles.desktopCardSubtitle}>{channelHint}</p>
             </div>
           </div>
 
           <div className={styles.desktopCardBody}>
             {otpForm}
             <div className={styles.desktopProceedWrapper}>
-              <LoadingButton
-                type="button"
-                className={`${styles.desktopProceedBtn}${isVerifyDisabled ? ` ${styles.desktopProceedBtnDisabled}` : ""}`}
-                onClick={getMobileOtpVerify}
-                disabled={isVerifyDisabled}
-              >
-                Verify
-              </LoadingButton>
+              {verifyButton(
+                styles.desktopProceedBtn,
+                styles.desktopProceedBtnDisabled,
+              )}
             </div>
           </div>
         </div>

@@ -12,6 +12,7 @@ import styles from './upload-process.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import LoadingButton from '@/components/ui/LoadingButton';
 import dynamicBackService from '@/services/back-navigation.service';
+import secureSessionService from '@/services/secure-session.service';
 // Convert 'YYYY-MM-DD' string → Date | null  (for Calendar value prop)
 const strToDate = (s: string): Date | null => (s ? new Date(s) : null);
 
@@ -243,14 +244,14 @@ export default function UploadProcess() {
     document.title = "PAN Details | SBI Securities";
     const fn =
       (params?.formNumber as string) ??
-      sessionStorage.getItem("FormNumber") ??
+      secureSessionService.getItem("FormNumber") ??
       "";
     setFormNumber(fn);
     loadExistingData();
   }, [params]);
 
   const loadExistingData = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     if (!applicationId) return;
 
     showSpinner();
@@ -329,7 +330,7 @@ export default function UploadProcess() {
 
   //   setShowVerifying(true);
 
-  //   const accountType = sessionStorage.getItem('accountType');
+  //   const accountType = secureSessionService.getItem('accountType');
   //   const nextRoute =
   //     accountType === 'digital'      ? '/permanent-address-details' :
   //     accountType === 'semi-digital' ? '/personalDetailsForm/1'     :
@@ -344,7 +345,7 @@ export default function UploadProcess() {
     if (!validate()) return;
 
     const applicationId =
-      sessionStorage.getItem("ApplicationId") ??
+      secureSessionService.getItem("ApplicationId") ??
       "";
 
     if (!applicationId) {
@@ -411,7 +412,7 @@ export default function UploadProcess() {
   // };
 
    const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PAN_VERIFICATION", applicationId, {
       push: router.push,

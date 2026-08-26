@@ -5,19 +5,18 @@ $dark: #25313c;
 $dark-grey: #231f20;
 
 // ===== Scroll / load reveal animation =====
-// Each top-level section/footer starts hidden and fades + slides into view
-// when it enters the viewport (or on load, for above-the-fold content).
 .homeRoot {
-  > section,
-  > footer {
+
+  >section,
+  >footer {
     opacity: 0;
     transform: translateY(28px);
     transition: opacity 0.7s ease, transform 0.7s ease;
     will-change: opacity, transform;
   }
 
-  > section.revealVisible,
-  > footer.revealVisible {
+  >section.revealVisible,
+  >footer.revealVisible {
     opacity: 1;
     transform: none;
   }
@@ -25,8 +24,9 @@ $dark-grey: #231f20;
 
 @media (prefers-reduced-motion: reduce) {
   .homeRoot {
-    > section,
-    > footer {
+
+    >section,
+    >footer {
       opacity: 1;
       transform: none;
       transition: none;
@@ -39,7 +39,12 @@ $dark-grey: #231f20;
   padding: 0;
   overflow: hidden;
   position: relative;
-  background: linear-gradient(160.85deg, #eff6ff 0%, #eef2ff 50%, #faf5ff 100%);
+  background-image: var(--banner-bg, none),
+    linear-gradient(160.85deg, #eff6ff 0%, #eef2ff 50%, #faf5ff 100%);
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: cover, cover;
+
 
   .bannerImg {
     min-height: 500px;
@@ -112,148 +117,101 @@ $dark-grey: #231f20;
   }
 }
 
-.bannerHeadline {
-  font-size: 45px;
-  font-weight: 700;
-  color: #292075;
-  line-height: 50px;
-  margin: 0;
-
-  @media (max-width: 991px) {
-    font-size: 32px;
-    line-height: 40px;
-  }
-
-  @media (max-width: 767px) {
-    font-size: 28px;
-    line-height: 36px;
-  }
+.heroRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-.phoneContainer {
-  position: relative;
-  height: 265px;
-
-  @media (max-width: 767px) {
-    height: 220px;
-  }
+.heroText {
+  flex: 1.8;
 }
 
-.phoneMockup {
-  position: absolute;
-  left: 119px;
-  top: 0;
-  width: 229px;
-  height: 265px;
-  object-fit: cover;
+.heroArt {
+  flex: 1.5;
+  display: none;
 
-  @media (max-width: 767px) {
-    left: 50%;
-    transform: translateX(-50%);
-    width: 160px;
+  @media (min-width: 992px) {
+    display: block;
+  }
+
+  img {
+    max-width: 100%;
     height: auto;
   }
 }
 
-// Floating info cards — positions match Figma node 0-28 exactly
-.floatingCard {
-  position: absolute;
-  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.3);
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  border-radius: 14px;
-}
-
-.cardZero {
-  background: #eae8ff;
-  border-radius: 8px;
-  left: 8px;
-  top: 38px;
-  width: 140px;
-  padding: 10px 5px;
-
-  @media (max-width: 767px) {
-    left: 0;
-    top: 24px;
-    transform: scale(0.85);
-    transform-origin: top left;
-  }
-}
-
-.cardRate {
-  background: #e6f6fc;
-  left: 367px;
-  top: 6px;
-  width: 130px;
-
-  @media (max-width: 767px) {
-    left: auto;
-    right: 0;
-    top: 6px;
-    transform: scale(0.85);
-    transform-origin: top right;
-  }
-}
-
-.cardFree {
-  background: #fce8ed;
-  left: 302px;
-  top: 183px;
-  width: 130px;
-
-  @media (max-width: 767px) {
-    left: auto;
-    right: 0;
-    top: auto;
-    bottom: 0;
-    transform: scale(0.85);
-    transform-origin: bottom right;
-  }
-}
-
-.cardValuePrimary {
-  display: block;
-  font-size: 30px;
+.heroTitle {
   font-weight: 700;
-  color: #292075;
+  font-size: 30px;
   line-height: 1.2;
+  color: #292075;
+  margin: 0 0 8px;
+
+  @media (min-width: 992px) {
+    font-size: 48px;
+  }
 }
 
-.cardValueBlue {
-  display: block;
-  font-size: 30px;
-  font-weight: 700;
-  color: #00a7e1;
-  line-height: 24.5px;
+.heroAccent {
+  font-weight: 400;
+  font-size: 18px;
+  color: #292075;
+  margin: 0 0 8px;
+
+  @media (min-width: 992px) {
+    font-size: 24px;
+  }
 }
 
-.cardValueRed {
-  display: block;
-  font-size: 30px;
-  font-weight: 700;
-  color: #d71e53;
-  line-height: 24.5px;
-}
-
-.cardDesc {
-  display: block;
-  font-size: 12px;
-  color: #4a5565;
-  line-height: 14px;
-  width: 107px;
-  text-align: center;
-  margin-top: 4px;
-}
-
-.rupeeSymbol {
+.heroSub {
+  font-weight: 600;
   font-size: 20px;
+  line-height: 28px;
+  color: #292075;
+  margin: 0 0 16px;
+
+  @media (min-width: 992px) {
+    font-size: 30px;
+    line-height: 36px;
+    margin-bottom: 24px;
+  }
 }
 
-// ===== Form Card =====
+.heroCtaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.heroCta {
+  border: 2px solid #292075;
+  border-radius: 8px;
+  font-weight: 500;
+  font-size: 16px;
+  color: #292075;
+  padding: 14px 30px;
+  text-decoration: none;
+  text-align: center;
+  width: 100%;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  &:hover,
+  &:focus {
+    background: #292075;
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 3px solid rgba(41, 32, 117, 0.35);
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 776px) {
+    width: auto;
+  }
+}
+
 .mobileForm {
   background: $white;
   border-radius: 15px;
@@ -289,28 +247,18 @@ $dark-grey: #231f20;
 
 }
 
-// Country-code selector + mobile number, side by side. The country list is
-// API-driven (no flag sprites); the code box auto-sizes, the number fills the
-// rest.
 .phoneRow {
   display: flex;
   gap: 8px;
   align-items: stretch;
   margin-bottom: 8px;
 
-  // The country-code dropdown root is a <div>, so the broad `.mobileForm div`
-  // rule gives it a 16px bottom margin — under align-items: stretch that makes
-  // the trigger render shorter than the input and sit high. Zero it so the
-  // trigger and the mobile input are exactly the same height and aligned.
   div {
     margin-bottom: 0;
   }
 
   :global(.otp_field) {
     flex: 1 1 auto;
-    // Drop the default 8px bottom margin so the input matches the height of the
-    // country-code trigger (align-items: stretch); spacing below the row is
-    // handled by the wrapping <div>.
     margin-bottom: 0;
   }
 }
@@ -341,7 +289,6 @@ $dark-grey: #231f20;
   }
 }
 
-// ===== Form gradient submit button =====
 .submitBtn {
   background: linear-gradient(90deg, #2a2076 0%, #2a2076 32%, #d82053 100%) !important;
   color: $white !important;
@@ -843,7 +790,7 @@ $dark-grey: #231f20;
     border-radius: 50%;
     opacity: 1;
     box-shadow: 5.064px 5.064px 17.362px rgba(0, 0, 0, 0.06),
-                0 0 0 0.723px rgba(35, 31, 32, 0.12);
+      0 0 0 0.723px rgba(35, 31, 32, 0.12);
 
     svg {
       fill: #6d7d8b;
@@ -891,6 +838,7 @@ $dark-grey: #231f20;
     from {
       opacity: 0;
     }
+
     to {
       opacity: 1;
     }
@@ -914,6 +862,7 @@ $dark-grey: #231f20;
       transform: translateY(20px);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -1158,7 +1107,7 @@ $dark-grey: #231f20;
   margin: 0;
   padding: 0;
 
-  > li {
+  >li {
     position: relative;
     padding-left: 28px;
     margin-bottom: 16px;
@@ -1236,6 +1185,7 @@ $dark-grey: #231f20;
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1533,3 +1483,92 @@ $dark-grey: #231f20;
   scroll-margin-top: 84px;
 }
 
+
+// ===== RM code lookup (mirrors the IFSC search field) =====
+.rmWrapper {
+  position: relative;
+
+  // `.mobileForm div` adds a 16px bottom margin to every nested div; the
+  // spacing here is owned by the wrapping block instead.
+  margin-bottom: 0;
+
+  :global(.otp_field) {
+    margin-bottom: 0;
+  }
+}
+
+.rmInput {
+  padding-right: 34px; // room for the chevron
+  // No text-transform: the field also accepts names, which shouldn't be forced
+  // to upper case while typing.
+}
+
+.rmChevron {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  pointer-events: none;
+}
+
+.rmDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 100%;
+  z-index: 20;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+}
+
+.rmOption {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 12px;
+  cursor: pointer;
+
+  &:hover {
+    background: #f5f3fb;
+  }
+}
+
+.rmOptionActive {
+  background: #f5f3fb;
+}
+
+.rmCode {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2a1f75;
+}
+
+.rmOptionDash {
+  font-size: 13px;
+  color: #999;
+}
+
+.rmName {
+  font-size: 13px;
+  color: #444;
+}
+
+.rmNoResults {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #888;
+  cursor: default;
+}
+
+// A picked RM shows as "FTC11054 - Aaliya Fatema Shaukat Ali" inside the field
+// itself, so there is no separate confirmation line to style.

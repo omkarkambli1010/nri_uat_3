@@ -15,6 +15,7 @@ import {
 import { signatureStore, type PendingSignature } from "./signatureStore";
 import styles from "./upload-signature.module.scss";
 import blobService from "@/services/blob.service";
+import secureSessionService from "@/services/secure-session.service";
 
 type VerifyFile = PendingSignature;
 
@@ -257,7 +258,7 @@ export default function UploadSignature() {
   const [verifyFile, setVerifyFile] = useState<VerifyFile | null>(null);
 
   // Saved signature's documentId from the SIGNATURE stage — held in a ref (no
-  // longer persisted to sessionStorage) and used as the documentId on proceed().
+  // longer persisted to secureSessionService) and used as the documentId on proceed().
   const savedDocumentIdRef = useRef<string>("");
 
   // Mirror of verifyFile so the async stage fetch can tell whether the user has
@@ -279,7 +280,7 @@ export default function UploadSignature() {
   }, []);
 
   useEffect(() => {
-    setIsRejectStatus(sessionStorage.getItem("RejectStatus") === "R");
+   //setIsRejectStatus(secureSessionService.getItem("RejectStatus") === "R");
     navigationService.setRouter(router, hideSpinner);
   }, [router, hideSpinner]);
 
@@ -290,7 +291,7 @@ export default function UploadSignature() {
   // AND Proceed can re-submit the same image. Never clobbers a signature the
   // user has just drawn or picked.
   useEffect(() => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     if (!applicationId) return;
 
     let alive = true;
@@ -601,7 +602,7 @@ export default function UploadSignature() {
       return;
     }
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
@@ -610,7 +611,7 @@ export default function UploadSignature() {
 
     const documentId =
       savedDocumentIdRef.current ||
-      sessionStorage.getItem("DocumentId") ||
+      secureSessionService.getItem("DocumentId") ||
       "3fa85f64-5717-4562-b3fc-2c963f66afa6";
 
     if (!documentId) {
@@ -688,7 +689,7 @@ export default function UploadSignature() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {

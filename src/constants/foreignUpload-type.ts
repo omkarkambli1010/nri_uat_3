@@ -8,7 +8,7 @@ export const FOREIGN_UPLOAD_TYPES = {
   BankStatement: 'Bank Statement',
   UtilityBillWaterGasElectricity: 'Utility Bill / Water / Gas / Electricity',
   IqamaOrNationalAddressCertificate: 'Iqama / National Address Certificate',
-  CompanyAccommodationLetter: 'Company Accommodation Letter',
+  CompanyAccommodationLetter: 'Company Accommodation Letter + Employee ID',
   UniversityLetterOrStudentId: 'University Letter / Student ID',
   ResidentPermitOrVisa: 'Resident Permit / Visa',
   LeaseAgreement: 'Lease Agreement',

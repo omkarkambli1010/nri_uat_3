@@ -10,6 +10,9 @@ import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
 import styles from './visa.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import dynamicBackService from "@/services/back-navigation.service";
+import { useSpinner } from "../spinner/Spinner";
+import secureSessionService from '@/services/secure-session.service';
 
 // VisaEntry — /visa merged screen. Captures the visa expiry and the Front/Back
 // (required) + Additional (optional) document uploads on one page, then submits
@@ -24,7 +27,7 @@ const SIZE_ERR = 'File size exceeds 5MB. Please upload PDF, JPG, JPEG, HEIC, PNG
 const TYPE_ERR = 'Unsupported file type. Please upload PDF, JPG, JPEG, HEIC, PNG only.';
 
 const getApplicationId = (): string =>
-  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+  typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
 
 // Pull the document id out of the upload response across plausible key casings.
 const pickDocId = (r: unknown): string => {
@@ -88,9 +91,8 @@ function IconExclamationCircle() {
 
 export default function VisaEntry() {
   const router = useRouter();
-
-  // ── Expiry (from the former /visa entry screen) ────────────────────────────
   const [expiryDate, setExpiryDate] = useState('');
+  const { show: showSpinner, hide: hideSpinner } = useSpinner();
 
   // ── Uploads (from the former /visa/upload screen) ──────────────────────────
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
@@ -139,11 +141,11 @@ export default function VisaEntry() {
         const front = str(d.frontDocumentId);
         const back = str(d.backDocumentId);
         const translation = str(d.translationDocumentId);
-        if (front) { setFrontDocumentId(front); sessionStorage.setItem('frontDocumentId', front); }
-        if (back) { setBackDocumentId(back); sessionStorage.setItem('backDocumentId', back); }
+        if (front) { setFrontDocumentId(front); secureSessionService.setItem('frontDocumentId', front); }
+        if (back) { setBackDocumentId(back); secureSessionService.setItem('backDocumentId', back); }
         if (translation) {
           setTranslationDocumentId(translation);
-          sessionStorage.setItem('translationDocumentId', translation);
+          secureSessionService.setItem('translationDocumentId', translation);
         }
 
         // Saved document previews from documents[] (keyed by documentType).
@@ -178,7 +180,7 @@ export default function VisaEntry() {
   }, []);
 
   // Real upload — POST the cropped file to documents/upload and capture the
-  // returned documentId (also persisted to sessionStorage). Rejecting marks the
+  // returned documentId (also persisted to secureSessionService). Rejecting marks the
   // FileUploadCard as failed so the success state only reflects a real 200.
   const makeUploadFn =
     (
@@ -197,7 +199,7 @@ export default function VisaEntry() {
         if (!id) throw new Error(res?.message || 'Upload failed. Please try again.');
         onProgress(100);
         setId(id);
-        sessionStorage.setItem(storageKey, id);
+        secureSessionService.setItem(storageKey, id);
       };
 
   const uploadFront = makeUploadFn('VisaFront', setFrontDocumentId, 'frontDocumentId');
@@ -214,7 +216,7 @@ export default function VisaEntry() {
     const id = pickDocId(res);
     if (!id) throw new Error(res?.message || 'Upload failed. Please try again.');
     setTranslationDocumentId(id);
-    sessionStorage.setItem('translationDocumentId', id);
+    secureSessionService.setItem('translationDocumentId', id);
   };
 
   // Keep translationDocumentId in step with the additional-document card — if the
@@ -223,7 +225,7 @@ export default function VisaEntry() {
   useEffect(() => {
     if (!additionalFiles.some((f) => f.status === 'success')) {
       setTranslationDocumentId('');
-      if (typeof window !== 'undefined') sessionStorage.removeItem('translationDocumentId');
+      if (typeof window !== 'undefined') secureSessionService.removeItem('translationDocumentId');
     }
   }, [additionalFiles]);
 
@@ -240,17 +242,26 @@ export default function VisaEntry() {
   // uploaded. The additional document stays optional, so it never blocks Proceed.
   const isDisabled = !expiryValid || !frontUploaded || !backUploaded;
 
-  const handleBack = () => router.back();
+  // const handleBack = () => router.back();
+  const handleBack = async () => {
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
+    await dynamicBackService("VISA", applicationId, {
+      push: router.push,
+      showSpinner,
+      hideSpinner,
+    });
+  };
 
-  // Visa payload for POST /visa. Document ids fall back to sessionStorage if
+
+  // Visa payload for POST /visa. Document ids fall back to secureSessionService if
   // state isn't set yet. Missing ids are sent as null (NOT empty string) — the
   // API rejects "" for the GUID fields, which fails body binding; null is
   // accepted. The visa detail fields are not captured on this screen.
   const buildVisaPayload = () => {
-    const front = frontDocumentId || sessionStorage.getItem('frontDocumentId') || '';
-    const back = backDocumentId || sessionStorage.getItem('backDocumentId') || '';
+    const front = frontDocumentId || secureSessionService.getItem('frontDocumentId') || '';
+    const back = backDocumentId || secureSessionService.getItem('backDocumentId') || '';
     const translation =
-      translationDocumentId || sessionStorage.getItem('translationDocumentId') || '';
+      translationDocumentId || secureSessionService.getItem('translationDocumentId') || '';
 
     return {
       visaNumber: null,

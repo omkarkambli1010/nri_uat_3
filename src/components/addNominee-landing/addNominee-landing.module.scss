@@ -356,6 +356,11 @@
   gap: 24px;
   align-items: center;
   animation: popupSlideUp 0.18s ease-out;
+
+  // The declaration is far taller than the old one-line message, so the card
+  // is capped and the body scrolls instead of the modal running off-screen.
+  max-height: calc(100vh - 32px);
+  overflow: hidden;
 }
 
 @keyframes popupSlideUp {
@@ -369,6 +374,7 @@
   justify-content: space-between;
   gap: 16px;
   width: 100%;
+  flex-shrink: 0;
 }
 
 .popupTitle {
@@ -415,9 +421,67 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 
   &:hover {
     background: #3d0087;
+  }
+}
+
+// ── Opt-out declaration body (shared by the modal and the sheet) ─────────────
+
+.declarationBody {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0; // lets the flex child actually shrink so overflow applies
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.declarationPara {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: #2b2b2b;
+  line-height: 1.5;
+}
+
+.declarationList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+// Roman markers sit in their own column so wrapped lines stay aligned with
+// the text rather than running back under the marker.
+.declarationItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 400;
+  color: #2b2b2b;
+  line-height: 1.5;
+}
+
+.declarationMarker {
+  flex: 0 0 32px;
+  color: #2b2b2b;
+}
+
+@media (min-width: 992px) {
+  .declarationBody {
+    gap: 12px;
+  }
+
+  .declarationList {
+    gap: 12px;
   }
 }
 
@@ -448,6 +512,10 @@
   gap: 24px;
   align-items: center;
   animation: sheetSlideUp 0.22s ease-out;
+
+  // Same reasoning as .popupCard: cap the sheet and let the text scroll.
+  max-height: 88vh;
+  overflow: hidden;
 }
 
 @keyframes sheetSlideUp {
@@ -484,6 +552,11 @@
   flex-direction: column;
   gap: 16px;
   align-items: flex-start;
+
+  // Holds the title plus the scrolling declaration.
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .sheetTitle {
@@ -493,6 +566,7 @@
   color: #2b2b2b;
   margin: 0;
   line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .sheetMessage {
@@ -514,6 +588,7 @@
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
 
   &:hover {
     background: #3d0087;

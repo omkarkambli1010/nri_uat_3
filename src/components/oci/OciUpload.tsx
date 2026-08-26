@@ -7,14 +7,12 @@ import type { UploadedFile } from '@/components/file-upload/fileUpload.types';
 import { buildInitialFileFromUrl } from '@/components/file-upload/buildInitialFile';
 import apiService from '@/services/api.service';
 import { toast } from '@/services/toast.service';
-import { useSpinner } from '@/components/spinner/Spinner';
 import styles from './oci.module.scss';
 import LoadingButton from '@/components/ui/LoadingButton';
+import dynamicBackService from "@/services/back-navigation.service";
+import { useSpinner } from "../spinner/Spinner";
+import secureSessionService from '@/services/secure-session.service';
 
-// OciUpload — /oci merged screen. Captures the Document Type (OCI/PIO) + Card No.
-// and the Front (required) + Back (optional) document uploads on one page, then
-// submits poi-oci/upload once and advances via the response uiMetadata.route.
-// (Replaces the former two-screen /oci → /oci/upload flow.)
 
 type DocType = 'OCI' | 'PIO' | '';
 
@@ -31,9 +29,8 @@ const DOC_OPTIONS: { value: DocType; label: string }[] = [
 ];
 
 const getApplicationId = (): string =>
-  typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') ?? '' : '';
+  typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') ?? '' : '';
 
-// Pull the document id out of the upload response across plausible key casings.
 const pickDocId = (r: unknown): string => {
   const o = (r ?? {}) as Record<string, unknown>;
   const d = (o.data ?? o) as Record<string, unknown>;
@@ -41,14 +38,11 @@ const pickDocId = (r: unknown): string => {
   return v != null && v !== '' ? String(v) : '';
 };
 
-// Pull a presigned URL out of a documents[] entry across key casings.
 const pickUrl = (doc: Record<string, unknown>): string => {
   const v = doc.presignedUrl ?? doc.preSignedUrl ?? doc.url;
   return v == null ? '' : String(v);
 };
 
-// Post-submit route comes back in the response uiMetadata, a JSON string like
-// "{\"route\": \"foreignAddress\"}".
 const routeFromUiMetadata = (res: unknown): string | null => {
   const meta = (res ?? {}) as Record<string, unknown>;
   try {
@@ -60,9 +54,6 @@ const routeFromUiMetadata = (res: unknown): string | null => {
   }
 };
 
-// Document-type prefix used for both upload and preview lookup. A PIO card uses
-// the "Pio…" document type here (some backends instead expect "Poi…" and reject
-// "Pio…" with a 400 — switch this if that happens).
 const prefixFor = (type: DocType): 'Oci' | 'Pio' => (type === 'PIO' ? 'Pio' : 'Oci');
 
 function IconBackArrow() {
@@ -79,30 +70,19 @@ type Previews = { front: UploadedFile | null; back: UploadedFile | null };
 export default function OciUpload() {
   const router = useRouter();
 
-  // ── Document Type + Card No. (from the former /oci landing screen) ──────────
   const [docType, setDocType] = useState<DocType>('');
   const [cardNo, setCardNo] = useState('');
 
-  // Saved card number + document previews per type, prefilled from the OCI/PIO
-  // workflow stages so switching the dropdown restores that type's Card No. and
-  // uploaded-document previews.
   const [savedByType, setSavedByType] = useState<Record<string, string>>({});
   const [previewsByType, setPreviewsByType] = useState<Record<string, Previews>>({});
-
-  // ── Uploads (from the former /oci/upload screen) ────────────────────────────
   const [frontFiles, setFrontFiles] = useState<UploadedFile[]>([]);
   const [backFiles, setBackFiles] = useState<UploadedFile[]>([]);
   const [frontInitial, setFrontInitial] = useState<UploadedFile | null>(null);
   const [backInitial, setBackInitial] = useState<UploadedFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // The prefill is async; gate the cards (and the global loader) on this so the
-  // cards mount already-bound and a user upload can't be clobbered.
   const { show: showSpinner, hide: hideSpinner } = useSpinner();
   const [prefillDone, setPrefillDone] = useState(false);
-
-  // uploadFn is captured by FileUploadCard; read the live document type through a
-  // ref so an upload always uses the currently-selected type's prefix.
   const docTypeRef = useRef<DocType>('');
   useEffect(() => {
     docTypeRef.current = docType;
@@ -110,13 +90,8 @@ export default function OciUpload() {
 
   const frontUploaded = frontFiles.some((f) => f.status === 'success');
 
-  // Proceed gate — a Document Type, a Card No., and the Front upload are all
-  // required. The Back stays optional, so it never blocks Proceed.
   const isDisabled = docType === '' || cardNo.trim() === '' || !frontUploaded;
 
-  // Prefill from the saved OCI/PIO stages. The user could have saved either type,
-  // so fetch both, bind whichever was updated most recently, and prebuild each
-  // type's front/back previews so switching the dropdown swaps them instantly.
   useEffect(() => {
     showSpinner();
     const applicationId = getApplicationId();
@@ -194,7 +169,6 @@ export default function OciUpload() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefillDone]);
 
-  // Switching the type restores that type's saved Card No. and document previews.
   const handleDocTypeChange = (value: DocType) => {
     setDocType(value);
     setCardNo(value ? savedByType[value] ?? '' : '');
@@ -202,41 +176,46 @@ export default function OciUpload() {
     setBackInitial(value ? previewsByType[value]?.back ?? null : null);
   };
 
-  // Real upload — POST each file to documents/upload and store its documentId.
-  // Rejecting marks the FileUploadCard as failed (success reflects a real 200).
-  // Blocks until a Document Type is chosen (the prefix depends on it).
   const makeUploadFn =
     (suffix: 'Front' | 'Back', storageKey: string) =>
-    async (file: File, onProgress: (p: number) => void) => {
-      const type = docTypeRef.current;
-      if (!type) {
-        toast.error('Please select a Document Type first.');
-        throw new Error('No document type selected');
-      }
-      const applicationId = getApplicationId();
-      if (!applicationId) {
-        toast.error('Your session has expired, please start again.');
-        throw new Error('Missing application ID');
-      }
-      const res = await apiService.uploadDocument(
-        applicationId,
-        `${prefixFor(type)}${suffix}`,
-        file,
-        onProgress,
-      );
-      const id = pickDocId(res);
-      if (!id) throw new Error(res?.message || 'Upload failed. Please try again.');
-      onProgress(100);
-      sessionStorage.setItem(storageKey, id);
-    };
+      async (file: File, onProgress: (p: number) => void) => {
+        const type = docTypeRef.current;
+        if (!type) {
+          toast.error('Please select a Document Type first.');
+          throw new Error('No document type selected');
+        }
+        const applicationId = getApplicationId();
+        if (!applicationId) {
+          toast.error('Your session has expired, please start again.');
+          throw new Error('Missing application ID');
+        }
+        const res = await apiService.uploadDocument(
+          applicationId,
+          `${prefixFor(type)}${suffix}`,
+          file,
+          onProgress,
+        );
+        const id = pickDocId(res);
+        if (!id) throw new Error(res?.message || 'Upload failed. Please try again.');
+        onProgress(100);
+        secureSessionService.setItem(storageKey, id);
+      };
 
   const uploadFront = makeUploadFn('Front', 'frontDocumentId');
   const uploadBack = makeUploadFn('Back', 'backDocumentId');
 
-  const handleBack = () => router.back();
+  // const handleBack = () => router.back();
 
-  // Proceed — submit the card details + the actual front/back files
-  // (poi-oci/upload), then route per the response uiMetadata. Stays on failure.
+  const handleBack = async () => {
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
+    await dynamicBackService("POI_OCI", applicationId, {
+      push: router.push,
+      showSpinner,
+      hideSpinner,
+    });
+
+  };
+
   const handleProceed = async () => {
     if (isDisabled || submitting) return;
     const applicationId = getApplicationId();
@@ -264,26 +243,30 @@ export default function OciUpload() {
     }
   };
 
-  // ── Document Type + Card No. fields — same JSX on mobile + desktop ───────────
   const docTypeField = (idSuffix: 'mob' | 'desk') => (
     <>
-      {/* Not a <label htmlFor>: a radio group has no single input to point at,
-          so the caption is a plain <p> and the group carries the accessible name. */}
-      <p className={styles.fieldLabel}>Document Type *</p>
-      <div className={styles.radioGroup} role="radiogroup" aria-label="Document Type">
+      <span className={styles.fieldLabel} id={`${idSuffix}-doc-type-label`}>Document Type *</span>
+      <div
+        className={styles.radioGroup}
+        role="radiogroup"
+        aria-labelledby={`${idSuffix}-doc-type-label`}
+      >
         {DOC_OPTIONS.map((o) => (
-          <label key={o.value} className={styles.radioOption}>
+          <label
+            key={o.value}
+            className={`${styles.radioOption}${docType === o.value ? ` ${styles.radioOptionActive}` : ''}`}
+            htmlFor={`${idSuffix}-doc-type-${o.value}`}
+          >
             <input
+              id={`${idSuffix}-doc-type-${o.value}`}
               type="radio"
-              // Scoped per copy — the mobile and desktop fields are both in the
-              // DOM (CSS hides one), and a shared name would make all four
-              // inputs a single native radio group.
               name={`${idSuffix}-doc-type`}
+              className={styles.radioInput}
               value={o.value}
               checked={docType === o.value}
               onChange={() => handleDocTypeChange(o.value)}
             />
-            <span>{o.label}</span>
+            <span className={styles.radioLabelText}>{o.label}</span>
           </label>
         ))}
       </div>

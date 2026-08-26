@@ -12,6 +12,7 @@ import { publicPath } from "@/utils/publicPath";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import { buttonKeyProps } from "@/utils/a11y";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 // UploadPan — Upload PAN card image when name mismatch detected
 // Equivalent to Angular UploadPanComponent
 
@@ -37,7 +38,7 @@ export default function UploadPan() {
       flag: "PANUPLOAD",
       formnumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("ApplicationId")
+          ? secureSessionService.getItem("ApplicationId")
           : "",
     };
     try {
@@ -70,7 +71,7 @@ export default function UploadPan() {
   };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PAN_UPLOAD", applicationId, {
       push: router.push,
@@ -93,7 +94,7 @@ export default function UploadPan() {
     const reqData = {
       formNumber:
         typeof window !== "undefined"
-          ? sessionStorage.getItem("ApplicationId")
+          ? secureSessionService.getItem("ApplicationId")
           : "",
       flag: "docBase64String",
       docType: "PAN",

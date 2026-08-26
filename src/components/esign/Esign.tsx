@@ -10,6 +10,7 @@ import { EsignIllustration } from "./EsignIllustration";
 import styles from "./esign.module.scss";
 import LoadingButton from "@/components/ui/LoadingButton";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const DESKTOP_MQ = "(min-width: 992px)";
 
@@ -132,7 +133,7 @@ export default function Esign() {
 
     const rejectStatus =
       typeof window !== "undefined"
-        ? window.sessionStorage.getItem("RejectStatus")
+        ? secureSessionService.getItem("RejectStatus")
         : "";
 
     setIsRejectStatus(rejectStatus === "R");
@@ -140,7 +141,7 @@ export default function Esign() {
 
   const getApplicationId = () =>
     (typeof window !== "undefined" &&
-      sessionStorage.getItem("ApplicationId")) ||
+      secureSessionService.getItem("ApplicationId")) ||
     "";
 
   const openFaq = () => router.push(buildFaqUrl(pathname || "/esign"));
@@ -154,7 +155,7 @@ export default function Esign() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("ESIGN", applicationId, {
       push: router.push,

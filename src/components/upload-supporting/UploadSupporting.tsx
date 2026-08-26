@@ -8,6 +8,7 @@ import navigationService from '@/services/navigation.service';
 import { UploadDocumentModal, type UploadedDocument } from './UploadDocumentModal';
 import { UploadSupportingIllustration } from './UploadSupportingIllustration';
 import styles from './upload-supporting.module.scss';
+import secureSessionService from '@/services/secure-session.service';
 
 // UploadSupporting — Pick a supporting KYC document (Aadhaar / PAN / Driving
 // License / Passport) and upload it for re-verification.
@@ -175,7 +176,7 @@ export default function UploadSupporting() {
       return;
     }
 
-    sessionStorage.setItem(
+    secureSessionService.setItem(
       'supportingDocument',
       JSON.stringify({
         docType: selectedDocId,

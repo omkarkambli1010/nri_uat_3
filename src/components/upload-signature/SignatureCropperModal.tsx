@@ -11,16 +11,9 @@ export interface SignatureCropperModalProps {
   isDesktop: boolean;
   src: string;
   fileName: string;
-  /** Modal heading — defaults to the signature wording. */
   title?: string;
-  /** Modal sub-heading — defaults to the signature wording. */
   subtitle?: string;
-  /**
-   * MIME type for the exported blob. Defaults to 'image/png'. The output
-   * filename's extension is updated to match this type.
-   */
   outputType?: string;
-  /** Quality (0–1) for lossy formats like image/jpeg or image/webp. */
   outputQuality?: number;
   onCancel: () => void;
   onConfirm: (croppedBlob: Blob, croppedSize: number, croppedName: string) => void;
@@ -105,7 +98,6 @@ function extensionForType(type: string): string {
   }
 }
 
-// Swaps (or appends) the filename's extension to match the given output type.
 function swapExtension(name: string, type: string): string {
   const ext = extensionForType(type);
   const dot = name.lastIndexOf('.');
@@ -130,39 +122,15 @@ export function SignatureCropperModal({
   const [crop, setCrop] = useState<Crop | undefined>(undefined);
   const [completedCrop, setCompletedCrop] = useState<PixelCrop | undefined>(undefined);
   const [exporting, setExporting] = useState(false);
-  // Rotation applied to the image, in degrees (0/90/180/270). Disabled — kept
-  // commented for future re-enabling (see the "Image rotation (disabled)" block
-  // above).
-  // const [rotation, setRotation] = useState(0);
-  // Only non-zero rotations are baked into a data URL and held here. The 0° case
-  // is derived straight from `src` during render (see `displaySrc`), so the
-  // image never briefly renders an empty src while this effect settles.
-  // const [rotatedSrc, setRotatedSrc] = useState('');
 
   useEffect(() => {
     if (!open) {
       setCrop(undefined);
       setCompletedCrop(undefined);
       setExporting(false);
-      // setRotation(0);
-      // setRotatedSrc('');
     }
   }, [open]);
 
-  // Bake a non-zero rotation into a data URL so both the crop selection and the
-  // exported blob reflect it. Changing the shown src reloads the <img>, which
-  // reseeds the crop. Disabled — see the rotation block above.
-  // useEffect(() => {
-  //   if (!open || rotation % 360 === 0) {
-  //     setRotatedSrc('');
-  //     return;
-  //   }
-  //   let cancelled = false;
-  //   rotateImageToDataUrl(src, rotation)
-  //     .then((url) => { if (!cancelled) setRotatedSrc(url); })
-  //     .catch(() => { if (!cancelled) setRotatedSrc(''); });
-  //   return () => { cancelled = true; };
-  // }, [open, src, rotation]);
 
   useEffect(() => {
     if (!open) return;
@@ -175,15 +143,13 @@ export function SignatureCropperModal({
 
   const onImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget;
-    setCrop({ unit: '%', x: 10, y: 10, width: 80, height: 80 });
-    // Seed completedCrop with pixel values so the Confirm button is enabled
-    // immediately after the image renders.
+    setCrop({ unit: '%', x: 0, y: 0, width: 100, height: 100 });
     setCompletedCrop({
       unit: 'px',
-      x: Math.round(width * 0.1),
-      y: Math.round(height * 0.1),
-      width: Math.round(width * 0.8),
-      height: Math.round(height * 0.8),
+      x: 0,
+      y: 0,
+      width: Math.round(width),
+      height: Math.round(height),
     });
   };
 
@@ -238,11 +204,6 @@ export function SignatureCropperModal({
   // const rotateRight = () => setRotation((r) => (r + 90) % 360);
 
   if (!open) return null;
-
-  // At 0° use the original src directly; otherwise the rotated data URL once
-  // it's ready (falling back to the original while it's being generated).
-  // Disabled — the cropper renders `src` directly while rotation is off.
-  // const displaySrc = rotation % 360 === 0 ? src : rotatedSrc || src;
 
   const cardClass = isDesktop ? styles.deskCard : styles.mobSheet;
   const overlayClass = isDesktop ? styles.overlay : styles.overlayMob;

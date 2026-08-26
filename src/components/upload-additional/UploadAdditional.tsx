@@ -10,6 +10,7 @@ import LoadingButton from '@/components/ui/LoadingButton';
 import styles from './upload-additional.module.scss';
 import { publicPath } from "@/utils/publicPath";
 import { buttonKeyProps } from "@/utils/a11y";
+import secureSessionService from '@/services/secure-session.service';
 
 // UploadAdditional — Upload additional document (income proof, address proof, etc.)
 // Equivalent to Angular UploadAdditionalComponent
@@ -68,7 +69,7 @@ export default function UploadAdditional() {
     }
     showSpinner();
     const reqData = {
-      formNumber: typeof window !== 'undefined' ? sessionStorage.getItem('ApplicationId') : '',
+      formNumber: typeof window !== 'undefined' ? secureSessionService.getItem('ApplicationId') : '',
       flag: 'docBase64String',
       docType: selectedDocType,
       base64String: imageBase64,

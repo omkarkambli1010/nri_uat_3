@@ -6,6 +6,7 @@ import styles from "./manual-document-screen.module.scss";
 import { publicPath } from "@/utils/publicPath";
 import { useSpinner } from "../spinner/Spinner";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 // ManualDocumentScreen — intro for the semi-digital document-upload journey.
 // Figma: 0:122674 (desktop) / 0:123006 (mobile). Shows the required-documents
@@ -56,7 +57,7 @@ export default function ManualDocumentScreen() {
   // const handleBack = () => router.push('/uploadSignature');
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("MANUAL_DOCUMENT_UPLOAD", applicationId, {
       push: router.push,
@@ -78,8 +79,7 @@ export default function ManualDocumentScreen() {
           Required Documentation Checklist
         </p>
         <p className={styles.checklistSubtitle}>
-          Please ensure the following documents are prepared and ready for
-          upload:
+          Please ensure the following documents are handy and ready for upload
         </p>
       </div>
       <ol className={styles.checklistList}>

@@ -16,6 +16,34 @@ $font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
 // ===== Skip to main content (WCAG 2.4.1 Bypass Blocks) =====
 // Visually hidden until keyboard-focused, then pinned to the top-left so a
 // keyboard / screen-reader user can jump straight past the header into <main>.
+
+body.hide-reject-flow-back-buttons
+  button:has(
+    svg[viewBox="0 0 24 24"] path[d="M19 12H5"]
+  ):has(
+    svg[viewBox="0 0 24 24"] path[d="M12 19L5 12L12 5"]
+  ) {
+  display: none !important;
+}
+
+body.hide-reject-flow-back-buttons
+  button:has(
+    svg[viewBox="0 0 24 24"] path[d="M5 12H19"]
+  ):has(
+    svg[viewBox="0 0 24 24"] path[d="M5 12L11 18"]
+  ):has(
+    svg[viewBox="0 0 24 24"] path[d="M5 12L11 6"]
+  ) {
+  display: none !important;
+}
+
+body.hide-reject-flow-back-buttons
+  button:has(
+    svg[viewBox="0 0 24 24"] path[d="M15 6L9 12L15 18"]
+  ) {
+  display: none !important;
+}
+
 .skip-link {
   position: absolute;
   left: 8px;

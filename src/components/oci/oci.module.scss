@@ -1,5 +1,4 @@
 // ─── Design Tokens ───────────────────────────────────────────────────────────
-// Figma: Onboarding / Step 11 / OCI/PIO - Document Upload (0:38488)
 
 $primary:      #280071;
 $primary-hover:#1a004d;
@@ -70,7 +69,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   gap: 4px;
 }
 
-// Figma: 18px SemiBold #2b2b2b (node 0:38561 — "OCI or PIO Card")
 .mobileTitle {
   font-size: 18px;
   font-weight: 600;
@@ -79,7 +77,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   line-height: normal;
 }
 
-// Figma: 12px Regular #2b2b2b (node 0:38562)
 .mobileSubtitle {
   font-size: 12px;
   font-weight: 400;
@@ -101,7 +98,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex: 1;
 }
 
-// Upload-result card (file chip + image preview, no extra bottom fields)
 .mobileCardUpload {
   background: $bg-white;
   border-top-left-radius: 24px;
@@ -123,7 +119,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   width: 100%;
 }
 
-// Figma: 14px Regular #2b2b2b (node 0:38565 "Label")
 .fieldLabel {
   font-size: 14px;
   font-weight: 400;
@@ -131,36 +126,62 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   line-height: normal;
 }
 
-// Document Type — radio group (replaced the dropdown; the former .fieldSelect,
-// .fieldSelectCaret and .fieldInputWrap rules went with it).
+// ── Document Type radio group (replaces the old .fieldSelect dropdown) ─────
 .radioGroup {
   display: flex;
-  flex-direction: row;
-  gap: 24px;
   align-items: center;
+  gap: 12px;
   min-height: 40px;
+  width: 100%;
 }
 
 .radioOption {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid $border;
+  border-radius: 8px;
+  background: $bg-white;
   cursor: pointer;
+  user-select: none;
+  transition: border-color 0.18s ease, background 0.18s ease;
 
-  input[type='radio'] {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    accent-color: $primary;
-    cursor: pointer;
-  }
+  &:hover { border-color: $primary; }
 
-  span {
-    font-size: 14px;
-    font-weight: 400;
-    color: $text-dark-2;
-    line-height: normal;
+  // Keyboard focus lands on the input, which is visually hidden, so the ring
+  // is drawn on the wrapping label instead.
+  &:focus-within {
+    border-color: $primary;
+    box-shadow: 0 0 0 2px rgba(40, 0, 113, 0.15);
   }
+}
+
+.radioOptionActive {
+  border-color: $primary;
+  background: rgba(40, 0, 113, 0.04);
+}
+
+.radioInput {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  accent-color: $primary;
+  cursor: pointer;
+}
+
+.radioLabelText {
+  font-size: 14px;
+  font-weight: 400;
+  color: $text-dark-2;
+  line-height: normal;
+}
+
+.radioOptionActive .radioLabelText {
+  font-weight: 500;
+  color: $primary;
 }
 
 .fieldInput {
@@ -285,7 +306,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 }
 
 // ── Image preview zone ─────────────────────────────────────────────────────
-// Figma: border dashed #d9d9d9, rounded-16, py-16
 .previewZone {
   width: 100%;
   border: 1px dashed $border;
@@ -297,9 +317,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
 }
 
-// Keep the cropped image's natural width:height ratio. `max-width` +
-// `max-height` lets the browser shrink to fit while preserving the intrinsic
-// aspect ratio — no letterboxing inside the dashed preview zone.
 .previewImg {
   display: block;
   width: auto;
@@ -308,7 +325,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   max-height: 320px;
 }
 
-// Shown inside .previewZone when the uploaded file is a PDF (no inline image).
 .pdfPreviewNote {
   margin: 0;
   padding: 8px 16px;
@@ -334,7 +350,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   }
 }
 
-// Figma: w-800, border #d9d9d9, rounded-24, shadow
 .desktopCard {
   width: 100%;
   max-width: 800px;
@@ -507,7 +522,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
 // Figma: 0:39418 (choose) + 0:39757 (uploading)
 // ═══════════════════════════════════════════════════════════════════════════
 
-// position:fixed so it overlays the full viewport including AppShell header
 .sheetOverlay {
   position: fixed;
   inset: 0;
@@ -517,7 +531,6 @@ $shadow-desk:  0px 2px 10px 0px rgba(0, 0, 0, 0.05);
   justify-content: flex-end;
   background: rgba(0, 0, 0, 0.4);
 
-  // On desktop: center as dialog
   @media (min-width: 768px) {
     align-items: center;
     justify-content: center;

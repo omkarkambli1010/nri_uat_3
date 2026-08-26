@@ -9,6 +9,7 @@ import navigationService from "@/services/navigation.service";
 import styles from "./maritalstatus.module.scss";
 import { useSessionValue } from "@/hooks/useSessionValue";
 import dynamicBackService from "@/services/back-navigation.service";
+import secureSessionService from "@/services/secure-session.service";
 
 const MARITAL_OPTIONS = ["Single", "Married"];
 
@@ -62,7 +63,7 @@ export default function MaritalStatus() {
   // Prefill the saved marital status from the PERSONAL workflow stage, mirroring
   // how the other personal-details pages (TradingExp, AnnualIncome, …) bind.
   const getMaritalStatusData = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
     if (!applicationId) return;
 
     showSpinner();
@@ -103,7 +104,7 @@ export default function MaritalStatus() {
   //     // Semi-digital users come from the manual document-upload journey
   //     // (/aadhar/upload); full-digital users come from DigiLocker.
   //     const isSemiDigital =
-  //       sessionStorage.getItem("accountType") === "semi-digital";
+  //       secureSessionService.getItem("accountType") === "semi-digital";
   //     // router.push(isSemiDigital ? "/aadhar/upload" : "/digilocker-screen");
   //     router.push(isSemiDigital ? "/uploadProcess/1" : "/aadhar");
   //     hideSpinner();
@@ -111,7 +112,7 @@ export default function MaritalStatus() {
   // };
 
   const goBack = async () => {
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     await dynamicBackService("PERSONAL_DETAILS0", applicationId, {
       push: router.push,
@@ -125,7 +126,7 @@ export default function MaritalStatus() {
   const handleSelect = async (option: string) => {
     setSelected(option);
 
-    const applicationId = sessionStorage.getItem("ApplicationId") ?? "";
+    const applicationId = secureSessionService.getItem("ApplicationId") ?? "";
 
     if (!applicationId) {
       toast.error("Application Id not found");
@@ -159,7 +160,7 @@ export default function MaritalStatus() {
         route = uiMetadata?.route || "";
       } catch (error: any) {
         route = "";
-        console.log("Selfie Route Error:", error);
+        console.log("Route Error:", error);
       }
 
       if (route) {

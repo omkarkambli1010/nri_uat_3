@@ -6,6 +6,7 @@ import { useSpinner } from '@/components/spinner/Spinner';
 import { toast } from '@/services/toast.service';
 import apiService from '@/services/api.service';
 import moengagesdkService from '@/services/moengagesdk.service';
+import secureSessionService from '@/services/secure-session.service';
 
 // AggregatorCallback — Handles SSO callback from third-party aggregators
 // Equivalent to Angular AggregatorCallbackComponent
@@ -43,16 +44,16 @@ export default function AggregatorCallback() {
       const response = await apiService.postRequest('api/v1/aggregator/callback', reqData, hideSpinner);
       if (response?.status === true) {
         if (response.token) {
-          sessionStorage.setItem('token', response.token);
+          secureSessionService.setItem('token', response.token);
         }
         if (response.FormNumber) {
-          sessionStorage.setItem('FormNumber', response.FormNumber);
+          secureSessionService.setItem('FormNumber', response.FormNumber);
         }
         if (response.mobile) {
-          sessionStorage.setItem('mobile', response.mobile);
+          secureSessionService.setItem('mobile', response.mobile);
         }
         const routes: string[] = response.routes ?? [];
-        sessionStorage.setItem('allowedRoutes', JSON.stringify(routes));
+        secureSessionService.setItem('allowedRoutes', JSON.stringify(routes));
         const nextRoute = routes[0] ?? '/home';
         setTimeout(() => { router.push(nextRoute); hideSpinner(); }, 200);
       } else {
