@@ -11,6 +11,7 @@ import "react-toastify/dist/ReactToastify.css";
 import "@splidejs/react-splide/css/core";
 import Providers from "@/lib/providers";
 import AppShell from "@/components/app-shell/AppShell";
+import AuthGuard from "@/components/auth/AuthGuard";
 import GlobalBackButtonController from "@/components/navigation/GlobalBackButtonController";
 import { SITE_URL } from "@/lib/seo";
 
@@ -55,7 +56,9 @@ export default function RootLayout({
         />
         <GlobalBackButtonController />
         <Providers>
-          <AppShell>{children}</AppShell>
+          <AppShell>
+            <AuthGuard>{children}</AuthGuard>
+          </AppShell>
         </Providers>
       </body>
     </html>
